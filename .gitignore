@@ -1,0 +1,6 @@
+#cmake artifacts
+cmake-build-debug
+cmake-build-release
+
+zip
+.idea
