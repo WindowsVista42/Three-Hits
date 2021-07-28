@@ -11,7 +11,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-add_executable(untitled_fps main.c util.h vkutil.h vmmath.h)
+add_executable(untitled_fps src/main.c src/util.h src/vkutil.h src/vmmath.h)
 
 add_subdirectory(glfw-3.3.4)
 find_package(Vulkan REQUIRED)
