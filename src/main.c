@@ -67,6 +67,7 @@ global VkPipeline graphics_pipeline;
 global VkFramebuffer* swapchain_framebuffers;
 global VkCommandPool command_pool;
 global VkCommandBuffer* command_buffers;
+global StagedBuffer semaphore_buffer;
 global VkSemaphore* image_available_semaphores;
 global VkSemaphore* render_finished_semaphores;
 global VkFence* in_flight_fences;
@@ -143,7 +144,6 @@ void init_window() {
     // init glfw window
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     window = glfwCreateWindow(window_width, window_height, "Vulkan window", 0, 0);
 }
@@ -199,13 +199,13 @@ void init_instance() {
     if(supports_validation && validation_enabled) {
         debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debug_create_info.messageSeverity =
-                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
         debug_create_info.messageType =
-                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+            | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+            | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debug_create_info.pfnUserCallback = debug_callback;
         debug_create_info.pUserData = &debug_callback_data;
 
@@ -272,7 +272,7 @@ void init_physical_device() {
         vkGetPhysicalDeviceProperties(physical_devices[index], &device_properties);
         vkGetPhysicalDeviceFeatures(physical_devices[index], &device_features);
 
-        if(device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && device_features.geometryShader) {
+        if(device_features.geometryShader) {
             physical_device = physical_devices[index];
             break;
         }
@@ -435,7 +435,7 @@ void pre_init_swapchain() {
 
     adequate = false;
     for(usize index = 0; index < present_mode_count; index += 1) {
-        if(present_modes[index] == VK_PRESENT_MODE_FIFO_KHR) {
+        if(present_modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
             present_mode = present_modes[index];
             adequate = true;
             break;
@@ -783,13 +783,15 @@ void create_swapchain_framebuffers() {
 void create_command_buffers() {
     command_buffers = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkCommandBuffer));
 
-    VkCommandPoolCreateInfo command_pool_create_info = {};
-    command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    command_pool_create_info.queueFamilyIndex = queue_family_indices[0]; // graphics queue family
-    command_pool_create_info.flags = 0;
+    if(command_pool == 0) {
+        VkCommandPoolCreateInfo command_pool_create_info = {};
+        command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        command_pool_create_info.queueFamilyIndex = queue_family_indices[0]; // graphics queue family
+        command_pool_create_info.flags = 0;
 
-    if(vkCreateCommandPool(device, &command_pool_create_info, 0, &command_pool) != 0) {
-        panic("Failed to create command pool!");
+        if (vkCreateCommandPool(device, &command_pool_create_info, 0, &command_pool) != 0) {
+            panic("Failed to create command pool!");
+        }
     }
 
     VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
@@ -838,13 +840,12 @@ void create_command_buffers() {
     }
 }
 
-void create_semaphores()
-{
+void create_semaphores() {
     //TODO(sean): see if we can reduce the overall amount of times we call malloc
-    image_available_semaphores = sbmalloc(&swapchain_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-    render_finished_semaphores = sbmalloc(&swapchain_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-    in_flight_fences = sbmalloc(&swapchain_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
-    image_in_flight_fences = sbcalloc(&swapchain_buffer, 0, swapchain_image_count * sizeof(VkFence));
+    image_available_semaphores = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+    render_finished_semaphores = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+    in_flight_fences = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
+    image_in_flight_fences = sbcalloc(&semaphore_buffer, 0, swapchain_image_count * sizeof(VkFence));
 
     VkSemaphoreCreateInfo semaphore_info = {};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -870,7 +871,6 @@ void cleanup_swapchain_artifacts() {
     }
 
     vkFreeCommandBuffers(device, command_pool, (u32)swapchain_image_count, command_buffers);
-    vkDestroyCommandPool(device, command_pool, 0);
     vkDestroyPipeline(device, graphics_pipeline, 0);
     vkDestroyPipelineLayout(device, pipeline_layout, 0);
     vkDestroyRenderPass(device, render_pass, 0);
@@ -899,7 +899,9 @@ void recreate_swapchain() {
 
 int main() {
     sbinit(&scratch, 512 * 1024); // 512K
-    sbinit(&swapchain_buffer, 512 * 1024); // 512K
+    sbinit(&swapchain_buffer, 4 * 1024); // 4K
+    sbinit(&semaphore_buffer, 512); // 512b
+
     init_window();
     check_layers_support();
     init_instance();
