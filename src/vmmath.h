@@ -31,6 +31,12 @@ typedef union mat2 {
     struct { vec2 xs; vec2 ys; };
 } mat2;
 
+// 36 bytes
+typedef union mat3 {
+    f32 raw[9];
+    struct { vec3 xs; vec3 ys; vec3 zs; };
+} mat3;
+
 // 64 bytes
 typedef union mat4 {
     f32 raw[16];
