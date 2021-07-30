@@ -81,10 +81,7 @@ global inline vec3 vec3_mul_vec3(vec3 lhs, vec3 rhs) {
     return output;
 }
 
-global inline vec4 vec4_unit_w() {
-    vec4 output = {{0.0f, 0.0f, 0.0f, 1.0f}};
-    return output;
-}
+global vec4 vec4_unit_w = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
 global inline mat4 mat4_rotate(mat4 matrix, f32 angle, vec3 axis) {
     f32 sin = sinf(angle);
