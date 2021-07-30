@@ -129,6 +129,7 @@ global u16 indices[index_count] = {
     0, 4, 6,
     0, 2, 4,
 };
+
 #define vertex_binding_description_count 1
 global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
     {   .binding = 0,
@@ -140,7 +141,7 @@ global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_bindin
 global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
-        .format = VK_FORMAT_R32G32_SFLOAT,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
         .offset = offsetof(Vertex, pos),
     },
     {   .binding = 0,
