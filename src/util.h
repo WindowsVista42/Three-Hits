@@ -91,6 +91,7 @@ global inline void panic(char* message) {
 
 // platform dependant
 typedef struct Timer Timer;
+Timer timer_new();
 void timer_init(Timer* timer);
 void timer_start(Timer* timer);
 void timer_end(Timer* timer);
@@ -102,6 +103,12 @@ typedef struct Timer {
     LARGE_INTEGER frequency, t1, t2;
     f64 elapsed;
 } Timer;
+
+Timer timer_new() {
+    Timer timer;
+    timer_init(&timer);
+    return timer;
+}
 
 void timer_init(Timer* timer) {
     QueryPerformanceFrequency(&timer->frequency);
