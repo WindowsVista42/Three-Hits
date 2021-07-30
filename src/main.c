@@ -90,7 +90,7 @@ global VkDescriptorPool uniform_descriptor_pool;
 global VkDescriptorSet* descriptor_sets;
 
 typedef struct Vertex {
-    vec2 pos;
+    vec3 pos;
     vec3 color;
 } Vertex;
 
