@@ -920,7 +920,7 @@ void create_command_buffers() {
     }
 }
 
-void create_semaphores() {
+void create_sync_objects() {
     //TODO(sean): see if we can reduce the overall amount of times we call malloc
     image_available_semaphores = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
     render_finished_semaphores = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
@@ -1021,10 +1021,7 @@ int main() {
     create_pipeline();
     create_swapchain_framebuffers();
     create_command_buffers();
-    create_semaphores();
-
-    //Timer timer;
-    //timer_init(&timer);
+    create_sync_objects();
 
     while(!glfwWindowShouldClose(window)) {
         //timer_start(&timer);
