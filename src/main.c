@@ -1189,7 +1189,7 @@ void create_index_buffer() {
 int main() {
     sbinit(&scratch, 512 * 1024); // 512K
     sbinit(&swapchain_buffer, 4 * 1024); // 4K
-    sbinit(&semaphore_buffer, 512); // 512b
+    sbinit(&semaphore_buffer, 4 * 1024); // 4K
 
     init_window();
     check_layers_support();
