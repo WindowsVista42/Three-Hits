@@ -171,6 +171,8 @@ void render() {
         panic("Failed to acquire next swapchain image!");
     }
 
+    update_uniforms(image_index);
+
     if(image_in_flight_fences[current_frame_index] != 0) {
         vkWaitForFences(device, 1, &image_in_flight_fences[current_frame_index], VK_TRUE, UINT64_MAX);
     }
