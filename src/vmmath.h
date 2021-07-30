@@ -43,6 +43,17 @@ typedef union mat4 {
     struct { vec4 xs; vec4 ys; vec4 zs; vec4 ws; };
 } mat4;
 
+global inline vec4 vec4_splat(f32 splat) {
+    vec4 vector = {{splat, splat, splat, splat}};
+    return vector;
+}
+
+global inline vec3 vec3_sub_vec3(vec3, vec3);
+global inline f32 vec3_length(vec3 vector);
+global inline f32 vec3_length_recip(vec3 vector);
+global inline vec3 vec3_norm(vec3 vector);
+global inline vec3 vec3_cross(vec3 lhs, vec3 rhs);
+global inline f32 vec3_dot(vec3 lhs, vec3 rhs);
 
 global inline vec2 add_vec2(vec2 lhs, vec2 rhs) {
     vec2 ret = {{lhs.x + rhs.x, lhs.y + rhs.y}};
