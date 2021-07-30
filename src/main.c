@@ -89,11 +89,8 @@ global VkDeviceMemory* uniform_buffers_memory;
 global VkDescriptorPool uniform_descriptor_pool;
 global VkDescriptorSet* descriptor_sets;
 
-global usize mouse_counter;
-global f32 mouse_xpos[2];
-global f32 mouse_ypos[2];
-global f32 mouse_deltax;
-global f32 mouse_deltay;
+global vec2 mouse_pos;
+global vec2 mouse_delta;
 global f32 theta = 1.0;
 global f32 phi = 0.75;
 
@@ -273,23 +270,20 @@ void render() {
 
 global void cursor_position_callback(GLFWwindow* pwindow, double xpos, double ypos) {
     f32 lastx, lasty;
-    lastx = mouse_xpos[mouse_counter];
-    lasty = mouse_ypos[mouse_counter];
-
-    mouse_counter += 1;
-    mouse_counter %= 2;
+    lastx = mouse_pos.x;
+    lasty = mouse_pos.y;
 
     int winx, winy;
     glfwGetWindowSize(window, &winx, &winy);
 
-    mouse_xpos[mouse_counter] = (f32) xpos / (f32) winx;
-    mouse_ypos[mouse_counter] = (f32) ypos / (f32) winy;
+    mouse_pos.x = (f32) xpos / (f32) winx;
+    mouse_pos.y = (f32) ypos / (f32) winy;
 
-    mouse_deltax = lastx - mouse_xpos[mouse_counter];
-    mouse_deltay = lasty - mouse_ypos[mouse_counter];
+    mouse_delta.x = lastx - mouse_pos.x;
+    mouse_delta.y = lasty - mouse_pos.y;
 
-    theta += mouse_deltay;
-    phi += mouse_deltax;
+    theta += mouse_delta.y;
+    phi += mouse_delta.x;
 
     theta = f32_clamp(theta, 0.01, M_PI - 0.01);
 }
