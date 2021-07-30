@@ -8,11 +8,11 @@
 #include "util.h"
 #include "stdio.h"
 
-local VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-        VkDebugUtilsMessageTypeFlagsEXT message_type,
-        const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
-        void* p_user_data
+global VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
+    const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
+    void* p_user_data
 ) {
     char message_type_str[14];
     char message_severity_str[10];
