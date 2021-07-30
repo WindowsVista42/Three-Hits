@@ -89,6 +89,14 @@ global VkDeviceMemory* uniform_buffers_memory;
 global VkDescriptorPool uniform_descriptor_pool;
 global VkDescriptorSet* descriptor_sets;
 
+global usize mouse_counter;
+global f32 mouse_xpos[2];
+global f32 mouse_ypos[2];
+global f32 mouse_deltax;
+global f32 mouse_deltay;
+global f32 theta = 1.0;
+global f32 phi = 0.75;
+
 typedef struct Vertex {
     vec3 pos;
     vec3 color;
@@ -236,12 +244,41 @@ void render() {
     current_frame_index %= MAX_FRAMES_IN_FLIGHT;
 }
 
+global void cursor_position_callback(GLFWwindow* pwindow, double xpos, double ypos) {
+    f32 lastx, lasty;
+    lastx = mouse_xpos[mouse_counter];
+    lasty = mouse_ypos[mouse_counter];
+
+    mouse_counter += 1;
+    mouse_counter %= 2;
+
+    int winx, winy;
+    glfwGetWindowSize(window, &winx, &winy);
+
+    mouse_xpos[mouse_counter] = (f32) xpos / (f32) winx;
+    mouse_ypos[mouse_counter] = (f32) ypos / (f32) winy;
+
+    mouse_deltax = lastx - mouse_xpos[mouse_counter];
+    mouse_deltay = lasty - mouse_ypos[mouse_counter];
+
+    theta += mouse_deltay;
+    phi += mouse_deltax;
+
+    theta = f32_clamp(theta, 0.01, M_PI - 0.01);
+}
+
 void init_window() {
     // init glfw window
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
     window = glfwCreateWindow(window_width, window_height, "Vulkan window", 0, 0);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    if(glfwRawMouseMotionSupported()) {
+        glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
+    glfwSetCursorPosCallback(window, cursor_position_callback);
 }
 
 // check layers support
