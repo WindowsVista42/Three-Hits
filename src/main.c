@@ -765,8 +765,8 @@ void create_pipeline() {
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info = {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_create_info.setLayoutCount = 0;
-    pipeline_layout_create_info.pSetLayouts = 0;
+    pipeline_layout_create_info.setLayoutCount = 1;
+    pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
     pipeline_layout_create_info.pushConstantRangeCount = 0;
     pipeline_layout_create_info.pPushConstantRanges = 0;
 
@@ -945,10 +945,97 @@ void create_sync_objects() {
     }
 }
 
+void create_descriptor_set_layout() {
+    VkDescriptorSetLayoutBinding ubo_layout_binding = {};
+    ubo_layout_binding.binding = 0;
+    ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubo_layout_binding.descriptorCount = 1;
+    ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    ubo_layout_binding.pImmutableSamplers = 0;
+
+    VkDescriptorSetLayoutCreateInfo layout_create_info = {};
+    layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layout_create_info.bindingCount = 1;
+    layout_create_info.pBindings = &ubo_layout_binding;
+
+    if(vkCreateDescriptorSetLayout(device, &layout_create_info, 0, &descriptor_set_layout) != VK_SUCCESS) {
+        panic("Failed to create descriptor set layout!");
+    }
+}
+
+void create_uniform_buffers() {
+    VkDeviceSize buffer_size = sizeof(UniformBufferObject);
+
+    uniform_buffers = sbmalloc(&semaphore_buffer, swapchain_image_count * sizeof(VkBuffer));
+    uniform_buffers_memory = sbmalloc(&semaphore_buffer, swapchain_image_count * sizeof(VkDeviceMemory));
+
+    for(usize index = 0; index < swapchain_image_count; index += 1) {
+        _create_buffer(
+            device, physical_device, buffer_size,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &uniform_buffers[index], &uniform_buffers_memory[index]);
+    }
+}
+
+void create_descriptor_pool() {
+    VkDescriptorPoolSize pool_size = {};
+    pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    pool_size.descriptorCount = swapchain_image_count;
+
+    VkDescriptorPoolCreateInfo pool_create_info = {};
+    pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_create_info.poolSizeCount = 1;
+    pool_create_info.pPoolSizes = &pool_size;
+    pool_create_info.maxSets = swapchain_image_count;
+
+    if(vkCreateDescriptorPool(device, &pool_create_info, 0, &uniform_descriptor_pool) != VK_SUCCESS) {
+        panic("Failed to create uniform descriptor pool!");
+    }
+}
+
+void create_descriptor_sets() {
+    VkDescriptorSetLayout* layouts = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkDescriptorSetLayout));
+    for(usize index = 0; index < swapchain_image_count; index += 1) { layouts[index] = descriptor_set_layout; }
+
+    VkDescriptorSetAllocateInfo allocate_info = {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocate_info.descriptorPool = uniform_descriptor_pool;
+    allocate_info.descriptorSetCount = swapchain_image_count;
+    allocate_info.pSetLayouts = layouts;
+
+    descriptor_sets = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkDescriptorSet));
+    if (vkAllocateDescriptorSets(device, &allocate_info, descriptor_sets) != VK_SUCCESS) {
+        panic("Failed to allocate uniform descriptor sets!");
+    }
+
+    for(usize index = 0; index < swapchain_image_count; index += 1) {
+        VkDescriptorBufferInfo buffer_info = {};
+        buffer_info.buffer = uniform_buffers[index];
+        buffer_info.offset = 0;
+        buffer_info.range = sizeof(UniformBufferObject);
+
+        VkWriteDescriptorSet descriptor_write = {};
+        descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_write.dstSet = descriptor_sets[index];
+        descriptor_write.dstBinding = 0;
+        descriptor_write.dstArrayElement = 0;
+        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptor_write.descriptorCount = 1;
+        descriptor_write.pBufferInfo = &buffer_info;
+        descriptor_write.pImageInfo = 0;
+        descriptor_write.pTexelBufferView = 0;
+
+        vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, 0);
+    }
+}
+
 void cleanup_swapchain_artifacts() {
     for(usize index = 0; index < swapchain_image_count; index += 1) {
         vkDestroyFramebuffer(device, swapchain_framebuffers[index], 0);
     }
+
+    vkDestroyDescriptorPool(device, uniform_descriptor_pool, 0);
 
     vkFreeCommandBuffers(device, command_pool, (u32)swapchain_image_count, command_buffers);
     vkDestroyPipeline(device, graphics_pipeline, 0);
