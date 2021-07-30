@@ -94,16 +94,32 @@ typedef struct Vertex {
     vec3 color;
 } Vertex;
 
-#define vertex_count 4
+#define vertex_count 8
 global Vertex vertices[vertex_count] = {
-    {{{-0.5f, -0.5f}}, {{1.0f, 0.0f, 0.0f}}},
-    {{{ 0.5f, -0.5f}}, {{0.0f, 1.0f, 0.0f}}},
-    {{{ 0.5f,  0.5f}}, {{0.0f, 0.0f, 1.0f}}},
-    {{{-0.5f,  0.5f}}, {{1.0f, 1.0f, 1.0f}}},
+    {{{-0.5f, -0.5f, -0.5f}}, {{1.0f, 1.0f, 1.0f}}}, // 0 // w
+    {{{-0.5f, -0.5f,  0.5f}}, {{0.0f, 0.0f, 1.0f}}}, // 1
+    {{{-0.5f,  0.5f, -0.5f}}, {{0.0f, 1.0f, 0.0f}}}, // 2 // g
+    {{{-0.5f,  0.5f,  0.5f}}, {{0.0f, 1.0f, 1.0f}}}, // 3
+    {{{ 0.5f,  0.5f, -0.5f}}, {{1.0f, 1.0f, 0.0f}}}, // 4 // w
+    {{{ 0.5f,  0.5f,  0.5f}}, {{1.0f, 1.0f, 1.0f}}}, // 5
+    {{{ 0.5f, -0.5f, -0.5f}}, {{1.0f, 0.0f, 0.0f}}}, // 6 // b
+    {{{ 0.5f, -0.5f,  0.5f}}, {{1.0f, 0.0f, 1.0f}}}, // 7
 };
-#define index_count 6
+
+#define index_count 36
 global u16 indices[index_count] = {
-    0, 1, 2, 2, 3, 0
+    0, 1, 3,
+    0, 3, 2,
+    2, 3, 4,
+    4, 3, 5,
+    4, 5, 6,
+    5, 7, 6,
+    0, 6, 7,
+    0, 7, 1,
+    1, 7, 3,
+    5, 3, 7,
+    0, 4, 6,
+    0, 2, 4,
 };
 #define vertex_binding_description_count 1
 global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
