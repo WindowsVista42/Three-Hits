@@ -860,9 +860,7 @@ void create_swapchain_framebuffers() {
     }
 }
 
-void create_command_buffers() {
-    command_buffers = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkCommandBuffer));
-
+void init_command_pool() {
     if(command_pool == 0) {
         VkCommandPoolCreateInfo command_pool_create_info = {};
         command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -873,6 +871,11 @@ void create_command_buffers() {
             panic("Failed to create command pool!");
         }
     }
+
+}
+
+void create_command_buffers() {
+    command_buffers = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkCommandBuffer));
 
     VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
