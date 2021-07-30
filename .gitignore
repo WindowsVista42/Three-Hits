@@ -1,7 +1,6 @@
-#cmake artifacts
 cmake-build-debug
 cmake-build-release
-glfw-3.3.4
 
 zip
 *.spv
+/glfw-3.3.4/
