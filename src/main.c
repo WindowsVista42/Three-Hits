@@ -94,6 +94,9 @@ global vec2 mouse_delta;
 global f32 theta = 1.0;
 global f32 phi = 0.75;
 
+global Timer last_elapsed = {1.0f, 1024.0*1024.0, 1024.0*1024.0};
+global f32 deltatime;
+
 typedef struct Vertex {
     vec3 pos;
     vec3 color;
@@ -157,7 +160,7 @@ void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
 
     static f32 rotation = 0.0;
-    rotation += 0.0125;
+    rotation += 6.0 * deltatime;
     vec3 axis = {{0.0, 0.0, 1.0}};
     ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
 
@@ -166,35 +169,29 @@ void update_uniforms(u32 current_image) {
     {
         static vec3 player_eye = {{2.0, 2.0, 2.0}};
         static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
+
         vec3 xydir = {{look_dir.x, look_dir.y, 0.0}};
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
         vec3 delta = {{0.0f, 0.0f, 0.0f}};
 
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            //vec3 delta = vec3_mul_f32(xydir, 0.05);
-            //player_eye = vec3_sub_vec3(player_eye, delta);
             delta = vec3_sub_vec3(delta, xydir);
         }
         if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            //vec3 delta = vec3_mul_f32(normal, 0.05);
-            //player_eye = vec3_sub_vec3(player_eye, delta);
             delta = vec3_sub_vec3(delta, normal);
         }
         if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            //vec3 delta = vec3_mul_f32(xydir, 0.05);
-            //player_eye = vec3_add_vec3(player_eye, delta);
             delta = vec3_add_vec3(delta, xydir);
         }
         if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            //vec3 delta = vec3_mul_f32(normal, 0.05);
-            //player_eye = vec3_add_vec3(player_eye, delta);
             delta = vec3_add_vec3(delta, normal);
         }
 
         if(delta.x != 0.0f || delta.y != 0.0f || delta.z != 0.0f) {
             delta = vec3_norm(delta);
-            delta = vec3_mul_f32(delta, 0.03);
+            delta = vec3_mul_f32(delta, deltatime);
+            delta = vec3_mul_f32(delta, 4.0);
             player_eye = vec3_add_vec3(player_eye, delta);
         }
 
@@ -203,6 +200,11 @@ void update_uniforms(u32 current_image) {
         vec3 up = {{0.0f, 0.0f, 1.0f}};
 
         view = mat4_look_dir(player_eye, look_dir, up);
+
+        timer_end(&last_elapsed);
+        deltatime = (f32)last_elapsed.elapsed;
+        timer_init(&last_elapsed);
+        timer_start(&last_elapsed);
     }
 
     proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
