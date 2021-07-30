@@ -150,8 +150,7 @@ global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_at
 
 typedef struct UniformBufferObject {
     mat4 model;
-    mat4 view;
-    mat4 proj;
+    mat4 view_proj;
 } UniformBufferObject;
 
 void update_uniforms(u32 current_image) {
@@ -161,6 +160,8 @@ void update_uniforms(u32 current_image) {
     rotation += 0.0125;
     vec3 axis = {{0.0, 0.0, 1.0}};
     ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
+
+    mat4 proj, view;
 
     {
         static vec3 player_eye = {{2.0, 2.0, 2.0}};
@@ -193,8 +194,9 @@ void update_uniforms(u32 current_image) {
         ubo.view = mat4_look_dir(player_eye, look_dir, up);
     }
 
-    ubo.proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
-    ubo.proj.ys.y *= -1.0f;
+    proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
+
+    ubo.view_proj = mat4_mul_mat4(view, proj);
 
     void* data;
     vkMapMemory(device, uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &data);
