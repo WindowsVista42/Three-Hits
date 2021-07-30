@@ -169,21 +169,32 @@ void update_uniforms(u32 current_image) {
         vec3 xydir = {{look_dir.x, look_dir.y, 0.0}};
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
+        vec3 delta = {{0.0f, 0.0f, 0.0f}};
 
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            vec3 delta = vec3_mul_scalar(xydir, 0.05);
-            player_eye = vec3_sub_vec3(player_eye, delta);
+            //vec3 delta = vec3_mul_f32(xydir, 0.05);
+            //player_eye = vec3_sub_vec3(player_eye, delta);
+            delta = vec3_sub_vec3(delta, xydir);
         }
         if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            vec3 delta = vec3_mul_scalar(normal, 0.05);
-            player_eye = vec3_sub_vec3(player_eye, delta);
+            //vec3 delta = vec3_mul_f32(normal, 0.05);
+            //player_eye = vec3_sub_vec3(player_eye, delta);
+            delta = vec3_sub_vec3(delta, normal);
         }
         if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            vec3 delta = vec3_mul_scalar(xydir, 0.05);
-            player_eye = vec3_add_vec3(player_eye, delta);
+            //vec3 delta = vec3_mul_f32(xydir, 0.05);
+            //player_eye = vec3_add_vec3(player_eye, delta);
+            delta = vec3_add_vec3(delta, xydir);
         }
         if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            vec3 delta = vec3_mul_scalar(normal, 0.05);
+            //vec3 delta = vec3_mul_f32(normal, 0.05);
+            //player_eye = vec3_add_vec3(player_eye, delta);
+            delta = vec3_add_vec3(delta, normal);
+        }
+
+        if(delta.x != 0.0f || delta.y != 0.0f || delta.z != 0.0f) {
+            delta = vec3_norm(delta);
+            delta = vec3_mul_f32(delta, 0.03);
             player_eye = vec3_add_vec3(player_eye, delta);
         }
 
@@ -191,7 +202,7 @@ void update_uniforms(u32 current_image) {
 
         vec3 up = {{0.0f, 0.0f, 1.0f}};
 
-        ubo.view = mat4_look_dir(player_eye, look_dir, up);
+        view = mat4_look_dir(player_eye, look_dir, up);
     }
 
     proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
