@@ -165,12 +165,38 @@ void update_uniforms(u32 current_image) {
     vec3 axis = {{0.0, 0.0, 1.0}};
     ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
 
-    vec3 pos = {{2.0f, 2.0f, 2.0f}};
-    vec3 center = {{0.0f, 0.0f, 0.0f}};
-    vec3 up = {{0.0f, 0.0f, 1.0f}};
-    ubo.view = mat4_look_at(pos, center, up);
+    {
+        static vec3 player_eye = {{2.0, 2.0, 2.0}};
+        static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
+        vec3 xydir = {{look_dir.x, look_dir.y, 0.0}};
+        xydir = vec3_norm(xydir);
+        vec3 normal = {{-xydir.y, xydir.x, 0.0}};
 
-    ubo.proj = mat4_perspective(0.4f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
+        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            vec3 delta = vec3_mul_scalar(xydir, 0.05);
+            player_eye = vec3_sub_vec3(player_eye, delta);
+        }
+        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            vec3 delta = vec3_mul_scalar(normal, 0.05);
+            player_eye = vec3_sub_vec3(player_eye, delta);
+        }
+        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            vec3 delta = vec3_mul_scalar(xydir, 0.05);
+            player_eye = vec3_add_vec3(player_eye, delta);
+        }
+        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            vec3 delta = vec3_mul_scalar(normal, 0.05);
+            player_eye = vec3_add_vec3(player_eye, delta);
+        }
+
+        look_dir = vec3_from_theta_phi(theta, phi);
+
+        vec3 up = {{0.0f, 0.0f, 1.0f}};
+
+        ubo.view = mat4_look_dir(player_eye, look_dir, up);
+    }
+
+    ubo.proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
     ubo.proj.ys.y *= -1.0f;
 
     void* data;
