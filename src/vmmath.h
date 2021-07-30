@@ -155,6 +155,53 @@ global inline f32 vec3_dot(vec3 lhs, vec3 rhs) {
     return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
 }
 
+global inline f32 f32_clamp(f32 x, f32 min, f32 max) {
+    if(x < min) {
+        return min;
+    }
+    if(x > max) {
+        return max;
+    }
+    return x;
+}
+
+global inline f32 f32_radians(f32 fov) {
+    return (180.0f/M_PI) * fov;
+}
+
+global inline vec3 vec3_from_theta_phi(f32 theta, f32 phi) {
+    vec3 output = {{
+        cosf(phi) * sinf(theta),
+        sinf(phi) * sinf(theta),
+        cosf(theta),
+    }};
+    return output;
+}
+
+global inline vec3 vec3_add_vec3(vec3 lhs, vec3 rhs) {
+    vec3 output = {{
+        lhs.x + rhs.x,
+        lhs.y + rhs.y,
+        lhs.z + rhs.z,
+    }};
+    return output;
+}
+
+global mat4 mat4_look_dir(vec3 eye, vec3 dir, vec3 up) {
+    vec3 f = vec3_norm(dir);
+    vec3 s = vec3_norm(vec3_cross(up, f));
+    vec3 u = vec3_cross(f, s);
+
+    mat4 output = {
+        .xs = {{s.x, u.x, f.x, 0.0f}},
+        .ys = {{s.y, u.y, f.y, 0.0f}},
+        .zs = {{s.z, u.z, f.z, 0.0f}},
+        .ws = {{-vec3_dot(s, eye), -vec3_dot(u, eye), -vec3_dot(f, eye), 1.0f}},
+    };
+
+    return output;
+}
+
 global inline mat4 mat4_look_at(vec3 eye, vec3 center, vec3 up) {
     vec3 dir = vec3_sub_vec3(eye, center);
     vec3 f = vec3_norm(dir);
