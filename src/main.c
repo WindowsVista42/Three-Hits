@@ -160,7 +160,7 @@ void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
 
     static f32 rotation = 0.0;
-    rotation += 6.0 * deltatime;
+    rotation += 3.0 * deltatime;
     vec3 axis = {{0.0, 0.0, 1.0}};
     ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
 
@@ -604,7 +604,7 @@ void pre_init_swapchain() {
 
     adequate = false;
     for(usize index = 0; index < present_mode_count; index += 1) {
-        if(present_modes[index] == VK_PRESENT_MODE_FIFO_KHR) {
+        if(present_modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
             present_mode = present_modes[index];
             adequate = true;
             break;
