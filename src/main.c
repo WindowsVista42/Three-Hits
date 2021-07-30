@@ -61,20 +61,98 @@ global VkExtent2D swapchain_extent;
 global VkImageView* swapchain_image_views;
 global VkShaderModule vertex_module;
 global VkShaderModule fragment_module;
+global VkDescriptorSetLayout descriptor_set_layout;
 global VkPipelineLayout pipeline_layout;
 global VkRenderPass render_pass;
 global VkPipeline graphics_pipeline;
 global VkFramebuffer* swapchain_framebuffers;
 global VkCommandPool command_pool;
 global VkCommandBuffer* command_buffers;
+
 global StagedBuffer semaphore_buffer;
 global VkSemaphore* image_available_semaphores;
 global VkSemaphore* render_finished_semaphores;
 global VkFence* in_flight_fences;
 global VkFence* image_in_flight_fences;
 global usize current_frame_index;
+
 global DebugCallbackData debug_callback_data;
 global StagedBuffer scratch;
+
+global VkBuffer vertex_buffer;
+global VkDeviceMemory vertex_buffer_memory;
+global VkBuffer index_buffer;
+global VkDeviceMemory index_buffer_memory;
+
+global VkBuffer* uniform_buffers;
+global VkDeviceMemory* uniform_buffers_memory;
+global VkDescriptorPool uniform_descriptor_pool;
+global VkDescriptorSet* descriptor_sets;
+
+typedef struct Vertex {
+    vec2 pos;
+    vec3 color;
+} Vertex;
+
+#define vertex_count 4
+global Vertex vertices[vertex_count] = {
+    {{{-0.5f, -0.5f}}, {{1.0f, 0.0f, 0.0f}}},
+    {{{ 0.5f, -0.5f}}, {{0.0f, 1.0f, 0.0f}}},
+    {{{ 0.5f,  0.5f}}, {{0.0f, 0.0f, 1.0f}}},
+    {{{-0.5f,  0.5f}}, {{1.0f, 1.0f, 1.0f}}},
+};
+#define index_count 6
+global u16 indices[index_count] = {
+    0, 1, 2, 2, 3, 0
+};
+#define vertex_binding_description_count 1
+global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
+    {   .binding = 0,
+        .stride = sizeof(Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    }
+};
+#define vertex_attribute_description_count 2
+global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
+    {   .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, pos),
+    },
+    {   .binding = 0,
+        .location = 1,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, color),
+    }
+};
+
+typedef struct UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} UniformBufferObject;
+
+void update_uniforms(u32 current_image) {
+    UniformBufferObject ubo = {};
+
+    static f32 rotation = 0.0;
+    rotation += 0.0125;
+    vec3 axis = {{0.0, 0.0, 1.0}};
+    ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
+
+    vec3 pos = {{2.0f, 2.0f, 2.0f}};
+    vec3 center = {{0.0f, 0.0f, 0.0f}};
+    vec3 up = {{0.0f, 0.0f, 1.0f}};
+    ubo.view = mat4_look_at(pos, center, up);
+
+    ubo.proj = mat4_perspective(0.4f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
+    ubo.proj.ys.y *= -1.0f;
+
+    void* data;
+    vkMapMemory(device, uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &data);
+        memcpy(data, &ubo, sizeof(ubo));
+    vkUnmapMemory(device, uniform_buffers_memory[current_image]);
+}
 
 void recreate_swapchain();
 
