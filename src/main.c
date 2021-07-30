@@ -515,7 +515,7 @@ void pre_init_swapchain() {
 
     adequate = false;
     for(usize index = 0; index < present_mode_count; index += 1) {
-        if(present_modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        if(present_modes[index] == VK_PRESENT_MODE_FIFO_KHR) {
             present_mode = present_modes[index];
             adequate = true;
             break;
