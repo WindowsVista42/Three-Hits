@@ -1,10 +1,10 @@
 #version 450
 
-vec2 positions[3] = vec2[](
-    vec2(0.0, -0.5),
-    vec2(0.5, 0.5),
-    vec2(-0.5, 0.5)
-);
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+};
 
 layout(location = 0) in vec2 in_position;
 layout(location = 1) in vec3 in_color;
