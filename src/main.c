@@ -715,7 +715,7 @@ void create_pipeline() {
     rasterization_state_create_info.polygonMode = VK_POLYGON_MODE_FILL;
     rasterization_state_create_info.lineWidth = 1.0f;
     rasterization_state_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterization_state_create_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterization_state_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterization_state_create_info.depthBiasEnable = VK_FALSE;
     rasterization_state_create_info.depthBiasConstantFactor = 0.0f;
     rasterization_state_create_info.depthBiasClamp = 0.0f;
@@ -912,8 +912,14 @@ void create_command_buffers() {
 
         vkCmdBeginRenderPass(command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-        vkCmdDraw(command_buffers[index], 3, 1, 0, 0);
+            vkCmdBindPipeline(command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+
+            VkBuffer vertex_buffers[] = {vertex_buffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(command_buffers[index], 0, 1, vertex_buffers, offsets);
+            vkCmdBindIndexBuffer(command_buffers[index], index_buffer, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindDescriptorSets(command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[index], 0, 0);
+            vkCmdDrawIndexed(command_buffers[index], index_count, 1, 0, 0, 0);
 
         vkCmdEndRenderPass(command_buffers[index]);
 
@@ -1064,6 +1070,9 @@ void recreate_swapchain() {
     create_shader_modules();
     create_pipeline();
     create_swapchain_framebuffers();
+    create_uniform_buffers();
+    create_descriptor_pool();
+    create_descriptor_sets();
     create_command_buffers();
 }
 
