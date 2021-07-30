@@ -1041,6 +1041,8 @@ void create_descriptor_sets() {
 
 void cleanup_swapchain_artifacts() {
     for(usize index = 0; index < swapchain_image_count; index += 1) {
+        vkDestroyBuffer(device, uniform_buffers[index], 0);
+        vkFreeMemory(device, uniform_buffers_memory[index], 0);
         vkDestroyFramebuffer(device, swapchain_framebuffers[index], 0);
     }
 
@@ -1117,17 +1119,22 @@ int main() {
     pre_init_swapchain();
     init_swapchain();
     create_shader_modules();
+    create_uniform_buffers();
+    create_descriptor_set_layout();
     create_pipeline();
     create_swapchain_framebuffers();
+    init_command_pool();
+    create_vertex_buffer();
+    create_index_buffer();
+    create_uniform_buffers();
+    create_descriptor_pool();
+    create_descriptor_sets();
     create_command_buffers();
     create_sync_objects();
 
     while(!glfwWindowShouldClose(window)) {
-        //timer_start(&timer);
         glfwPollEvents();
         render();
-        //timer_end(&timer);
-        //printf("Elapsed time: %lf s\n", timer.elapsed);
     }
 
     //TODO(sean): finish swapchain recreation steps
