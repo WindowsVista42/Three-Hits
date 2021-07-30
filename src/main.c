@@ -677,10 +677,10 @@ void create_pipeline() {
 
     VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {};
     vertex_input_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_state_create_info.vertexAttributeDescriptionCount = 0;
-    vertex_input_state_create_info.pVertexBindingDescriptions = 0;
-    vertex_input_state_create_info.vertexAttributeDescriptionCount = 0;
-    vertex_input_state_create_info.pVertexAttributeDescriptions = 0;
+    vertex_input_state_create_info.vertexAttributeDescriptionCount = vertex_attribute_description_count;
+    vertex_input_state_create_info.pVertexAttributeDescriptions = vertex_attribute_descriptions;
+    vertex_input_state_create_info.vertexBindingDescriptionCount = vertex_binding_description_count;
+    vertex_input_state_create_info.pVertexBindingDescriptions = vertex_binding_descriptions;
 
     VkPipelineInputAssemblyStateCreateInfo vertex_input_assembly_create_info = {};
     vertex_input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -975,6 +975,34 @@ void recreate_swapchain() {
     create_pipeline();
     create_swapchain_framebuffers();
     create_command_buffers();
+}
+
+void create_vertex_buffer() {
+    create_device_local_buffer(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        sizeof(vertices[0]) * vertex_count,
+        vertices,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &vertex_buffer,
+        &vertex_buffer_memory
+    );
+}
+
+void create_index_buffer() {
+    create_device_local_buffer(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        sizeof(indices[0]) * index_count,
+        indices,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        &index_buffer,
+        &index_buffer_memory
+    );
 }
 
 int main() {
