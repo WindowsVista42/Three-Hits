@@ -199,8 +199,33 @@ global inline f32 f32_clamp(f32 x, f32 min, f32 max) {
     return x;
 }
 
-global inline f32 f32_radians(f32 fov) {
-    return (180.0f/M_PI) * fov;
+global inline f32 f32_radians(f32 degrees) {
+    return (M_PI/180.0f) * degrees;
+}
+
+global inline vec3 vec3_zero() {
+    vec3 output = {{0.0, 0.0, 0.0}};
+    return output;
+}
+
+// True if all fields are equal
+global inline b32 vec3_eq_vec3(vec3 lhs, vec3 rhs) {
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+}
+
+// True if one or more fields are equal
+global inline b32 vec3_par_eq_vec3(vec3 lhs, vec3 rhs) {
+    return lhs.x == rhs.x || lhs.y == rhs.y || lhs.z == rhs.z;
+}
+
+// True if one or more fields are not equal
+global inline b32 vec3_ne_vec3(vec3 lhs, vec3 rhs) {
+    return lhs.x != rhs.x && lhs.y != rhs.y && lhs.z != rhs.z;
+}
+
+// True if one or more fields are not equal
+global inline b32 vec3_par_ne_vec3(vec3 lhs, vec3 rhs) {
+    return lhs.x != rhs.x || lhs.y != rhs.y || lhs.z != rhs.z;
 }
 
 global inline vec3 vec3_from_theta_phi(f32 theta, f32 phi) {
