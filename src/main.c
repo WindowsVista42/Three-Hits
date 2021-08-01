@@ -194,7 +194,7 @@ void update_uniforms(u32 current_image) {
             delta = vec3_add_vec3(delta, normal);
         }
 
-        if(vec3_par_ne_vec3(delta, vec3_zero())) {
+        if(vec3_par_ne_vec3(delta, vec3_zero)) {
             delta = vec3_norm(delta);
             delta = vec3_mul_f32(delta, deltatime);
             delta = vec3_mul_f32(delta, 4.0);
