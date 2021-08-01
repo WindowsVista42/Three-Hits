@@ -219,10 +219,7 @@ void update_uniforms(u32 current_image) {
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
 
-    void* data;
-    vkMapMemory(device, uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(device, uniform_buffers_memory[current_image]);
+    write_buffer(device, uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &ubo);
 }
 
 void recreate_swapchain();

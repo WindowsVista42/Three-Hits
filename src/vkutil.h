@@ -57,6 +57,20 @@ global VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     return VK_FALSE;
 }
 
+global inline void write_buffer(
+    VkDevice device,
+    VkDeviceMemory memory,
+    VkDeviceSize offset,
+    VkDeviceSize size,
+    VkMemoryMapFlags flags,
+    void* data
+) {
+    void* ptr;
+    vkMapMemory(device, memory, offset, size, flags, &ptr);
+        memcpy(ptr, data, size);
+    vkUnmapMemory(device, memory);
+}
+
 void create_shader_module(VkDevice device, const char* buffer, usize buffer_size, VkShaderModule* shader_module) {
     VkShaderModuleCreateInfo shader_module_create_info = {};
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -81,7 +95,7 @@ u32 find_memory_type(VkPhysicalDevice physical_device, u32 type_filter, VkMemory
     return UINT32_MAX;
 }
 
-void _create_buffer(
+void create_buffer(
     VkDevice device,
     VkPhysicalDevice physical_device,
     VkDeviceSize size,
@@ -172,20 +186,17 @@ void create_device_local_buffer(
 ) {
     VkBuffer staging_buffer;
     VkDeviceMemory staging_buffer_memory;
-    _create_buffer(device, physical_device, size,
-                   VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                   &staging_buffer, &staging_buffer_memory);
+    create_buffer(device, physical_device, size,
+                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                  &staging_buffer, &staging_buffer_memory);
 
-    void* mapped_data;
-    vkMapMemory(device, staging_buffer_memory, 0, size, 0, &mapped_data);
-    memcpy(mapped_data, data, (usize)size);
-    vkUnmapMemory(device, staging_buffer_memory);
+    write_buffer(device, staging_buffer_memory, 0, size, 0, data);
 
-    _create_buffer(device, physical_device, size,
-                   VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
-                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                   buffer, buffer_memory);
+    create_buffer(device, physical_device, size,
+                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                  buffer, buffer_memory);
 
     copy_buffer_to_buffer(queue, device, command_pool, staging_buffer, *buffer, size);
 
