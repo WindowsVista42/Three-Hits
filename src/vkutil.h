@@ -184,6 +184,9 @@ void create_device_local_buffer(
     VkBuffer* buffer,
     VkDeviceMemory* buffer_memory
 ) {
+    //TODO(sean): see if we want to put this to a debug flag or not
+    assert(VK_BUFFER_USAGE_TRANSFER_DST_BIT & usage);
+
     VkBuffer staging_buffer;
     VkDeviceMemory staging_buffer_memory;
     create_buffer(device, physical_device, size,
@@ -194,7 +197,7 @@ void create_device_local_buffer(
     write_buffer(device, staging_buffer_memory, 0, size, 0, data);
 
     create_buffer(device, physical_device, size,
-                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
+                  usage,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                   buffer, buffer_memory);
 

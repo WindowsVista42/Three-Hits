@@ -1203,7 +1203,7 @@ void create_vertex_buffer() {
         command_pool,
         sizeof(vertices[0]) * vertex_count,
         vertices,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         &vertex_buffer,
         &vertex_buffer_memory
     );
@@ -1217,7 +1217,7 @@ void create_index_buffer() {
         command_pool,
         sizeof(indices[0]) * index_count,
         indices,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         &index_buffer,
         &index_buffer_memory
     );
