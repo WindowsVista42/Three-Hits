@@ -194,7 +194,7 @@ void update_uniforms(u32 current_image) {
             delta = vec3_add_vec3(delta, normal);
         }
 
-        if(delta.x != 0.0f || delta.y != 0.0f || delta.z != 0.0f) {
+        if(vec3_par_ne_vec3(delta, vec3_zero())) {
             delta = vec3_norm(delta);
             delta = vec3_mul_f32(delta, deltatime);
             delta = vec3_mul_f32(delta, 4.0);
@@ -215,7 +215,7 @@ void update_uniforms(u32 current_image) {
         timer_start(&last_elapsed);
     }
 
-    proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.01f, 100.0f);
+    proj = mat4_perspective(f32_radians(100.0f), (float)swapchain_extent.width / (float)swapchain_extent.height, 0.01f, 100.0f);
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
 
