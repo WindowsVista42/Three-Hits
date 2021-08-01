@@ -161,6 +161,13 @@ global inline mat4 mat4_mul_mat4(mat4 a, mat4 b) {
     return output;
 }
 
+global inline f32 f32_wrap(f32 x, f32 wrap) {
+    if(x > wrap) {
+        x -= wrap;
+    }
+    return x;
+}
+
 global inline f32 vec3_length_recip(vec3 vector) {
     return 1.0 / vec3_length(vector);
 }
