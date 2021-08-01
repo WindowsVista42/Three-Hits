@@ -161,8 +161,14 @@ void update_uniforms(u32 current_image) {
 
     static f32 rotation = 0.0;
     rotation += 3.0 * deltatime;
-    vec3 axis = {{0.0, 0.0, 1.0}};
+    static f32 offset = 0.0;
+    offset += 3.0 * deltatime;
+    vec3 axis = {{0.0, sinf(offset), cosf(offset)}};
+    axis = vec3_norm(axis);
     ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
+
+    rotation = f32_wrap(rotation, 2.0 * M_PI);
+    offset = f32_wrap(offset, 2.0 * M_PI);
 
     mat4 proj, view;
 
@@ -195,6 +201,8 @@ void update_uniforms(u32 current_image) {
             player_eye = vec3_add_vec3(player_eye, delta);
         }
 
+        theta = f32_wrap(theta, 2.0 * M_PI);
+
         look_dir = vec3_from_theta_phi(theta, phi);
 
         vec3 up = {{0.0f, 0.0f, 1.0f}};
@@ -207,7 +215,7 @@ void update_uniforms(u32 current_image) {
         timer_start(&last_elapsed);
     }
 
-    proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.1f, 10.0f);
+    proj = mat4_perspective(1.0f, (float)swapchain_extent.width / (float)swapchain_extent.height, 0.01f, 100.0f);
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
 
