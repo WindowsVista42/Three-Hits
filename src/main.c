@@ -236,6 +236,7 @@ void render() {
         recreate_swapchain();
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        //TODO(sean): diagnostic
         panic("Failed to acquire next swapchain image!");
     }
 
@@ -262,7 +263,8 @@ void render() {
 
     vkResetFences(device, 1, &in_flight_fences[current_frame_index]);
 
-    if(vkQueueSubmit(queue, 1, &submit_info, in_flight_fences[current_frame_index]) != 0) {
+    if(vkQueueSubmit(queue, 1, &submit_info, in_flight_fences[current_frame_index]) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to submit draw command buffer!");
     }
 
@@ -281,6 +283,7 @@ void render() {
     if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         recreate_swapchain();
     } else if (result != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to present swapchain image!");
     }
 
@@ -313,7 +316,7 @@ void init_window() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window = glfwCreateWindow(window_width, window_height, "Vulkan window", 0, 0);
+    window = glfwCreateWindow(window_width, window_height, "Spinning Cube", 0, 0);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if(glfwRawMouseMotionSupported()) {
@@ -405,6 +408,7 @@ void init_instance() {
     create_info.ppEnabledExtensionNames = glfw_ext;
 
     if (vkCreateInstance(&create_info, 0, &instance) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create instance!");
     }
 
@@ -414,6 +418,7 @@ void init_instance() {
         if (func != 0) {
             func(instance, &debug_create_info, 0, &debug_messenger);
         } else {
+            //TODO(sean): diagnostic
             panic("Failed to create debug messenger!");
         }
     }
@@ -423,6 +428,7 @@ void init_instance() {
 
 void init_surface() {
     if(glfwCreateWindowSurface(instance, window, 0, &surface) != 0) {
+        //TODO(sean): diagnostic
         panic("Failed to create window surface!");
     }
 }
@@ -432,6 +438,7 @@ void init_physical_device() {
     vkEnumeratePhysicalDevices(instance, &physical_device_count, 0);
 
     if (physical_device_count == 0) {
+        //TODO(sean): diagnostic
         panic("Failed to find GPUs with Vulkan support!");
     }
 
@@ -453,6 +460,7 @@ void init_physical_device() {
     }
 
     if(physical_device == 0) {
+        //TODO(sean): diagnostic
         panic("Failed to find suitable GPU!");
     }
 
@@ -549,6 +557,7 @@ void init_physical_device() {
     device_create_info.ppEnabledExtensionNames = REQUIRED_EXTENSION_NAMES; // implicitly supported by debug layers
 
     if(vkCreateDevice(physical_device, &device_create_info, 0, &device) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create logical device!");
     }
 
@@ -674,6 +683,7 @@ void init_swapchain() {
 
 
     if (vkCreateSwapchainKHR(device, &swapchain_create_info, 0, &swapchain) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create swapchain!");
     }
 
@@ -701,7 +711,8 @@ void init_swapchain() {
         image_view_create_info.subresourceRange.baseArrayLayer = 0;
         image_view_create_info.subresourceRange.layerCount = 1;
 
-        if(vkCreateImageView(device, &image_view_create_info, 0, &swapchain_image_views[index]) != 0) {
+        if(vkCreateImageView(device, &image_view_create_info, 0, &swapchain_image_views[index]) != VK_SUCCESS) {
+            //TODO(sean): diagnostic
             panic("Failed to create image views!");
         }
     }
@@ -727,6 +738,7 @@ void create_shader_modules() {
     }
     // TODO(sean): we do this a lot, see if we can move it out into something else
     if (valid == 0) {
+        //TODO(sean): diagnostic
         panic("Failed to open files!");
     }
 
@@ -864,7 +876,8 @@ void create_pipeline() {
     pipeline_layout_create_info.pushConstantRangeCount = 0;
     pipeline_layout_create_info.pPushConstantRanges = 0;
 
-    if(vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline_layout) != 0) {
+    if(vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline_layout) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create pipeline layout!");
     }
 
@@ -905,7 +918,8 @@ void create_pipeline() {
     render_pass_create_info.subpassCount = 1;
     render_pass_create_info.pDependencies = &subpass_dependency;
 
-    if(vkCreateRenderPass(device, &render_pass_create_info, 0, &render_pass) != 0) {
+    if(vkCreateRenderPass(device, &render_pass_create_info, 0, &render_pass) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create render pass!");
     }
 
@@ -927,7 +941,8 @@ void create_pipeline() {
     pipeline_create_info.basePipelineHandle = 0;
     pipeline_create_info.basePipelineIndex = -1;
 
-    if(vkCreateGraphicsPipelines(device, 0, 1, &pipeline_create_info, 0, &graphics_pipeline) != 0) {
+    if(vkCreateGraphicsPipelines(device, 0, 1, &pipeline_create_info, 0, &graphics_pipeline) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create graphics pipeline!");
     }
 }
@@ -947,8 +962,8 @@ void create_swapchain_framebuffers() {
         framebuffer_create_info.height = swapchain_extent.height;
         framebuffer_create_info.layers = 1;
 
-        if (vkCreateFramebuffer(device, &framebuffer_create_info, 0,
-                                &swapchain_framebuffers[index]) != 0) {
+        if (vkCreateFramebuffer(device, &framebuffer_create_info, 0, &swapchain_framebuffers[index]) != VK_SUCCESS) {
+            //TODO(sean): diagnostic
             panic("Failed to create framebuffers!");
         }
     }
@@ -961,7 +976,8 @@ void init_command_pool() {
         command_pool_create_info.queueFamilyIndex = queue_family_indices[0]; // graphics queue family
         command_pool_create_info.flags = 0;
 
-        if (vkCreateCommandPool(device, &command_pool_create_info, 0, &command_pool) != 0) {
+        if (vkCreateCommandPool(device, &command_pool_create_info, 0, &command_pool) != VK_SUCCESS) {
+            //TODO(sean): diagnostic
             panic("Failed to create command pool!");
         }
     }
@@ -977,7 +993,8 @@ void create_command_buffers() {
     command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     command_buffer_allocate_info.commandBufferCount = (u32)swapchain_image_count;
 
-    if(vkAllocateCommandBuffers(device, &command_buffer_allocate_info, command_buffers) != 0) {
+    if(vkAllocateCommandBuffers(device, &command_buffer_allocate_info, command_buffers) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to allocate command buffers!");
     }
 
@@ -987,7 +1004,8 @@ void create_command_buffers() {
         begin_info.flags = 0;
         begin_info.pInheritanceInfo = 0;
 
-        if (vkBeginCommandBuffer(command_buffers[index], &begin_info) != 0) {
+        if (vkBeginCommandBuffer(command_buffers[index], &begin_info) != VK_SUCCESS) {
+            //TODO(sean): diagnostic
             panic("Failed to begin recording command buffer!");
         }
 
@@ -1017,7 +1035,8 @@ void create_command_buffers() {
 
         vkCmdEndRenderPass(command_buffers[index]);
 
-        if (vkEndCommandBuffer(command_buffers[index]) != 0) {
+        if (vkEndCommandBuffer(command_buffers[index]) != VK_SUCCESS) {
+            //TODO(sean): diagnostic
             panic("Failed to record command buffer!");
         }
     }
@@ -1039,10 +1058,11 @@ void create_sync_objects() {
 
     for(usize index = 0; index < MAX_FRAMES_IN_FLIGHT; index += 1)
     {
-        if(vkCreateSemaphore(device, &semaphore_info, 0, &image_available_semaphores[index]) != 0
-        || vkCreateSemaphore(device, &semaphore_info, 0, &render_finished_semaphores[index]) != 0
-        || vkCreateFence(device, &fence_info, 0, &in_flight_fences[index]) != 0)
+        if(vkCreateSemaphore(device, &semaphore_info, 0, &image_available_semaphores[index]) != VK_SUCCESS
+        || vkCreateSemaphore(device, &semaphore_info, 0, &render_finished_semaphores[index]) != VK_SUCCESS
+        || vkCreateFence(device, &fence_info, 0, &in_flight_fences[index]) != VK_SUCCESS)
         {
+            //TODO(sean): diagnostic
             panic("Failed to create synchronization structures for a frame!");
         }
     }
@@ -1062,6 +1082,7 @@ void create_descriptor_set_layout() {
     layout_create_info.pBindings = &ubo_layout_binding;
 
     if(vkCreateDescriptorSetLayout(device, &layout_create_info, 0, &descriptor_set_layout) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create descriptor set layout!");
     }
 }
@@ -1073,7 +1094,7 @@ void create_uniform_buffers() {
     uniform_buffers_memory = sbmalloc(&semaphore_buffer, swapchain_image_count * sizeof(VkDeviceMemory));
 
     for(usize index = 0; index < swapchain_image_count; index += 1) {
-        _create_buffer(
+        create_buffer(
             device, physical_device, buffer_size,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1093,6 +1114,7 @@ void create_descriptor_pool() {
     pool_create_info.maxSets = swapchain_image_count;
 
     if(vkCreateDescriptorPool(device, &pool_create_info, 0, &uniform_descriptor_pool) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to create uniform descriptor pool!");
     }
 }
@@ -1109,6 +1131,7 @@ void create_descriptor_sets() {
 
     descriptor_sets = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkDescriptorSet));
     if (vkAllocateDescriptorSets(device, &allocate_info, descriptor_sets) != VK_SUCCESS) {
+        //TODO(sean): diagnostic
         panic("Failed to allocate uniform descriptor sets!");
     }
 
