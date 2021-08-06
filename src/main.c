@@ -165,7 +165,7 @@ void update_uniforms(u32 current_image) {
     offset += 3.0 * deltatime;
     vec3 axis = {{0.0, sinf(offset), cosf(offset)}};
     axis = vec3_norm(axis);
-    ubo.model = mat4_rotate(mat4_splat(1.0), rotation, axis);
+    ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, axis);
 
     rotation = f32_wrap(rotation, 2.0 * M_PI);
     offset = f32_wrap(offset, 2.0 * M_PI);
@@ -224,7 +224,7 @@ void update_uniforms(u32 current_image) {
 
 void recreate_swapchain();
 
-void render() {
+void update_and_render() {
     vkWaitForFences(device, 1, &in_flight_fences[current_frame_index], VK_TRUE, UINT64_MAX);
 
     u32 image_index;
@@ -316,7 +316,7 @@ void init_window() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window = glfwCreateWindow(window_width, window_height, "Spinning Cube", 0, 0);
+    window = glfwCreateWindow(1920, 1080, "Spinning Cube", glfwGetPrimaryMonitor(), 0);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if(glfwRawMouseMotionSupported()) {
@@ -606,6 +606,7 @@ void pre_init_swapchain() {
     adequate = false;
     for(usize index = 0; index < surface_format_count; index += 1) {
         //TODO(sean): figure out how i want to format this
+        printf("%d\n", surface_formats[index].format);
         if(surface_formats[index].format == VK_FORMAT_B8G8R8A8_SRGB && surface_formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             surface_format = surface_formats[index];
             adequate = true;
@@ -618,7 +619,7 @@ void pre_init_swapchain() {
 
     adequate = false;
     for(usize index = 0; index < present_mode_count; index += 1) {
-        if(present_modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        if(present_modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) {
             present_mode = present_modes[index];
             adequate = true;
             break;
@@ -1251,7 +1252,7 @@ int main() {
 
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        render();
+        update_and_render();
 
         if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
