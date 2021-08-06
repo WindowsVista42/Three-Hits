@@ -84,8 +84,8 @@ global inline void sbinit(StagedBuffer* heap, usize allocation_size) {
 
 global inline void panic(char* message) {
     fprintf(stderr, "Thread panicked at message: \"%s\"\n", message);
-    fprintf(stderr, "Press enter to continue...");
-    getchar();
+    //fprintf(stderr, "Press enter to continue...");
+    //getchar();
     exit(1);
 }
 
