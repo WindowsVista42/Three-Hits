@@ -402,6 +402,7 @@ void create_device_local_image(
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     );
+    copy_buffer_to_image(device, queue, command_pool, staging_buffer, *texture_image, width, height);
     transition_image_layout(
         device,
         queue,
@@ -410,13 +411,6 @@ void create_device_local_image(
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
-    copy_buffer_to_image(device, queue, command_pool, staging_buffer, *texture_image, width, height);
-
-    VkCommandBuffer command_buffer = begin_quick_commands(device, command_pool);
-    {
-
-    }
-    end_quick_commands(device, queue, command_pool, command_buffer);
 
     vkDestroyBuffer(device, staging_buffer, 0);
     vkFreeMemory(device, staging_buffer_memory, 0);
