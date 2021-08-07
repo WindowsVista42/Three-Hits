@@ -299,7 +299,6 @@ void create_image(
 void copy_buffer_to_buffer(
     VkDevice device,
     VkQueue queue,
-    VkDevice device,
     VkCommandPool command_pool,
     VkBuffer src,
     VkBuffer dst,
