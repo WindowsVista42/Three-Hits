@@ -113,6 +113,7 @@ global Timer last_elapsed = {1.0f, 1024.0*1024.0, 1024.0*1024.0};
 global f32 deltatime;
 
 const f32 player_vault_height = 0.5;
+global f32 mouse_sensitivity = 6.0;
 
 typedef struct Vertex {
     vec3 pos;
@@ -413,8 +414,8 @@ global void cursor_position_callback(GLFWwindow* pwindow, double xpos, double yp
     mouse_delta.x = lastx - mouse_pos.x;
     mouse_delta.y = lasty - mouse_pos.y;
 
-    theta += mouse_delta.y;
-    phi += mouse_delta.x;
+    theta += mouse_delta.y * mouse_sensitivity;
+    phi += mouse_delta.x * mouse_sensitivity;
 
     theta = f32_clamp(theta, 0.01, M_PI - 0.01);
 }
