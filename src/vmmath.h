@@ -44,6 +44,7 @@ typedef union mat4 {
 } mat4;
 
 global const vec3 VEC3_ZERO = {{0.0f, 0.0f, 0.0f}};
+global const vec3 VEC3_UNIT_Z = {{0.0f, 0.0f, 1.0f}};
 global const vec4 VEC4_UNIT_W = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
 global inline vec4 vec4_f32(f32 splat) {
