@@ -258,8 +258,8 @@ void create_image(
     VkFormat format,
     VkImageUsageFlags usage,
     VkMemoryPropertyFlags properties,
-    VkImage* texture_image,
-    VkDeviceMemory* texture_image_memory
+    VkImage* image,
+    VkDeviceMemory* image_memory
 ) {
     VkImageCreateInfo image_create_info = {};
     image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -277,19 +277,19 @@ void create_image(
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_create_info.flags = 0;
 
-    if(vkCreateImage(device, &image_create_info, 0, texture_image) != VK_SUCCESS) {
+    if(vkCreateImage(device, &image_create_info, 0, image) != VK_SUCCESS) {
         panic("Failed to create image!");
     }
 
     VkMemoryRequirements memory_requirements;
-    vkGetImageMemoryRequirements(device, *texture_image, &memory_requirements);
+    vkGetImageMemoryRequirements(device, *image, &memory_requirements);
 
     VkMemoryAllocateInfo allocate_info = {};
     allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocate_info.allocationSize = memory_requirements.size;
     allocate_info.memoryTypeIndex = find_memory_type(physical_device, memory_requirements.memoryTypeBits, properties);
 
-    if(vkAllocateMemory(device, &allocate_info, 0, texture_image_memory) != VK_SUCCESS) {
+    if(vkAllocateMemory(device, &allocate_info, 0, image_memory) != VK_SUCCESS) {
         panic("Failed to allocate image memory!");
     }
 }
