@@ -43,8 +43,8 @@ typedef union mat4 {
     struct { vec4 xs; vec4 ys; vec4 zs; vec4 ws; };
 } mat4;
 
-global const vec3 vec3_zero = {{0.0f, 0.0f, 0.0f}};
-global const vec4 vec4_unit_w = {{0.0f, 0.0f, 0.0f, 1.0f}};
+global const vec3 VEC3_ZERO = {{0.0f, 0.0f, 0.0f}};
+global const vec4 VEC4_UNIT_W = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
 global inline vec4 vec4_f32(f32 splat) {
     vec4 vector = {{splat, splat, splat, splat}};
@@ -113,7 +113,7 @@ global inline mat4 mat4_rotate(mat4 matrix, f32 angle, vec3 axis) {
             axis_sq.z * omc + cos,
             0.0f,
         }},
-        .ws = vec4_unit_w,
+        .ws = VEC4_UNIT_W,
     };
 
     return output;
@@ -210,6 +210,14 @@ global inline vec3 vec3_zero() {
     return output;
 }
 */
+
+global inline f32 f32_abs(f32 x) {
+    if(x < 0.0) {
+        return -x;
+    } else {
+        return x;
+    }
+}
 
 // True if all fields are equal
 global inline b32 vec3_eq_vec3(vec3 lhs, vec3 rhs) {
