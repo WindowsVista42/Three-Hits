@@ -428,14 +428,13 @@ void create_image_view(VkDevice device, VkImage image, VkFormat format, VkImageV
     }
 }
 
-//TODO(sean): maybe get it so we don't have to pass the physical_device?
-void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkImage image, VkSampler* sampler) {
+void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkSampler* sampler) {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(physical_device, &properties);
 
     VkSamplerCreateInfo sampler_create_info = {};
     sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    sampler_create_info.magFilter = VK_FILTER_LINEAR; //TODO(sean): check if i can use cubic filtering
+    sampler_create_info.magFilter = VK_FILTER_LINEAR;
     sampler_create_info.minFilter = VK_FILTER_LINEAR;
     sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -457,4 +456,4 @@ void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkI
 }
 
 #define UNTITLED_FPS_VKUTIL_H
-#endif //UNTITLED_FPS_VKHELPERS_H
+#endif //UNTITLED_FPS_VKUTIL_H
