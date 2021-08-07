@@ -100,6 +100,8 @@ global VkDeviceMemory index_buffer_memory;
 global VkBuffer* uniform_buffers;
 global VkDeviceMemory* uniform_buffers_memory;
 global VkDescriptorPool uniform_descriptor_pool;
+
+#define descriptor_count 2
 global VkDescriptorSet* descriptor_sets;
 
 global vec2 mouse_pos;
@@ -117,34 +119,38 @@ typedef struct Vertex {
     vec3 color;
 } Vertex;
 
-const f32 cube_size = 5.0;
+const f32 double_cube_size = 4.0;
+const f32 cube_size = (double_cube_size)/2.0;
 
-#define vertex_count 8
+#define vertex_count 10
 global Vertex vertices[vertex_count] = {
-    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}}, // 0 // w
-    {{{-cube_size, -cube_size, cube_size}},  {{0.0f, 0.0f, 1.0f}}}, // 1
-    {{{-cube_size, cube_size,  -cube_size}}, {{0.0f, 1.0f, 0.0f}}}, // 2 // g
-    {{{-cube_size, cube_size,  cube_size}},  {{0.0f, 1.0f, 1.0f}}}, // 3
-    {{{cube_size,  cube_size,  -cube_size}}, {{1.0f, 1.0f, 0.0f}}}, // 4 // w
-    {{{cube_size,  cube_size,  cube_size}},  {{1.0f, 1.0f, 1.0f}}}, // 5
-    {{{cube_size,  -cube_size, -cube_size}}, {{1.0f, 0.0f, 0.0f}}}, // 6 // b
-    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}}, // 7
+    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 1.0f}}}, // 0 // w
+    {{{-cube_size, -cube_size, cube_size}},  {{0.0f, 0.0f, 1.0f}}, {{1.0f, 0.0f}}}, // 1
+    {{{-cube_size, cube_size,  -cube_size}}, {{0.0f, 1.0f, 0.0f}}, {{0.0f, 1.0f}}}, // 2 // g
+    {{{-cube_size, cube_size,  cube_size}},  {{0.0f, 1.0f, 1.0f}}, {{0.0f, 0.0f}}}, // 3
+    {{{cube_size,  cube_size,  -cube_size}}, {{1.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}}}, // 4 // w
+    {{{cube_size,  cube_size,  cube_size}},  {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}}, // 5
+    {{{cube_size,  -cube_size, -cube_size}}, {{1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}}}, // 6 // b
+    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{0.0f, 0.0f}}}, // 7
+
+    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}}, // 8 // w
+    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{1.0f, 1.0f}}}, // 7
 };
 
 #define index_count 36
 global u16 indices[index_count] = {
-    1, 0, 3,
-    3, 0, 2,
-    3, 2, 4,
-    3, 4, 5,
-    5, 4, 6,
-    7, 5, 6,
-    6, 0, 7,
-    7, 0, 1,
-    7, 1, 3,
-    3, 5, 7,
-    4, 0, 6,
-    2, 0, 4,
+    0, 1, 3,
+    0, 3, 2,
+    2, 3, 4,
+    4, 3, 5,
+    4, 5, 6,
+    5, 7, 6,
+    0, 6, 7,
+    0, 7, 1,
+    1, 9, 3,
+    5, 3, 9,
+    8, 4, 6,
+    8, 2, 4,
 };
 
 global usize model_vertices_count;
@@ -159,7 +165,7 @@ global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_bindin
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
     }
 };
-#define vertex_attribute_description_count 2
+#define vertex_attribute_description_count 3
 global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
@@ -170,6 +176,11 @@ global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_at
         .location = 1,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
         .offset = offsetof(Vertex, color),
+    },
+    {   .binding = 0,
+        .location = 2,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, uv),
     }
 };
 
@@ -188,7 +199,7 @@ const f32 heightmap[4] = {
 //TODO(sean): move some of this into a custom function
 void create_texture_image() {
     int texture_width, texture_height, texture_channels;
-    stbi_uc* pixels = stbi_load("../texture.jpg", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load("../Penguin-Transparent.png", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
     VkDeviceSize image_size = texture_width * texture_height * 4;
 
     if(pixels == 0) {
@@ -214,7 +225,7 @@ void create_texture_image() {
 
     create_image_view(device, texture_image, VK_FORMAT_R8G8B8A8_SRGB, &texture_image_view);
 
-    create_image_sampler(device, physical_device, texture_image, &texture_image_sampler);
+    create_image_sampler(device, physical_device, &texture_image_sampler);
 }
 
 // end state
@@ -1150,15 +1161,24 @@ void create_sync_objects() {
 void create_descriptor_set_layout() {
     VkDescriptorSetLayoutBinding ubo_layout_binding = {};
     ubo_layout_binding.binding = 0;
+    ubo_layout_binding.descriptorCount = 1;
     ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     ubo_layout_binding.descriptorCount = 1;
     ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     ubo_layout_binding.pImmutableSamplers = 0;
 
+    VkDescriptorSetLayoutBinding sampler_layout_binding = {};
+    sampler_layout_binding.binding = 1;
+    sampler_layout_binding.descriptorCount = 1;
+    sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    sampler_layout_binding.pImmutableSamplers = 0;
+
+    VkDescriptorSetLayoutBinding bindings[descriptor_count] = {ubo_layout_binding, sampler_layout_binding};
     VkDescriptorSetLayoutCreateInfo layout_create_info = {};
     layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layout_create_info.bindingCount = 1;
-    layout_create_info.pBindings = &ubo_layout_binding;
+    layout_create_info.bindingCount = 2;
+    layout_create_info.pBindings = bindings;
 
     if(vkCreateDescriptorSetLayout(device, &layout_create_info, 0, &descriptor_set_layout) != VK_SUCCESS) {
         //TODO(sean): diagnostic
@@ -1182,14 +1202,20 @@ void create_uniform_buffers() {
 }
 
 void create_descriptor_pool() {
-    VkDescriptorPoolSize pool_size = {};
-    pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    pool_size.descriptorCount = swapchain_image_count;
+    VkDescriptorPoolSize ubo_pool_size = {};
+    ubo_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubo_pool_size.descriptorCount = swapchain_image_count;
+
+    VkDescriptorPoolSize sampler_pool_size = {};
+    sampler_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    sampler_pool_size.descriptorCount = swapchain_image_count;
+
+    VkDescriptorPoolSize pool_sizes[descriptor_count] = {ubo_pool_size, sampler_pool_size};
 
     VkDescriptorPoolCreateInfo pool_create_info = {};
     pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_create_info.poolSizeCount = 1;
-    pool_create_info.pPoolSizes = &pool_size;
+    pool_create_info.poolSizeCount = descriptor_count;
+    pool_create_info.pPoolSizes = pool_sizes;
     pool_create_info.maxSets = swapchain_image_count;
 
     if(vkCreateDescriptorPool(device, &pool_create_info, 0, &uniform_descriptor_pool) != VK_SUCCESS) {
@@ -1220,18 +1246,33 @@ void create_descriptor_sets() {
         buffer_info.offset = 0;
         buffer_info.range = sizeof(UniformBufferObject);
 
-        VkWriteDescriptorSet descriptor_write = {};
-        descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_write.dstSet = descriptor_sets[index];
-        descriptor_write.dstBinding = 0;
-        descriptor_write.dstArrayElement = 0;
-        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptor_write.descriptorCount = 1;
-        descriptor_write.pBufferInfo = &buffer_info;
-        descriptor_write.pImageInfo = 0;
-        descriptor_write.pTexelBufferView = 0;
+        VkDescriptorImageInfo image_info = {};
+        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        image_info.imageView = texture_image_view;
+        image_info.sampler = texture_image_sampler;
 
-        vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, 0);
+        VkWriteDescriptorSet descriptor_writes[descriptor_count] = {};
+        descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_writes[0].dstSet = descriptor_sets[index];
+        descriptor_writes[0].dstBinding = 0;
+        descriptor_writes[0].dstArrayElement = 0;
+        descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptor_writes[0].descriptorCount = 1;
+        descriptor_writes[0].pBufferInfo = &buffer_info;
+        descriptor_writes[0].pImageInfo = 0;
+        descriptor_writes[0].pTexelBufferView = 0;
+
+        descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_writes[1].dstSet = descriptor_sets[index];
+        descriptor_writes[1].dstBinding = 1;
+        descriptor_writes[1].dstArrayElement = 0;
+        descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptor_writes[1].descriptorCount = 1;
+        descriptor_writes[1].pBufferInfo = 0;
+        descriptor_writes[1].pImageInfo = &image_info;
+        descriptor_writes[1].pTexelBufferView = 0;
+
+        vkUpdateDescriptorSets(device, descriptor_count, descriptor_writes, 0, 0);
     }
 }
 
