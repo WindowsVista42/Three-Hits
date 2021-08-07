@@ -95,6 +95,43 @@ u32 find_memory_type(VkPhysicalDevice physical_device, u32 type_filter, VkMemory
     return UINT32_MAX;
 }
 
+VkCommandBuffer begin_quick_commands(
+    VkDevice device,
+    VkCommandPool command_pool
+) {
+    VkCommandBufferAllocateInfo allocate_info = {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocate_info.commandPool = command_pool;
+    allocate_info.commandBufferCount = 1;
+
+    VkCommandBuffer command_buffer;
+    vkAllocateCommandBuffers(device, &allocate_info, &command_buffer);
+
+    VkCommandBufferBeginInfo begin_info = {};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = 0;
+    begin_info.pInheritanceInfo = 0;
+
+    vkBeginCommandBuffer(command_buffer, &begin_info);
+
+    return command_buffer;
+}
+
+void end_quick_commands(VkDevice device, VkQueue queue, VkCommandPool command_pool, VkCommandBuffer command_buffer) {
+    vkEndCommandBuffer(command_buffer);
+
+    VkSubmitInfo submit_info = {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+
+    vkQueueSubmit(queue, 1, &submit_info, 0);
+    vkQueueWaitIdle(queue);
+
+    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+}
+
 void create_buffer(
     VkDevice device,
     VkPhysicalDevice physical_device,
