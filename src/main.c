@@ -118,6 +118,7 @@ global f32 mouse_sensitivity = 6.0;
 typedef struct Vertex {
     vec3 pos;
     vec3 color;
+    vec2 uv;
 } Vertex;
 
 const f32 double_cube_size = 4.0;
