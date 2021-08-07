@@ -13,6 +13,10 @@
 
 // lib
 #include <GLFW/glfw3.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "../lib/stb_image.h"
+
+// begin graphics
 
 #define REQUIRED_LAYER_COUNT 1
 global const char* REQUIRED_LAYER_NAMES[REQUIRED_LAYER_COUNT] = {
@@ -59,14 +63,23 @@ global VkImage* swapchain_images;
 global VkFormat swapchain_format;
 global VkExtent2D swapchain_extent;
 global VkImageView* swapchain_image_views;
+global VkFramebuffer* swapchain_framebuffers;
+global VkCommandPool command_pool;
+
+// end graphics
+
+VkImage texture_image;
+VkDeviceMemory texture_image_memory;
+VkImageView texture_image_view;
+VkSampler texture_image_sampler;
+
+// begin state
 global VkShaderModule vertex_module;
 global VkShaderModule fragment_module;
 global VkDescriptorSetLayout descriptor_set_layout;
 global VkPipelineLayout pipeline_layout;
 global VkRenderPass render_pass;
 global VkPipeline graphics_pipeline;
-global VkFramebuffer* swapchain_framebuffers;
-global VkCommandPool command_pool;
 global VkCommandBuffer* command_buffers;
 
 global StagedBuffer semaphore_buffer;
@@ -97,38 +110,47 @@ global f32 phi = 0.75;
 global Timer last_elapsed = {1.0f, 1024.0*1024.0, 1024.0*1024.0};
 global f32 deltatime;
 
+const f32 player_vault_height = 0.5;
+
 typedef struct Vertex {
     vec3 pos;
     vec3 color;
 } Vertex;
 
+const f32 cube_size = 5.0;
+
 #define vertex_count 8
 global Vertex vertices[vertex_count] = {
-    {{{-0.5f, -0.5f, -0.5f}}, {{1.0f, 1.0f, 1.0f}}}, // 0 // w
-    {{{-0.5f, -0.5f,  0.5f}}, {{0.0f, 0.0f, 1.0f}}}, // 1
-    {{{-0.5f,  0.5f, -0.5f}}, {{0.0f, 1.0f, 0.0f}}}, // 2 // g
-    {{{-0.5f,  0.5f,  0.5f}}, {{0.0f, 1.0f, 1.0f}}}, // 3
-    {{{ 0.5f,  0.5f, -0.5f}}, {{1.0f, 1.0f, 0.0f}}}, // 4 // w
-    {{{ 0.5f,  0.5f,  0.5f}}, {{1.0f, 1.0f, 1.0f}}}, // 5
-    {{{ 0.5f, -0.5f, -0.5f}}, {{1.0f, 0.0f, 0.0f}}}, // 6 // b
-    {{{ 0.5f, -0.5f,  0.5f}}, {{1.0f, 0.0f, 1.0f}}}, // 7
+    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}}, // 0 // w
+    {{{-cube_size, -cube_size, cube_size}},  {{0.0f, 0.0f, 1.0f}}}, // 1
+    {{{-cube_size, cube_size,  -cube_size}}, {{0.0f, 1.0f, 0.0f}}}, // 2 // g
+    {{{-cube_size, cube_size,  cube_size}},  {{0.0f, 1.0f, 1.0f}}}, // 3
+    {{{cube_size,  cube_size,  -cube_size}}, {{1.0f, 1.0f, 0.0f}}}, // 4 // w
+    {{{cube_size,  cube_size,  cube_size}},  {{1.0f, 1.0f, 1.0f}}}, // 5
+    {{{cube_size,  -cube_size, -cube_size}}, {{1.0f, 0.0f, 0.0f}}}, // 6 // b
+    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}}, // 7
 };
 
 #define index_count 36
 global u16 indices[index_count] = {
-    0, 1, 3,
-    0, 3, 2,
-    2, 3, 4,
-    4, 3, 5,
-    4, 5, 6,
-    5, 7, 6,
-    0, 6, 7,
-    0, 7, 1,
-    1, 7, 3,
-    5, 3, 7,
-    0, 4, 6,
-    0, 2, 4,
+    1, 0, 3,
+    3, 0, 2,
+    3, 2, 4,
+    3, 4, 5,
+    5, 4, 6,
+    7, 5, 6,
+    6, 0, 7,
+    7, 0, 1,
+    7, 1, 3,
+    3, 5, 7,
+    4, 0, 6,
+    2, 0, 4,
 };
+
+global usize model_vertices_count;
+global f32* model_vertices;
+global usize model_indices_count;
+global u16* model_indices;
 
 #define vertex_binding_description_count 1
 global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
@@ -156,6 +178,47 @@ typedef struct UniformBufferObject {
     mat4 view_proj;
 } UniformBufferObject;
 
+const f32 heightmap[4] = {
+    2.0, // 0 0
+    3.0, // 1 0
+    3.0, // 0 1
+    4.0  // 1 1
+};
+
+//TODO(sean): move some of this into a custom function
+void create_texture_image() {
+    int texture_width, texture_height, texture_channels;
+    stbi_uc* pixels = stbi_load("../texture.jpg", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
+    VkDeviceSize image_size = texture_width * texture_height * 4;
+
+    if(pixels == 0) {
+        panic("Failed to load texture image!");
+    }
+
+    create_device_local_image(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        texture_width,
+        texture_height,
+        image_size,
+        pixels,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        &texture_image,
+        &texture_image_memory
+    );
+
+    stbi_image_free(pixels);
+
+    create_image_view(device, texture_image, VK_FORMAT_R8G8B8A8_SRGB, &texture_image_view);
+
+    create_image_sampler(device, physical_device, texture_image, &texture_image_sampler);
+}
+
+// end state
+
 void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
 
@@ -179,7 +242,7 @@ void update_uniforms(u32 current_image) {
         vec3 xydir = {{look_dir.x, look_dir.y, 0.0}};
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
-        vec3 delta = {{0.0f, 0.0f, 0.0f}};
+        vec3 delta = VEC3_ZERO;
 
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             delta = vec3_sub_vec3(delta, xydir);
@@ -194,12 +257,46 @@ void update_uniforms(u32 current_image) {
             delta = vec3_add_vec3(delta, normal);
         }
 
-        if(vec3_par_ne_vec3(delta, vec3_zero)) {
+        if(vec3_par_ne_vec3(delta, VEC3_ZERO)) {
             delta = vec3_norm(delta);
             delta = vec3_mul_f32(delta, deltatime);
-            delta = vec3_mul_f32(delta, 4.0);
+            delta = vec3_mul_f32(delta, 18.0);
             player_eye = vec3_add_vec3(player_eye, delta);
         }
+
+        // heightmap goes from -10.0 to +10.0
+        // we want to get the players x,y in that heightmap
+
+        /*
+        //TODO(sean): fix this os that it isn't negative
+        u32 heightmap_coord_x = (u32)(-player_eye.x / cube_size);
+        u32 heightmap_coord_y = (u32)(-player_eye.y / cube_size);
+        f32 heightmap_z = heightmap[(heightmap_coord_x % 2) + ((heightmap_coord_y % 2) * 2)];
+
+        printf("%i, %i\n", heightmap_coord_x, heightmap_coord_y);
+
+        player_eye.z = heightmap_z;
+        */
+
+        /*
+        if(player_eye.z + player_vault_height > heightmap_z) {
+            player_eye.z = heightmap_z;
+        } else {
+            f32 heightmap_x = heightmap_coord_x * cube_size;
+            f32 heightmap_y = heightmap_coord_y * cube_size;
+            f32 player_width = 0.2;
+        }
+        */
+
+        /*
+        // set player z
+        if(player_eye.x > -cube_size && player_eye.x < cube_size
+        && player_eye.y > -cube_size && player_eye.y < cube_size) {
+            player_eye.z = -cube_size + 2.0;
+        } else {
+            player_eye.z = 2.0;
+        }
+        */
 
         theta = f32_wrap(theta, 2.0 * M_PI);
 
@@ -316,7 +413,7 @@ void init_window() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window = glfwCreateWindow(1920, 1080, "Spinning Cube", glfwGetPrimaryMonitor(), 0);
+    window = glfwCreateWindow(1920, 1080, "Spinning Cube", 0, 0);//glfwGetPrimaryMonitor(), 0);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if(glfwRawMouseMotionSupported()) {
@@ -449,6 +546,7 @@ void init_physical_device() {
     for(usize index = 0; index < physical_device_count; index += 1) {
         VkPhysicalDeviceProperties device_properties = {};
         VkPhysicalDeviceFeatures device_features = {};
+        device_features.samplerAnisotropy = VK_TRUE; //TODO(sean): do proper device validation
 
         vkGetPhysicalDeviceProperties(physical_devices[index], &device_properties);
         vkGetPhysicalDeviceFeatures(physical_devices[index], &device_features);
@@ -606,8 +704,8 @@ void pre_init_swapchain() {
     adequate = false;
     for(usize index = 0; index < surface_format_count; index += 1) {
         //TODO(sean): figure out how i want to format this
-        printf("%d\n", surface_formats[index].format);
-        if(surface_formats[index].format == VK_FORMAT_B8G8R8A8_SRGB && surface_formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        if(surface_formats[index].format == VK_FORMAT_B8G8R8A8_SRGB
+        && surface_formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             surface_format = surface_formats[index];
             adequate = true;
             break;
@@ -695,27 +793,7 @@ void init_swapchain() {
     swapchain_image_views = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkImageView));
 
     for(usize index = 0; index < swapchain_image_count; index += 1) {
-        VkImageViewCreateInfo image_view_create_info = {};
-        image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        image_view_create_info.image = swapchain_images[index];
-        image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        image_view_create_info.format = swapchain_format;
-
-        image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-        image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        image_view_create_info.subresourceRange.baseMipLevel = 0;
-        image_view_create_info.subresourceRange.levelCount = 1;
-        image_view_create_info.subresourceRange.baseArrayLayer = 0;
-        image_view_create_info.subresourceRange.layerCount = 1;
-
-        if(vkCreateImageView(device, &image_view_create_info, 0, &swapchain_image_views[index]) != VK_SUCCESS) {
-            //TODO(sean): diagnostic
-            panic("Failed to create image views!");
-        }
+        create_image_view(device, swapchain_images[index], swapchain_format, &swapchain_image_views[index]);
     }
 }
 
@@ -1242,6 +1320,7 @@ int main() {
     create_pipeline();
     create_swapchain_framebuffers();
     init_command_pool();
+    create_texture_image();
     create_vertex_buffer();
     create_index_buffer();
     create_uniform_buffers();
