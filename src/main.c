@@ -546,12 +546,11 @@ void init_physical_device() {
     for(usize index = 0; index < physical_device_count; index += 1) {
         VkPhysicalDeviceProperties device_properties = {};
         VkPhysicalDeviceFeatures device_features = {};
-        device_features.samplerAnisotropy = VK_TRUE; //TODO(sean): do proper device validation
 
         vkGetPhysicalDeviceProperties(physical_devices[index], &device_properties);
         vkGetPhysicalDeviceFeatures(physical_devices[index], &device_features);
 
-        if(device_features.geometryShader) {
+        if(device_features.geometryShader != VK_FALSE && device_features.samplerAnisotropy != VK_FALSE) {
             physical_device = physical_devices[index];
             break;
         }
@@ -635,6 +634,7 @@ void init_physical_device() {
     }
 
     VkPhysicalDeviceFeatures device_features = {};
+    device_features.samplerAnisotropy = VK_TRUE; //TODO(sean): do proper device validation
 
     VkDeviceCreateInfo device_create_info = {};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
