@@ -1383,6 +1383,23 @@ int main() {
         if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
+        // Measure speed
+        static double lastTime = 0.0;
+        double currentTime = glfwGetTime();
+        double delta = currentTime - lastTime;
+        static usize nbFrames = 0;
+        nbFrames++;
+        if ( delta >= 1.0 ){ // If last cout was more than 1 sec ago
+            double fps = (double)nbFrames / delta;
+
+            char buffer[128];
+            sprintf(buffer, "Area 52 | Version 0.1.0 | %.2lf FPS", fps);
+            glfwSetWindowTitle(window, buffer);
+
+            nbFrames = 0;
+            lastTime = currentTime;
+        }
+
     }
 
     //TODO(sean): finish swapchain recreation steps
