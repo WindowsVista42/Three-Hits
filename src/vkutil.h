@@ -166,7 +166,138 @@ void create_buffer(
     vkBindBufferMemory(device, *buffer, *buffer_memory, 0);
 }
 
+void transition_image_layout(
+    VkDevice device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    VkImage image,
+    VkImageLayout old_layout,
+    VkImageLayout new_layout
+) {
+    VkCommandBuffer command_buffer = begin_quick_commands(device, command_pool);
+    {
+        VkPipelineStageFlags src_stage_flags, dst_stage_flags;
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = old_layout;
+        barrier.newLayout = new_layout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        if(old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            src_stage_flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dst_stage_flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            src_stage_flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dst_stage_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else {
+            panic("Unsupported layout transition!");
+        }
+
+        vkCmdPipelineBarrier(
+            command_buffer,
+            src_stage_flags, dst_stage_flags,
+            0,
+            0, 0,
+            0, 0,
+            1, &barrier
+        );
+    }
+    end_quick_commands(device, queue, command_pool, command_buffer);
+}
+
+void copy_buffer_to_image(
+    VkDevice device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    VkBuffer buffer,
+    VkImage image,
+    u32 width,
+    u32 height
+) {
+    VkCommandBuffer command_buffer = begin_quick_commands(device, command_pool);
+    {
+        VkBufferImageCopy image_copy = {};
+        image_copy.bufferOffset = 0;
+        image_copy.bufferRowLength = 0;
+        image_copy.bufferImageHeight = 0;
+        image_copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        image_copy.imageSubresource.mipLevel = 0;
+        image_copy.imageSubresource.baseArrayLayer = 0;
+        image_copy.imageSubresource.layerCount = 1;
+        image_copy.imageOffset.x = 0;
+        image_copy.imageOffset.y = 0;
+        image_copy.imageOffset.z = 0;
+        image_copy.imageExtent.width = width;
+        image_copy.imageExtent.height = height;
+        image_copy.imageExtent.depth = 1;
+
+        vkCmdCopyBufferToImage(command_buffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_copy);
+    }
+    end_quick_commands(device, queue, command_pool, command_buffer);
+}
+
+void create_image(
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    u32 width,
+    u32 height,
+    VkFormat format,
+    VkImageUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkImage* texture_image,
+    VkDeviceMemory* texture_image_memory
+) {
+    VkImageCreateInfo image_create_info = {};
+    image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_create_info.imageType = VK_IMAGE_TYPE_2D;
+    image_create_info.extent.width = width;
+    image_create_info.extent.height = height;
+    image_create_info.extent.depth = 1;
+    image_create_info.mipLevels = 1;
+    image_create_info.arrayLayers = 1;
+    image_create_info.format = format;
+    image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_create_info.usage = usage;
+    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_create_info.flags = 0;
+
+    if(vkCreateImage(device, &image_create_info, 0, texture_image) != VK_SUCCESS) {
+        panic("Failed to create image!");
+    }
+
+    VkMemoryRequirements memory_requirements;
+    vkGetImageMemoryRequirements(device, *texture_image, &memory_requirements);
+
+    VkMemoryAllocateInfo allocate_info = {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocate_info.allocationSize = memory_requirements.size;
+    allocate_info.memoryTypeIndex = find_memory_type(physical_device, memory_requirements.memoryTypeBits, properties);
+
+    if(vkAllocateMemory(device, &allocate_info, 0, texture_image_memory) != VK_SUCCESS) {
+        panic("Failed to allocate image memory!");
+    }
+}
+
 void copy_buffer_to_buffer(
+    VkDevice device,
     VkQueue queue,
     VkDevice device,
     VkCommandPool command_pool,
@@ -174,40 +305,17 @@ void copy_buffer_to_buffer(
     VkBuffer dst,
     VkDeviceSize size
 ) {
-    VkCommandBufferAllocateInfo allocate_info = {};
-    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocate_info.commandPool = command_pool;
-    allocate_info.commandBufferCount = 1;
-
-    VkCommandBuffer command_buffer;
-    vkAllocateCommandBuffers(device, &allocate_info, &command_buffer);
-
-    VkCommandBufferBeginInfo begin_info = {};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = 0;
-    begin_info.pInheritanceInfo = 0;
-
-    vkBeginCommandBuffer(command_buffer, &begin_info);
-
+    VkCommandBuffer command_buffer = begin_quick_commands(device, command_pool);
+    {
         VkBufferCopy copy_region = {};
         copy_region.srcOffset = 0;
         copy_region.dstOffset = 0;
         copy_region.size = size;
 
         vkCmdCopyBuffer(command_buffer, src, dst, 1, &copy_region);
+    }
 
-    vkEndCommandBuffer(command_buffer);
-
-    VkSubmitInfo submit_info = {};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffer;
-
-    vkQueueSubmit(queue, 1, &submit_info, 0);
-    vkQueueWaitIdle(queue);
-
-    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+    end_quick_commands(device, queue, command_pool, command_buffer);
 }
 
 void create_device_local_buffer(
@@ -238,10 +346,126 @@ void create_device_local_buffer(
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                   buffer, buffer_memory);
 
-    copy_buffer_to_buffer(queue, device, command_pool, staging_buffer, *buffer, size);
+    copy_buffer_to_buffer(device, queue, command_pool, staging_buffer, *buffer, size);
 
     vkDestroyBuffer(device, staging_buffer, 0);
     vkFreeMemory(device, staging_buffer_memory, 0);
+}
+
+void create_device_local_image(
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    u32 width,
+    u32 height,
+    VkDeviceSize size,
+    void* data,
+    VkFormat format,
+    VkImageUsageFlags usage,
+    VkImage* texture_image,
+    VkDeviceMemory* texture_image_memory
+) {
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+
+    create_buffer(
+        device,
+        physical_device,
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &staging_buffer,
+        &staging_buffer_memory
+    );
+
+    write_buffer(device, staging_buffer_memory, 0, size, 0, data);
+
+    create_image(
+        device,
+        physical_device,
+        width,
+        height,
+        format,
+        usage,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        texture_image,
+        texture_image_memory
+    );
+
+    vkBindImageMemory(device, *texture_image, *texture_image_memory, 0);
+
+    transition_image_layout(
+        device,
+        queue,
+        command_pool,
+        *texture_image,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+    transition_image_layout(
+        device,
+        queue,
+        command_pool,
+        *texture_image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    copy_buffer_to_image(device, queue, command_pool, staging_buffer, *texture_image, width, height);
+
+    VkCommandBuffer command_buffer = begin_quick_commands(device, command_pool);
+    {
+
+    }
+    end_quick_commands(device, queue, command_pool, command_buffer);
+
+    vkDestroyBuffer(device, staging_buffer, 0);
+    vkFreeMemory(device, staging_buffer_memory, 0);
+}
+
+void create_image_view(VkDevice device, VkImage image, VkFormat format, VkImageView* image_view) {
+    VkImageViewCreateInfo view_create_info = {};
+    view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view_create_info.image = image;
+    view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    view_create_info.format = format;
+    view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    view_create_info.subresourceRange.baseMipLevel = 0;
+    view_create_info.subresourceRange.levelCount = 1;
+    view_create_info.subresourceRange.baseArrayLayer = 0;
+    view_create_info.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(device, &view_create_info, 0, image_view) != VK_SUCCESS) {
+        panic("Failed to create texture image view!");
+    }
+}
+
+//TODO(sean): maybe get it so we don't have to pass the physical_device?
+void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkImage image, VkSampler* sampler) {
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(physical_device, &properties);
+
+    VkSamplerCreateInfo sampler_create_info = {};
+    sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_create_info.magFilter = VK_FILTER_LINEAR; //TODO(sean): check if i can use cubic filtering
+    sampler_create_info.minFilter = VK_FILTER_LINEAR;
+    sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_create_info.anisotropyEnable = VK_TRUE;
+    sampler_create_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    sampler_create_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_create_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_create_info.compareEnable = VK_TRUE;
+    sampler_create_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    sampler_create_info.mipLodBias = 0.0f;
+    sampler_create_info.minLod = 0.0f;
+    sampler_create_info.maxLod = 0.0f;
+
+    if(vkCreateSampler(device, &sampler_create_info, 0, sampler) != VK_SUCCESS) {
+        panic("Failed to create sampler!");
+    }
 }
 
 #define UNTITLED_FPS_VKUTIL_H
