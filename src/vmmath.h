@@ -1,5 +1,5 @@
 //
-// Created by Windows Vista on 7/25/2021.
+// Created by Sean Moulton on 7/25/2021.
 //
 
 #ifndef UNTITLED_FPS_VMMATH_H
