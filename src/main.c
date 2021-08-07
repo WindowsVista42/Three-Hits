@@ -235,13 +235,21 @@ void create_texture_image() {
 void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
 
+    static vec3 player_eye = {{5.0, 5.0, 2.0}};
+    static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
+
     static f32 rotation = 0.0;
     rotation += 3.0 * deltatime;
     static f32 offset = 0.0;
     offset += 3.0 * deltatime;
-    vec3 axis = {{0.0, sinf(offset), cosf(offset)}};
-    axis = vec3_norm(axis);
-    ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, axis);
+    //vec3 axis = {{0.0, sinf(offset), cosf(offset)}};
+    //axis = vec3_norm(axis);
+    //ubo.model = mat4_look_at(VEC3_ZERO, adj_player_eye, VEC3_UNIT_Z);
+    //ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
+    static vec3 model_pos = {{0.0f, 0.0f, 0.0f}};
+
+    //ubo.model = mat4_rotate(mat4_splat(1.0), atan2f(model_pos.y - player_eye.y, model_pos.x - player_eye.x), VEC3_UNIT_Z);
+    ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
 
     rotation = f32_wrap(rotation, 2.0 * M_PI);
     offset = f32_wrap(offset, 2.0 * M_PI);
@@ -249,9 +257,6 @@ void update_uniforms(u32 current_image) {
     mat4 proj, view;
 
     {
-        static vec3 player_eye = {{2.0, 2.0, 2.0}};
-        static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
-
         vec3 xydir = {{look_dir.x, look_dir.y, 0.0}};
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
@@ -325,7 +330,7 @@ void update_uniforms(u32 current_image) {
         timer_start(&last_elapsed);
     }
 
-    proj = mat4_perspective(f32_radians(100.0f), (float)swapchain_extent.width / (float)swapchain_extent.height, 0.01f, 100.0f);
+    proj = mat4_perspective(f32_radians(100.0f), (float)swapchain_extent.width / (float)swapchain_extent.height, 0.01f, 1000.0f);
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
 
