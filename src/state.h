@@ -72,15 +72,16 @@ typedef struct State {
     VkImageView *swapchain_image_views;
     VkFramebuffer *swapchain_framebuffers;
     VkCommandPool command_pool;
+    VkFormat depth_image_format;
+    b32 depth_image_has_stencil;
+    VkImage depth_image;
+    VkDeviceMemory depth_image_memory;
+    VkImageView depth_image_view;
 
     VkImage texture_image;
     VkDeviceMemory texture_image_memory;
     VkImageView texture_image_view;
     VkSampler texture_image_sampler;
-
-    VkImage depth_image;
-    VkDeviceMemory depth_image_memory;
-    VkImageView depth_image_view;
 
     VkShaderModule vertex_module;
     VkShaderModule fragment_module;
