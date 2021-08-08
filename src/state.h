@@ -5,25 +5,52 @@
 #ifndef UNTITLED_FPS_STATE_H
 #include <GLFW/glfw3.h>
 #include "util.h"
+#include "vmmath.h"
 
-typedef struct Graphics {
-    const REQUIRED_LAYER_COUNT = 1;
-    const char* REQUIRED_LAYER_NAMES[REQUIRED_LAYER_COUNT] = {
-        "VK_LAYER_KHRONOS_validation",
-    };
+typedef struct Vertex {
+    vec3 pos;
+    vec3 color;
+    vec2 uv;
+} Vertex;
 
-//TODO(sean): check that this is supported
-    const REQUIRED_EXTENSION_COUNT = 1;
-    const char* REQUIRED_EXTENSION_NAMES[REQUIRED_EXTENSION_COUNT] = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    };
-    const u32 MAX_FRAMES_IN_FLIGHT = 2;
-    b32 validation_enabled = 0;
-    u32 supports_validation;
+#define vertex_binding_description_count 1
+global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
+    {   .binding = 0,
+        .stride = sizeof(Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    }
+};
+#define vertex_attribute_description_count 3
+global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
+    {   .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, pos),
+    },
+    {   .binding = 0,
+        .location = 1,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, color),
+    },
+    {   .binding = 0,
+        .location = 2,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, uv),
+    }
+};
 
-    u32 window_width = 800;
-    u32 window_height = 600;
-    GLFWwindow* window;
+typedef struct UniformBufferObject {
+    mat4 model;
+    mat4 view_proj;
+} UniformBufferObject;
+
+#define descriptor_count 2
+typedef struct State {
+    u32 window_width;
+    u32 window_height;
+    GLFWwindow *window;
+    GLFWmonitor *primary_monitor;
+
     VkInstance instance;
     VkDebugUtilsMessengerEXT debug_messenger;
     VkPhysicalDevice physical_device;
@@ -39,17 +66,73 @@ typedef struct Graphics {
     VkSwapchainKHR swapchain;
     u32 swapchain_image_count;
     StagedBuffer swapchain_buffer;
-    VkImage* swapchain_images;
+    VkImage *swapchain_images;
     VkFormat swapchain_format;
     VkExtent2D swapchain_extent;
-    VkImageView* swapchain_image_views;
-    VkFramebuffer* swapchain_framebuffers;
+    VkImageView *swapchain_image_views;
+    VkFramebuffer *swapchain_framebuffers;
     VkCommandPool command_pool;
-} Graphics;
 
-typedef struct State {
+    VkImage texture_image;
+    VkDeviceMemory texture_image_memory;
+    VkImageView texture_image_view;
+    VkSampler texture_image_sampler;
 
+    VkImage depth_image;
+    VkDeviceMemory depth_image_memory;
+    VkImageView depth_image_view;
 
+    VkShaderModule vertex_module;
+    VkShaderModule fragment_module;
+    VkDescriptorSetLayout descriptor_set_layout;
+    VkPipelineLayout pipeline_layout;
+    VkRenderPass render_pass;
+    VkPipeline graphics_pipeline;
+    VkCommandBuffer* command_buffers;
+
+    StagedBuffer semaphore_buffer;
+    VkSemaphore* image_available_semaphores;
+    VkSemaphore* render_finished_semaphores;
+    VkFence* in_flight_fences;
+    VkFence* image_in_flight_fences;
+    usize current_frame_index;
+
+    DebugCallbackData debug_callback_data;
+    StagedBuffer scratch;
+
+    f32 model_rotation;
+    f32 model_rotation_offset;
+    vec3 model_position;
+
+    // We only want to load this temporarily into memory
+    //usize model_vertices_count;
+    //f32* model_vertices;
+    //usize model_indices_count;
+    //u16* model_indices;
+
+    VkBuffer vertex_buffer;
+    VkDeviceMemory vertex_buffer_memory;
+    VkBuffer index_buffer;
+    VkDeviceMemory index_buffer_memory;
+
+    VkBuffer* uniform_buffers;
+    VkDeviceMemory* uniform_buffers_memory;
+    VkDescriptorPool uniform_descriptor_pool;
+
+    VkDescriptorSet* descriptor_sets;
+
+    vec3 player_eye;
+    vec3 look_dir;
+    vec2 mouse_pos;
+    vec2 mouse_delta;
+    f32 theta;
+    f32 phi;
+
+    f32 elapsed_time;
+    f32 delta_time;
+
+    f32 mouse_sensitivity;
+    f32 player_speed;
 } State;
 
 #define UNTITLED_FPS_STATE_H

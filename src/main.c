@@ -10,6 +10,7 @@
 #include "util.h"
 #include "vkutil.h"
 #include "vmmath.h"
+#include "state.h"
 
 // lib
 #include <GLFW/glfw3.h>
@@ -22,7 +23,7 @@
 global const char* REQUIRED_LAYER_NAMES[REQUIRED_LAYER_COUNT] = {
         "VK_LAYER_KHRONOS_validation",
 };
-//TODO(sean): check that this is supported
+//NOTE(sean): If we dont support this then we just shouldnt run
 #define REQUIRED_EXTENSION_COUNT 1
 global const char* REQUIRED_EXTENSION_NAMES[REQUIRED_EXTENSION_COUNT] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -36,92 +37,11 @@ global b32 validation_enabled = 1;
 global b32 validation_enabled = 0;
 #endif
 
-// TODO(sean): move this to compile flag
 global u32 supports_validation;
 
-// TODO(sean): move this into a struct, none of it really works without the rest
-// So it should be reasonable to move it to a struct
-global u32 window_width = 800;
-global u32 window_height = 600;
-global GLFWwindow* window;
-global VkInstance instance;
-global VkDebugUtilsMessengerEXT debug_messenger;
-global VkPhysicalDevice physical_device;
-global VkDevice device;
-global VkQueue queue;
-global VkSurfaceKHR surface;
-global VkQueue present_queue;
-global VkSurfaceCapabilitiesKHR surface_capabilities;
-global u32 queue_family_indices[2];
-global VkSurfaceFormatKHR surface_format;
-global VkPresentModeKHR present_mode;
-global VkExtent2D surface_extent;
-global VkSwapchainKHR swapchain;
-global u32 swapchain_image_count;
-global StagedBuffer swapchain_buffer;
-global VkImage* swapchain_images;
-global VkFormat swapchain_format;
-global VkExtent2D swapchain_extent;
-global VkImageView* swapchain_image_views;
-global VkFramebuffer* swapchain_framebuffers;
-global VkCommandPool command_pool;
+global State state;
 
-// end graphics
-
-VkImage texture_image;
-VkDeviceMemory texture_image_memory;
-VkImageView texture_image_view;
-VkSampler texture_image_sampler;
-
-// begin state
-global VkShaderModule vertex_module;
-global VkShaderModule fragment_module;
-global VkDescriptorSetLayout descriptor_set_layout;
-global VkPipelineLayout pipeline_layout;
-global VkRenderPass render_pass;
-global VkPipeline graphics_pipeline;
-global VkCommandBuffer* command_buffers;
-
-global StagedBuffer semaphore_buffer;
-global VkSemaphore* image_available_semaphores;
-global VkSemaphore* render_finished_semaphores;
-global VkFence* in_flight_fences;
-global VkFence* image_in_flight_fences;
-global usize current_frame_index;
-
-global DebugCallbackData debug_callback_data;
-global StagedBuffer scratch;
-
-global VkBuffer vertex_buffer;
-global VkDeviceMemory vertex_buffer_memory;
-global VkBuffer index_buffer;
-global VkDeviceMemory index_buffer_memory;
-
-global VkBuffer* uniform_buffers;
-global VkDeviceMemory* uniform_buffers_memory;
-global VkDescriptorPool uniform_descriptor_pool;
-
-#define descriptor_count 2
-global VkDescriptorSet* descriptor_sets;
-
-global vec2 mouse_pos;
-global vec2 mouse_delta;
-global f32 theta = 1.0;
-global f32 phi = 0.75;
-
-global Timer last_elapsed = {1.0f, 1024.0*1024.0, 1024.0*1024.0};
-global f32 deltatime;
-
-const f32 player_vault_height = 0.5;
-global f32 mouse_sensitivity = 6.0;
-
-typedef struct Vertex {
-    vec3 pos;
-    vec3 color;
-    vec2 uv;
-} Vertex;
-
-const f32 double_cube_size = 4.0;
+const f32 double_cube_size = 20.0;
 const f32 cube_size = (double_cube_size)/2.0;
 
 #define vertex_count 10
@@ -155,79 +75,42 @@ global u16 indices[index_count] = {
     8, 2, 4,
 };
 
-global usize model_vertices_count;
-global f32* model_vertices;
-global usize model_indices_count;
-global u16* model_indices;
-
-#define vertex_binding_description_count 1
-global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
-    {   .binding = 0,
-        .stride = sizeof(Vertex),
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-    }
-};
-#define vertex_attribute_description_count 3
-global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
-    {   .binding = 0,
-        .location = 0,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, pos),
-    },
-    {   .binding = 0,
-        .location = 1,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, color),
-    },
-    {   .binding = 0,
-        .location = 2,
-        .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(Vertex, uv),
-    }
-};
-
-typedef struct UniformBufferObject {
-    mat4 model;
-    mat4 view_proj;
-} UniformBufferObject;
-
-const f32 heightmap[4] = {
-    2.0, // 0 0
-    3.0, // 1 0
-    3.0, // 0 1
-    4.0  // 1 1
-};
+void create_depth_image() {
+}
 
 //TODO(sean): move some of this into a custom function
 void create_texture_image() {
     int texture_width, texture_height, texture_channels;
-    stbi_uc* pixels = stbi_load("../Penguin-Transparent.png", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
+    char* image_path = "../grass_grass_0124_01_tiled_s.jpg";
+    stbi_uc* pixels = stbi_load(image_path, &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
     VkDeviceSize image_size = texture_width * texture_height * 4;
 
     if(pixels == 0) {
-        panic("Failed to load texture image!");
+        char buffer[128];
+        sprintf(buffer, "Failed to load texture image (%s)!", image_path);
+        panic(buffer);
     }
 
     create_device_local_image(
-        device,
-        physical_device,
-        queue,
-        command_pool,
+        state.device,
+        state.physical_device,
+        state.queue,
+        state.command_pool,
         texture_width,
         texture_height,
         image_size,
         pixels,
         VK_FORMAT_R8G8B8A8_SRGB,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        &texture_image,
-        &texture_image_memory
+        &state.texture_image,
+        &state.texture_image_memory
     );
 
     stbi_image_free(pixels);
 
-    create_image_view(device, texture_image, VK_FORMAT_R8G8B8A8_SRGB, &texture_image_view);
+    create_image_view(state.device, state.texture_image, VK_FORMAT_R8G8B8A8_SRGB, &state.texture_image_view);
 
-    create_image_sampler(device, physical_device, &texture_image_sampler);
+    create_image_sampler(state.device, state.physical_device, &state.texture_image_sampler);
 }
 
 // end state
@@ -235,117 +118,76 @@ void create_texture_image() {
 void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
 
-    static vec3 player_eye = {{5.0, 5.0, 2.0}};
-    static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
+    //static vec3 player_eye = {{5.0, 5.0, 2.0}};
+    //static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
 
-    static f32 rotation = 0.0;
-    rotation += 3.0 * deltatime;
-    static f32 offset = 0.0;
-    offset += 3.0 * deltatime;
+    //static f32 rotation = 0.0;
+    state.model_rotation += 3.0 * state.delta_time;
+    state.model_rotation_offset += 3.0 * state.delta_time;
     //vec3 axis = {{0.0, sinf(offset), cosf(offset)}};
     //axis = vec3_norm(axis);
     //ubo.model = mat4_look_at(VEC3_ZERO, adj_player_eye, VEC3_UNIT_Z);
     //ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
-    static vec3 model_pos = {{0.0f, 0.0f, 0.0f}};
 
     //ubo.model = mat4_rotate(mat4_splat(1.0), atan2f(model_pos.y - player_eye.y, model_pos.x - player_eye.x), VEC3_UNIT_Z);
     ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
 
-    rotation = f32_wrap(rotation, 2.0 * M_PI);
-    offset = f32_wrap(offset, 2.0 * M_PI);
+    state.model_rotation = f32_wrap(state.model_rotation, 2.0 * M_PI);
+    state.model_rotation_offset = f32_wrap(state.model_rotation_offset, 2.0 * M_PI);
 
     mat4 proj, view;
 
     {
-        vec3 xydir = {{look_dir.x, look_dir.y, 0.0}};
+        vec3 xydir = {{state.look_dir.x, state.look_dir.y, 0.0}};
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
         vec3 delta = VEC3_ZERO;
 
-        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        if(glfwGetKey(state.window, GLFW_KEY_W) == GLFW_PRESS) {
             delta = vec3_sub_vec3(delta, xydir);
         }
-        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        if(glfwGetKey(state.window, GLFW_KEY_A) == GLFW_PRESS) {
             delta = vec3_sub_vec3(delta, normal);
         }
-        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        if(glfwGetKey(state.window, GLFW_KEY_S) == GLFW_PRESS) {
             delta = vec3_add_vec3(delta, xydir);
         }
-        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        if(glfwGetKey(state.window, GLFW_KEY_D) == GLFW_PRESS) {
             delta = vec3_add_vec3(delta, normal);
         }
 
         if(vec3_par_ne_vec3(delta, VEC3_ZERO)) {
             delta = vec3_norm(delta);
-            delta = vec3_mul_f32(delta, deltatime);
-            delta = vec3_mul_f32(delta, 18.0);
-            player_eye = vec3_add_vec3(player_eye, delta);
+            delta = vec3_mul_f32(delta, state.delta_time);
+            delta = vec3_mul_f32(delta, state.player_speed);
+            state.player_eye = vec3_add_vec3(state.player_eye, delta);
         }
 
-        // heightmap goes from -10.0 to +10.0
-        // we want to get the players x,y in that heightmap
+        state.theta = f32_wrap(state.theta, 2.0 * M_PI);
 
-        /*
-        //TODO(sean): fix this os that it isn't negative
-        u32 heightmap_coord_x = (u32)(-player_eye.x / cube_size);
-        u32 heightmap_coord_y = (u32)(-player_eye.y / cube_size);
-        f32 heightmap_z = heightmap[(heightmap_coord_x % 2) + ((heightmap_coord_y % 2) * 2)];
-
-        printf("%i, %i\n", heightmap_coord_x, heightmap_coord_y);
-
-        player_eye.z = heightmap_z;
-        */
-
-        /*
-        if(player_eye.z + player_vault_height > heightmap_z) {
-            player_eye.z = heightmap_z;
-        } else {
-            f32 heightmap_x = heightmap_coord_x * cube_size;
-            f32 heightmap_y = heightmap_coord_y * cube_size;
-            f32 player_width = 0.2;
-        }
-        */
-
-        /*
-        // set player z
-        if(player_eye.x > -cube_size && player_eye.x < cube_size
-        && player_eye.y > -cube_size && player_eye.y < cube_size) {
-            player_eye.z = -cube_size + 2.0;
-        } else {
-            player_eye.z = 2.0;
-        }
-        */
-
-        theta = f32_wrap(theta, 2.0 * M_PI);
-
-        look_dir = vec3_from_theta_phi(theta, phi);
+        state.look_dir = vec3_from_theta_phi(state.theta, state.phi);
 
         vec3 up = {{0.0f, 0.0f, 1.0f}};
 
-        view = mat4_look_dir(player_eye, look_dir, up);
-
-        timer_end(&last_elapsed);
-        deltatime = (f32)last_elapsed.elapsed;
-        timer_init(&last_elapsed);
-        timer_start(&last_elapsed);
+        view = mat4_look_dir(state.player_eye, state.look_dir, up);
     }
 
-    proj = mat4_perspective(f32_radians(100.0f), (float)swapchain_extent.width / (float)swapchain_extent.height, 0.01f, 1000.0f);
+    proj = mat4_perspective(f32_radians(100.0f), (float)state.swapchain_extent.width / (float)state.swapchain_extent.height, 0.01f, 1000.0f);
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
 
-    write_buffer(device, uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &ubo);
+    write_buffer(state.device, state.uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &ubo);
 }
 
 void recreate_swapchain();
 
 void update_and_render() {
-    vkWaitForFences(device, 1, &in_flight_fences[current_frame_index], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(state.device, 1, &state.in_flight_fences[state.current_frame_index], VK_TRUE, UINT64_MAX);
 
     u32 image_index;
     VkResult result;
 
-    result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphores[current_frame_index], 0, &image_index);
+    result = vkAcquireNextImageKHR(state.device, state.swapchain, UINT64_MAX, state.image_available_semaphores[state.current_frame_index], 0, &image_index);
 
     if(result == VK_ERROR_OUT_OF_DATE_KHR) {
         recreate_swapchain();
@@ -357,13 +199,13 @@ void update_and_render() {
 
     update_uniforms(image_index);
 
-    if(image_in_flight_fences[current_frame_index] != 0) {
-        vkWaitForFences(device, 1, &image_in_flight_fences[current_frame_index], VK_TRUE, UINT64_MAX);
+    if(state.image_in_flight_fences[state.current_frame_index] != 0) {
+        vkWaitForFences(state.device, 1, &state.image_in_flight_fences[state.current_frame_index], VK_TRUE, UINT64_MAX);
     }
-    image_in_flight_fences[current_frame_index] = in_flight_fences[current_frame_index];
+    state.image_in_flight_fences[state.current_frame_index] = state.in_flight_fences[state.current_frame_index];
 
-    VkSemaphore wait_semaphores[] = {image_available_semaphores[current_frame_index]};
-    VkSemaphore signal_semaphores[] = {render_finished_semaphores[current_frame_index]};
+    VkSemaphore wait_semaphores[] = {state.image_available_semaphores[state.current_frame_index]};
+    VkSemaphore signal_semaphores[] = {state.render_finished_semaphores[state.current_frame_index]};
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submit_info = {};
@@ -372,18 +214,18 @@ void update_and_render() {
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffers[image_index];
+    submit_info.pCommandBuffers = &state.command_buffers[image_index];
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
-    vkResetFences(device, 1, &in_flight_fences[current_frame_index]);
+    vkResetFences(state.device, 1, &state.in_flight_fences[state.current_frame_index]);
 
-    if(vkQueueSubmit(queue, 1, &submit_info, in_flight_fences[current_frame_index]) != VK_SUCCESS) {
+    if(vkQueueSubmit(state.queue, 1, &submit_info, state.in_flight_fences[state.current_frame_index]) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to submit draw command buffer!");
     }
 
-    VkSwapchainKHR swapchains[] = {swapchain};
+    VkSwapchainKHR swapchains[] = {state.swapchain};
     VkPresentInfoKHR present_info = {};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
@@ -393,7 +235,7 @@ void update_and_render() {
     present_info.pImageIndices = &image_index;
     present_info.pResults = 0;
 
-    result = vkQueuePresentKHR(present_queue, &present_info);
+    result = vkQueuePresentKHR(state.present_queue, &present_info);
 
     if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         recreate_swapchain();
@@ -402,28 +244,28 @@ void update_and_render() {
         panic("Failed to present swapchain image!");
     }
 
-    current_frame_index += 1;
-    current_frame_index %= MAX_FRAMES_IN_FLIGHT;
+    state.current_frame_index += 1;
+    state.current_frame_index %= MAX_FRAMES_IN_FLIGHT;
 }
 
 global void cursor_position_callback(GLFWwindow* pwindow, double xpos, double ypos) {
     f32 lastx, lasty;
-    lastx = mouse_pos.x;
-    lasty = mouse_pos.y;
+    lastx = state.mouse_pos.x;
+    lasty = state.mouse_pos.y;
 
     int winx, winy;
-    glfwGetWindowSize(window, &winx, &winy);
+    glfwGetWindowSize(state.window, &winx, &winy);
 
-    mouse_pos.x = (f32) xpos / (f32) winx;
-    mouse_pos.y = (f32) ypos / (f32) winy;
+    state.mouse_pos.x = (f32) xpos / (f32) winx;
+    state.mouse_pos.y = (f32) ypos / (f32) winy;
 
-    mouse_delta.x = lastx - mouse_pos.x;
-    mouse_delta.y = lasty - mouse_pos.y;
+    state.mouse_delta.x = lastx - state.mouse_pos.x;
+    state.mouse_delta.y = lasty - state.mouse_pos.y;
 
-    theta += mouse_delta.y * mouse_sensitivity;
-    phi += mouse_delta.x * mouse_sensitivity;
+    state.theta += state.mouse_delta.y * state.mouse_sensitivity;
+    state.phi += state.mouse_delta.x * state.mouse_sensitivity;
 
-    theta = f32_clamp(theta, 0.01, M_PI - 0.01);
+    state.theta = f32_clamp(state.theta, 0.01, M_PI - 0.01);
 }
 
 void init_window() {
@@ -431,13 +273,13 @@ void init_window() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window = glfwCreateWindow(1920, 1080, "Spinning Cube", 0, 0);//glfwGetPrimaryMonitor(), 0);
+    state.window = glfwCreateWindow(state.window_width, state.window_height, "Spinning Cube", state.primary_monitor, 0);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(state.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if(glfwRawMouseMotionSupported()) {
-        glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        glfwSetInputMode(state.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     }
-    glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetCursorPosCallback(state.window, cursor_position_callback);
 }
 
 // check layers support
@@ -450,7 +292,7 @@ void check_layers_support() {
     // TODO(sean): move this to compile flag
 
     vkEnumerateInstanceLayerProperties(&layer_count, 0);
-    available_layers = sbmalloc(&scratch, layer_count * sizeof(VkLayerProperties));
+    available_layers = sbmalloc(&state.scratch, layer_count * sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 
     for(usize index = 0; index < layer_count; index += 1) {
@@ -465,7 +307,7 @@ void check_layers_support() {
         }
     }
 
-    sbclear(&scratch);
+    sbclear(&state.scratch);
 }
 
 void init_instance() {
@@ -499,7 +341,7 @@ void init_instance() {
             | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debug_create_info.pfnUserCallback = debug_callback;
-        debug_create_info.pUserData = &debug_callback_data;
+        debug_create_info.pUserData = &state.debug_callback_data;
 
         create_info.enabledLayerCount = REQUIRED_LAYER_COUNT;
         create_info.ppEnabledLayerNames = REQUIRED_LAYER_NAMES;
@@ -509,7 +351,7 @@ void init_instance() {
         // We have to create our own, because realloc will *likely* move the location of the pointer.
         // GLFW then promptly throws a hissy-fit when we try to free this.
         usize new_count = glfw_ext_count + REQUIRED_LAYER_COUNT;
-        const char** new_glfw_ext = sbmalloc(&scratch, new_count * sizeof(char**));
+        const char** new_glfw_ext = sbmalloc(&state.scratch, new_count * sizeof(char**));
         memcpy(new_glfw_ext, glfw_ext, new_count * sizeof(char*));
         glfw_ext = new_glfw_ext;
         glfw_ext[glfw_ext_count] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
@@ -522,27 +364,27 @@ void init_instance() {
     create_info.enabledExtensionCount = glfw_ext_count;
     create_info.ppEnabledExtensionNames = glfw_ext;
 
-    if (vkCreateInstance(&create_info, 0, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&create_info, 0, &state.instance) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create instance!");
     }
 
     // setup debug messenger
     if(supports_validation && validation_enabled) {
-        PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+        PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(state.instance, "vkCreateDebugUtilsMessengerEXT");
         if (func != 0) {
-            func(instance, &debug_create_info, 0, &debug_messenger);
+            func(state.instance, &debug_create_info, 0, &state.debug_messenger);
         } else {
             //TODO(sean): diagnostic
             panic("Failed to create debug messenger!");
         }
     }
 
-    sbclear(&scratch);
+    sbclear(&state.scratch);
 }
 
 void init_surface() {
-    if(glfwCreateWindowSurface(instance, window, 0, &surface) != 0) {
+    if(glfwCreateWindowSurface(state.instance, state.window, 0, &state.surface) != 0) {
         //TODO(sean): diagnostic
         panic("Failed to create window surface!");
     }
@@ -550,15 +392,15 @@ void init_surface() {
 
 void init_physical_device() {
     u32 physical_device_count = 0;
-    vkEnumeratePhysicalDevices(instance, &physical_device_count, 0);
+    vkEnumeratePhysicalDevices(state.instance, &physical_device_count, 0);
 
     if (physical_device_count == 0) {
         //TODO(sean): diagnostic
         panic("Failed to find GPUs with Vulkan support!");
     }
 
-    VkPhysicalDevice* physical_devices = sbmalloc(&scratch, physical_device_count * sizeof(VkPhysicalDevice));
-    vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices);
+    VkPhysicalDevice* physical_devices = sbmalloc(&state.scratch, physical_device_count * sizeof(VkPhysicalDevice));
+    vkEnumeratePhysicalDevices(state.instance, &physical_device_count, physical_devices);
 
     //TODO(sean): make this algorithm smarter
     for(usize index = 0; index < physical_device_count; index += 1) {
@@ -569,12 +411,12 @@ void init_physical_device() {
         vkGetPhysicalDeviceFeatures(physical_devices[index], &device_features);
 
         if(device_features.geometryShader != VK_FALSE && device_features.samplerAnisotropy != VK_FALSE) {
-            physical_device = physical_devices[index];
+            state.physical_device = physical_devices[index];
             break;
         }
     }
 
-    if(physical_device == 0) {
+    if(state.physical_device == 0) {
         //TODO(sean): diagnostic
         panic("Failed to find suitable GPU!");
     }
@@ -584,10 +426,10 @@ void init_physical_device() {
     u32 queue_family_count = 0;
     VkQueueFamilyProperties* queue_families;
 
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, 0);
+    vkGetPhysicalDeviceQueueFamilyProperties(state.physical_device, &queue_family_count, 0);
 
-    queue_families = sbmalloc(&scratch, physical_device_count * sizeof(VkPhysicalDevice));
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families);
+    queue_families = sbmalloc(&state.scratch, physical_device_count * sizeof(VkPhysicalDevice));
+    vkGetPhysicalDeviceQueueFamilyProperties(state.physical_device, &queue_family_count, queue_families);
 
     b32 found_good_graphics_queue = 0;
     b32 found_good_present_queue = 0;
@@ -598,7 +440,7 @@ void init_physical_device() {
         }
 
         VkBool32 present_supported;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, index, surface, &present_supported);
+        vkGetPhysicalDeviceSurfaceSupportKHR(state.physical_device, index, state.surface, &present_supported);
 
         if(present_supported) {
             present_queue_index = index;
@@ -611,17 +453,17 @@ void init_physical_device() {
     }
 
     //TODO(sean): see if we can improve this set implementation
-    queue_family_indices[0] = graphics_queue_index;
-    queue_family_indices[1] = present_queue_index;
+    state.queue_family_indices[0] = graphics_queue_index;
+    state.queue_family_indices[1] = present_queue_index;
     u32 valid_queue_family_count;
     if(graphics_queue_index == present_queue_index) {
         valid_queue_family_count = 1;
     } else {
         valid_queue_family_count = 2;
     }
-    u32* unique_queue_family_indices = sbmalloc(&scratch, valid_queue_family_count * sizeof(u32));
+    u32* unique_queue_family_indices = sbmalloc(&state.scratch, valid_queue_family_count * sizeof(u32));
 
-    VkDeviceQueueCreateInfo* queue_create_infos = sbmalloc(&scratch, valid_queue_family_count * sizeof(VkDeviceQueueCreateInfo));
+    VkDeviceQueueCreateInfo* queue_create_infos = sbmalloc(&state.scratch, valid_queue_family_count * sizeof(VkDeviceQueueCreateInfo));
     usize unique_queue_family_count = 1;
 
     //TODO(sean): try harder to get the same index
@@ -629,12 +471,12 @@ void init_physical_device() {
     for(usize index = 1; index < valid_queue_family_count; index += 1) {
         u32 unique = 1;
         for(usize inter_index = 0; inter_index < unique_queue_family_count; inter_index += 1) {
-            if(inter_index == index && queue_family_indices[inter_index] == queue_family_indices[index]) {
+            if(inter_index == index && state.queue_family_indices[inter_index] == state.queue_family_indices[index]) {
                 unique = 0;
             }
         }
         if(unique == 1) {
-            unique_queue_family_indices[unique_queue_family_count] = queue_family_indices[index];
+            unique_queue_family_indices[unique_queue_family_count] = state.queue_family_indices[index];
             unique_queue_family_count += 1;
         }
     }
@@ -672,15 +514,15 @@ void init_physical_device() {
     device_create_info.enabledExtensionCount = REQUIRED_EXTENSION_COUNT;
     device_create_info.ppEnabledExtensionNames = REQUIRED_EXTENSION_NAMES; // implicitly supported by debug layers
 
-    if(vkCreateDevice(physical_device, &device_create_info, 0, &device) != VK_SUCCESS) {
+    if(vkCreateDevice(state.physical_device, &device_create_info, 0, &state.device) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create logical device!");
     }
 
-    vkGetDeviceQueue(device, graphics_queue_index, 0, &queue);
-    vkGetDeviceQueue(device, present_queue_index, 0, &present_queue);
+    vkGetDeviceQueue(state.device, graphics_queue_index, 0, &state.queue);
+    vkGetDeviceQueue(state.device, present_queue_index, 0, &state.present_queue);
 
-    sbclear(&scratch);
+    sbclear(&state.scratch);
 }
 
 void pre_init_swapchain() {
@@ -690,21 +532,21 @@ void pre_init_swapchain() {
     u32 present_mode_count;
     VkPresentModeKHR* present_modes;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &surface_format_count, 0);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(state.physical_device, state.surface, &state.surface_capabilities);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(state.physical_device, state.surface, &surface_format_count, 0);
 
     if(surface_format_count != 0) {
-        surface_formats = sbmalloc(&scratch, surface_format_count * sizeof(VkSurfaceFormatKHR));
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &surface_format_count, surface_formats);
+        surface_formats = sbmalloc(&state.scratch, surface_format_count * sizeof(VkSurfaceFormatKHR));
+        vkGetPhysicalDeviceSurfaceFormatsKHR(state.physical_device, state.surface, &surface_format_count, surface_formats);
     } else {
         panic("Could not find a suitable surface format!");
     }
 
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, 0);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(state.physical_device, state.surface, &present_mode_count, 0);
 
     if(present_mode_count != 0) {
-        present_modes = sbmalloc(&scratch, surface_format_count * sizeof(VkPresentModeKHR));
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, present_modes);
+        present_modes = sbmalloc(&state.scratch, surface_format_count * sizeof(VkPresentModeKHR));
+        vkGetPhysicalDeviceSurfacePresentModesKHR(state.physical_device, state.surface, &present_mode_count, present_modes);
     } else {
         panic("Could not find a suitable present mode!");
     }
@@ -724,7 +566,7 @@ void pre_init_swapchain() {
         //TODO(sean): figure out how i want to format this
         if(surface_formats[index].format == VK_FORMAT_B8G8R8A8_SRGB
         && surface_formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            surface_format = surface_formats[index];
+            state.surface_format = surface_formats[index];
             adequate = true;
             break;
         }
@@ -736,18 +578,18 @@ void pre_init_swapchain() {
     adequate = false;
     for(usize index = 0; index < present_mode_count; index += 1) {
         if(present_modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) {
-            present_mode = present_modes[index];
+            state.present_mode = present_modes[index];
             adequate = true;
             break;
         }
     }
     if(adequate == false) {
-        present_mode = present_modes[0];
+        state.present_mode = present_modes[0];
     }
 
     //TODO(sean): figure out how i want to format this
-    if(surface_capabilities.currentExtent.width != UINT32_MAX && surface_capabilities.currentExtent.height != UINT32_MAX) {
-        surface_extent = surface_capabilities.currentExtent;
+    if(state.surface_capabilities.currentExtent.width != UINT32_MAX && state.surface_capabilities.currentExtent.height != UINT32_MAX) {
+        state.surface_extent = state.surface_capabilities.currentExtent;
     } else {
         //TODO(sean): handle this error, we need to reconstruct the swap chain size based on what glfw gives us
         panic("Failed to validate current swap chain extent!");
@@ -759,69 +601,69 @@ void pre_init_swapchain() {
         */
     }
 
-    swapchain_image_count = surface_capabilities.minImageCount + 1;
-    if(surface_capabilities.maxImageCount > 0 && swapchain_image_count > surface_capabilities.maxImageCount) { // cap to max images
-        swapchain_image_count = surface_capabilities.maxImageCount;
+    state.swapchain_image_count = state.surface_capabilities.minImageCount + 1;
+    if(state.surface_capabilities.maxImageCount > 0 && state.swapchain_image_count > state.surface_capabilities.maxImageCount) { // cap to max images
+        state.swapchain_image_count = state.surface_capabilities.maxImageCount;
     }
 
-    swapchain_format = surface_format.format;
-    swapchain_extent = surface_extent;
+    state.swapchain_format = state.surface_format.format;
+    state.swapchain_extent = state.surface_extent;
 
-    sbclear(&scratch);
+    sbclear(&state.scratch);
 }
 
 void init_swapchain() {
     VkSwapchainCreateInfoKHR swapchain_create_info = {};
     swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchain_create_info.surface = surface;
-    swapchain_create_info.minImageCount = swapchain_image_count;
-    swapchain_create_info.imageFormat = surface_format.format;
-    swapchain_create_info.imageColorSpace = surface_format.colorSpace;
-    swapchain_create_info.imageExtent = surface_extent;
+    swapchain_create_info.surface = state.surface;
+    swapchain_create_info.minImageCount = state.swapchain_image_count;
+    swapchain_create_info.imageFormat = state.surface_format.format;
+    swapchain_create_info.imageColorSpace = state.surface_format.colorSpace;
+    swapchain_create_info.imageExtent = state.surface_extent;
     swapchain_create_info.imageArrayLayers = 1;
     swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     //swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT; // use this for post processing textures
 
-    if (queue_family_indices[0] != queue_family_indices[1]) {
+    if(state.queue_family_indices[0] != state.queue_family_indices[1]) {
         swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapchain_create_info.queueFamilyIndexCount = 2;
-        swapchain_create_info.pQueueFamilyIndices = queue_family_indices;
+        swapchain_create_info.pQueueFamilyIndices = state.queue_family_indices;
     } else {
         swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // this offers better performance
         swapchain_create_info.queueFamilyIndexCount = 0;
         swapchain_create_info.pQueueFamilyIndices = 0;
     }
 
-    swapchain_create_info.preTransform = surface_capabilities.currentTransform;
+    swapchain_create_info.preTransform = state.surface_capabilities.currentTransform;
     swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchain_create_info.presentMode = present_mode;
+    swapchain_create_info.presentMode = state.present_mode;
     swapchain_create_info.clipped = VK_TRUE;
     swapchain_create_info.oldSwapchain = 0;
 
 
-    if (vkCreateSwapchainKHR(device, &swapchain_create_info, 0, &swapchain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(state.device, &swapchain_create_info, 0, &state.swapchain) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create swapchain!");
     }
 
-    vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, 0);
-    swapchain_images = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkImage));
-    vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images);
+    vkGetSwapchainImagesKHR(state.device, state.swapchain, &state.swapchain_image_count, 0);
+    state.swapchain_images = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkImage));
+    vkGetSwapchainImagesKHR(state.device, state.swapchain, &state.swapchain_image_count, state.swapchain_images);
 
-    swapchain_image_views = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkImageView));
+    state.swapchain_image_views = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkImageView));
 
-    for(usize index = 0; index < swapchain_image_count; index += 1) {
-        create_image_view(device, swapchain_images[index], swapchain_format, &swapchain_image_views[index]);
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) {
+        create_image_view(state.device, state.swapchain_images[index], state.swapchain_format, &state.swapchain_image_views[index]);
     }
 }
 
 void create_shader_modules() {
     // load shaders
     usize file_count = 2;
-    FILE **files = sbmalloc(&scratch, file_count * sizeof(FILE *));
+    FILE **files = sbmalloc(&state.scratch, file_count * sizeof(FILE *));
     char *file_names[] = {"../vert.spv", "../frag.spv"};
-    char **buffers = sbmalloc(&scratch, file_count * sizeof(char *));
-    usize *buffer_sizes = sbmalloc(&scratch, file_count * sizeof(usize));
+    char **buffers = sbmalloc(&state.scratch, file_count * sizeof(char *));
+    usize *buffer_sizes = sbmalloc(&state.scratch, file_count * sizeof(usize));
 
     for (usize index = 0; index < file_count; index += 1) {
         files[index] = fopen(file_names[index], "rb");
@@ -846,7 +688,7 @@ void create_shader_modules() {
         usize fsize = ftell(fp);
         fseek(fp, 0L, SEEK_SET);
 
-        buffers[index] = sbmalloc(&scratch, fsize * sizeof(char));
+        buffers[index] = sbmalloc(&state.scratch, fsize * sizeof(char));
         fread(buffers[index], fsize, sizeof(char), fp);
         buffer_sizes[index] = fsize;
     }
@@ -856,23 +698,23 @@ void create_shader_modules() {
         assert(fclose(files[index]) == 0);
     }
 
-    create_shader_module(device, buffers[0], buffer_sizes[0], &vertex_module);
-    create_shader_module(device, buffers[1], buffer_sizes[1], &fragment_module);
+    create_shader_module(state.device, buffers[0], buffer_sizes[0], &state.vertex_module);
+    create_shader_module(state.device, buffers[1], buffer_sizes[1], &state.fragment_module);
 
-    sbclear(&scratch);
+    sbclear(&state.scratch);
 }
 
 void create_pipeline() {
     VkPipelineShaderStageCreateInfo vertex_stage_create_info = {};
     vertex_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertex_stage_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertex_stage_create_info.module = vertex_module;
+    vertex_stage_create_info.module = state.vertex_module;
     vertex_stage_create_info.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragment_stage_create_info = {};
     fragment_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragment_stage_create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragment_stage_create_info.module = fragment_module;
+    fragment_stage_create_info.module = state.fragment_module;
     fragment_stage_create_info.pName = "main";
 
     // TODO(sean): formatting
@@ -893,16 +735,16 @@ void create_pipeline() {
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (f32)swapchain_extent.width;
-    viewport.height = (f32)swapchain_extent.height;
+    viewport.width = (f32)state.swapchain_extent.width;
+    viewport.height = (f32)state.swapchain_extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor = {};
     scissor.offset.x = 0;
     scissor.offset.y = 0;
-    scissor.extent.width = swapchain_extent.width;
-    scissor.extent.height = swapchain_extent.height;
+    scissor.extent.width = state.swapchain_extent.width;
+    scissor.extent.height = state.swapchain_extent.height;
 
     VkPipelineViewportStateCreateInfo viewport_state_create_info = {};
     viewport_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -969,17 +811,17 @@ void create_pipeline() {
     VkPipelineLayoutCreateInfo pipeline_layout_create_info = {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.setLayoutCount = 1;
-    pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
+    pipeline_layout_create_info.pSetLayouts = &state.descriptor_set_layout;
     pipeline_layout_create_info.pushConstantRangeCount = 0;
     pipeline_layout_create_info.pPushConstantRanges = 0;
 
-    if(vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline_layout) != VK_SUCCESS) {
+    if(vkCreatePipelineLayout(state.device, &pipeline_layout_create_info, 0, &state.pipeline_layout) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create pipeline layout!");
     }
 
     VkAttachmentDescription color_attachment_desc = {};
-    color_attachment_desc.format = swapchain_format;
+    color_attachment_desc.format = state.swapchain_format;
     color_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
     color_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1015,7 +857,7 @@ void create_pipeline() {
     render_pass_create_info.subpassCount = 1;
     render_pass_create_info.pDependencies = &subpass_dependency;
 
-    if(vkCreateRenderPass(device, &render_pass_create_info, 0, &render_pass) != VK_SUCCESS) {
+    if(vkCreateRenderPass(state.device, &render_pass_create_info, 0, &state.render_pass) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create render pass!");
     }
@@ -1032,34 +874,34 @@ void create_pipeline() {
     pipeline_create_info.pDepthStencilState = 0;
     pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
     pipeline_create_info.pDynamicState = 0;
-    pipeline_create_info.layout = pipeline_layout;
-    pipeline_create_info.renderPass = render_pass;
+    pipeline_create_info.layout = state.pipeline_layout;
+    pipeline_create_info.renderPass = state.render_pass;
     pipeline_create_info.subpass = 0;
     pipeline_create_info.basePipelineHandle = 0;
     pipeline_create_info.basePipelineIndex = -1;
 
-    if(vkCreateGraphicsPipelines(device, 0, 1, &pipeline_create_info, 0, &graphics_pipeline) != VK_SUCCESS) {
+    if(vkCreateGraphicsPipelines(state.device, 0, 1, &pipeline_create_info, 0, &state.graphics_pipeline) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create graphics pipeline!");
     }
 }
 
 void create_swapchain_framebuffers() {
-    swapchain_framebuffers = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkFramebuffer));
+    state.swapchain_framebuffers = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkFramebuffer));
 
-    for (usize index = 0; index < swapchain_image_count; index += 1) {
-        VkImageView attachments[] = {swapchain_image_views[index]};
+    for (usize index = 0; index < state.swapchain_image_count; index += 1) {
+        VkImageView attachments[] = {state.swapchain_image_views[index]};
 
         VkFramebufferCreateInfo framebuffer_create_info = {};
         framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebuffer_create_info.renderPass = render_pass;
+        framebuffer_create_info.renderPass = state.render_pass;
         framebuffer_create_info.attachmentCount = 1;
         framebuffer_create_info.pAttachments = attachments;
-        framebuffer_create_info.width = swapchain_extent.width;
-        framebuffer_create_info.height = swapchain_extent.height;
+        framebuffer_create_info.width = state.swapchain_extent.width;
+        framebuffer_create_info.height = state.swapchain_extent.height;
         framebuffer_create_info.layers = 1;
 
-        if (vkCreateFramebuffer(device, &framebuffer_create_info, 0, &swapchain_framebuffers[index]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(state.device, &framebuffer_create_info, 0, &state.swapchain_framebuffers[index]) != VK_SUCCESS) {
             //TODO(sean): diagnostic
             panic("Failed to create framebuffers!");
         }
@@ -1067,13 +909,13 @@ void create_swapchain_framebuffers() {
 }
 
 void init_command_pool() {
-    if(command_pool == 0) {
+    if(state.command_pool == 0) {
         VkCommandPoolCreateInfo command_pool_create_info = {};
         command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        command_pool_create_info.queueFamilyIndex = queue_family_indices[0]; // graphics queue family
+        command_pool_create_info.queueFamilyIndex = state.queue_family_indices[0]; // graphics queue family
         command_pool_create_info.flags = 0;
 
-        if (vkCreateCommandPool(device, &command_pool_create_info, 0, &command_pool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(state.device, &command_pool_create_info, 0, &state.command_pool) != VK_SUCCESS) {
             //TODO(sean): diagnostic
             panic("Failed to create command pool!");
         }
@@ -1082,26 +924,26 @@ void init_command_pool() {
 }
 
 void create_command_buffers() {
-    command_buffers = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkCommandBuffer));
+    state.command_buffers = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkCommandBuffer));
 
     VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    command_buffer_allocate_info.commandPool = command_pool;
+    command_buffer_allocate_info.commandPool = state.command_pool;
     command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    command_buffer_allocate_info.commandBufferCount = (u32)swapchain_image_count;
+    command_buffer_allocate_info.commandBufferCount = (u32)state.swapchain_image_count;
 
-    if(vkAllocateCommandBuffers(device, &command_buffer_allocate_info, command_buffers) != VK_SUCCESS) {
+    if(vkAllocateCommandBuffers(state.device, &command_buffer_allocate_info, state.command_buffers) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to allocate command buffers!");
     }
 
-    for(usize index = 0; index < swapchain_image_count; index += 1) {
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) {
         VkCommandBufferBeginInfo begin_info = {};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         begin_info.flags = 0;
         begin_info.pInheritanceInfo = 0;
 
-        if (vkBeginCommandBuffer(command_buffers[index], &begin_info) != VK_SUCCESS) {
+        if (vkBeginCommandBuffer(state.command_buffers[index], &begin_info) != VK_SUCCESS) {
             //TODO(sean): diagnostic
             panic("Failed to begin recording command buffer!");
         }
@@ -1110,29 +952,29 @@ void create_command_buffers() {
 
         VkRenderPassBeginInfo render_pass_begin_info = {};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_begin_info.renderPass = render_pass;
-        render_pass_begin_info.framebuffer = swapchain_framebuffers[index];
+        render_pass_begin_info.renderPass = state.render_pass;
+        render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
         render_pass_begin_info.renderArea.offset.x = 0;
         render_pass_begin_info.renderArea.offset.y = 0;
-        render_pass_begin_info.renderArea.extent.width = swapchain_extent.width;
-        render_pass_begin_info.renderArea.extent.height = swapchain_extent.height;
+        render_pass_begin_info.renderArea.extent.width = state.swapchain_extent.width;
+        render_pass_begin_info.renderArea.extent.height = state.swapchain_extent.height;
         render_pass_begin_info.pClearValues = &render_clear_color;
         render_pass_begin_info.clearValueCount = 1;
 
-        vkCmdBeginRenderPass(command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(state.command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+            vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphics_pipeline);
 
-            VkBuffer vertex_buffers[] = {vertex_buffer};
+            VkBuffer vertex_buffers[] = {state.vertex_buffer};
             VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(command_buffers[index], 0, 1, vertex_buffers, offsets);
-            vkCmdBindIndexBuffer(command_buffers[index], index_buffer, 0, VK_INDEX_TYPE_UINT16);
-            vkCmdBindDescriptorSets(command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[index], 0, 0);
-            vkCmdDrawIndexed(command_buffers[index], index_count, 1, 0, 0, 0);
+            vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
+            vkCmdBindIndexBuffer(state.command_buffers[index], state.index_buffer, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1, &state.descriptor_sets[index], 0, 0);
+            vkCmdDrawIndexed(state.command_buffers[index], index_count, 1, 0, 0, 0);
 
-        vkCmdEndRenderPass(command_buffers[index]);
+        vkCmdEndRenderPass(state.command_buffers[index]);
 
-        if (vkEndCommandBuffer(command_buffers[index]) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(state.command_buffers[index]) != VK_SUCCESS) {
             //TODO(sean): diagnostic
             panic("Failed to record command buffer!");
         }
@@ -1141,10 +983,10 @@ void create_command_buffers() {
 
 void create_sync_objects() {
     //TODO(sean): see if we can reduce the overall amount of times we call malloc
-    image_available_semaphores = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-    render_finished_semaphores = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-    in_flight_fences = sbmalloc(&semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
-    image_in_flight_fences = sbcalloc(&semaphore_buffer, 0, swapchain_image_count * sizeof(VkFence));
+    state.image_available_semaphores = sbmalloc(&state.semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+    state.render_finished_semaphores = sbmalloc(&state.semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+    state.in_flight_fences = sbmalloc(&state.semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
+    state.image_in_flight_fences = sbcalloc(&state.semaphore_buffer, 0, state.swapchain_image_count * sizeof(VkFence));
 
     VkSemaphoreCreateInfo semaphore_info = {};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1155,9 +997,9 @@ void create_sync_objects() {
 
     for(usize index = 0; index < MAX_FRAMES_IN_FLIGHT; index += 1)
     {
-        if(vkCreateSemaphore(device, &semaphore_info, 0, &image_available_semaphores[index]) != VK_SUCCESS
-        || vkCreateSemaphore(device, &semaphore_info, 0, &render_finished_semaphores[index]) != VK_SUCCESS
-        || vkCreateFence(device, &fence_info, 0, &in_flight_fences[index]) != VK_SUCCESS)
+        if(vkCreateSemaphore(state.device, &semaphore_info, 0, &state.image_available_semaphores[index]) != VK_SUCCESS
+        || vkCreateSemaphore(state.device, &semaphore_info, 0, &state.render_finished_semaphores[index]) != VK_SUCCESS
+        || vkCreateFence(state.device, &fence_info, 0, &state.in_flight_fences[index]) != VK_SUCCESS)
         {
             //TODO(sean): diagnostic
             panic("Failed to create synchronization structures for a frame!");
@@ -1186,7 +1028,7 @@ void create_descriptor_set_layout() {
     layout_create_info.bindingCount = 2;
     layout_create_info.pBindings = bindings;
 
-    if(vkCreateDescriptorSetLayout(device, &layout_create_info, 0, &descriptor_set_layout) != VK_SUCCESS) {
+    if(vkCreateDescriptorSetLayout(state.device, &layout_create_info, 0, &state.descriptor_set_layout) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create descriptor set layout!");
     }
@@ -1195,26 +1037,26 @@ void create_descriptor_set_layout() {
 void create_uniform_buffers() {
     VkDeviceSize buffer_size = sizeof(UniformBufferObject);
 
-    uniform_buffers = sbmalloc(&semaphore_buffer, swapchain_image_count * sizeof(VkBuffer));
-    uniform_buffers_memory = sbmalloc(&semaphore_buffer, swapchain_image_count * sizeof(VkDeviceMemory));
+    state.uniform_buffers = sbmalloc(&state.semaphore_buffer, state.swapchain_image_count * sizeof(VkBuffer));
+    state.uniform_buffers_memory = sbmalloc(&state.semaphore_buffer, state.swapchain_image_count * sizeof(VkDeviceMemory));
 
-    for(usize index = 0; index < swapchain_image_count; index += 1) {
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) {
         create_buffer(
-            device, physical_device, buffer_size,
+            state.device, state.physical_device, buffer_size,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &uniform_buffers[index], &uniform_buffers_memory[index]);
+            &state.uniform_buffers[index], &state.uniform_buffers_memory[index]);
     }
 }
 
 void create_descriptor_pool() {
     VkDescriptorPoolSize ubo_pool_size = {};
     ubo_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubo_pool_size.descriptorCount = swapchain_image_count;
+    ubo_pool_size.descriptorCount = state.swapchain_image_count;
 
     VkDescriptorPoolSize sampler_pool_size = {};
     sampler_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    sampler_pool_size.descriptorCount = swapchain_image_count;
+    sampler_pool_size.descriptorCount = state.swapchain_image_count;
 
     VkDescriptorPoolSize pool_sizes[descriptor_count] = {ubo_pool_size, sampler_pool_size};
 
@@ -1222,44 +1064,44 @@ void create_descriptor_pool() {
     pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_create_info.poolSizeCount = descriptor_count;
     pool_create_info.pPoolSizes = pool_sizes;
-    pool_create_info.maxSets = swapchain_image_count;
+    pool_create_info.maxSets = state.swapchain_image_count;
 
-    if(vkCreateDescriptorPool(device, &pool_create_info, 0, &uniform_descriptor_pool) != VK_SUCCESS) {
+    if(vkCreateDescriptorPool(state.device, &pool_create_info, 0, &state.uniform_descriptor_pool) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create uniform descriptor pool!");
     }
 }
 
 void create_descriptor_sets() {
-    VkDescriptorSetLayout* layouts = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkDescriptorSetLayout));
-    for(usize index = 0; index < swapchain_image_count; index += 1) { layouts[index] = descriptor_set_layout; }
+    VkDescriptorSetLayout* layouts = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkDescriptorSetLayout));
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) { layouts[index] = state.descriptor_set_layout; }
 
     VkDescriptorSetAllocateInfo allocate_info = {};
     allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocate_info.descriptorPool = uniform_descriptor_pool;
-    allocate_info.descriptorSetCount = swapchain_image_count;
+    allocate_info.descriptorPool = state.uniform_descriptor_pool;
+    allocate_info.descriptorSetCount = state.swapchain_image_count;
     allocate_info.pSetLayouts = layouts;
 
-    descriptor_sets = sbmalloc(&swapchain_buffer, swapchain_image_count * sizeof(VkDescriptorSet));
-    if (vkAllocateDescriptorSets(device, &allocate_info, descriptor_sets) != VK_SUCCESS) {
+    state.descriptor_sets = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkDescriptorSet));
+    if (vkAllocateDescriptorSets(state.device, &allocate_info, state.descriptor_sets) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to allocate uniform descriptor sets!");
     }
 
-    for(usize index = 0; index < swapchain_image_count; index += 1) {
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) {
         VkDescriptorBufferInfo buffer_info = {};
-        buffer_info.buffer = uniform_buffers[index];
+        buffer_info.buffer = state.uniform_buffers[index];
         buffer_info.offset = 0;
         buffer_info.range = sizeof(UniformBufferObject);
 
         VkDescriptorImageInfo image_info = {};
         image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = texture_image_view;
-        image_info.sampler = texture_image_sampler;
+        image_info.imageView = state.texture_image_view;
+        image_info.sampler = state.texture_image_sampler;
 
         VkWriteDescriptorSet descriptor_writes[descriptor_count] = {};
         descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_writes[0].dstSet = descriptor_sets[index];
+        descriptor_writes[0].dstSet = state.descriptor_sets[index];
         descriptor_writes[0].dstBinding = 0;
         descriptor_writes[0].dstArrayElement = 0;
         descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1269,7 +1111,7 @@ void create_descriptor_sets() {
         descriptor_writes[0].pTexelBufferView = 0;
 
         descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_writes[1].dstSet = descriptor_sets[index];
+        descriptor_writes[1].dstSet = state.descriptor_sets[index];
         descriptor_writes[1].dstBinding = 1;
         descriptor_writes[1].dstArrayElement = 0;
         descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1278,35 +1120,35 @@ void create_descriptor_sets() {
         descriptor_writes[1].pImageInfo = &image_info;
         descriptor_writes[1].pTexelBufferView = 0;
 
-        vkUpdateDescriptorSets(device, descriptor_count, descriptor_writes, 0, 0);
+        vkUpdateDescriptorSets(state.device, descriptor_count, descriptor_writes, 0, 0);
     }
 }
 
 void cleanup_swapchain_artifacts() {
-    for(usize index = 0; index < swapchain_image_count; index += 1) {
-        vkDestroyBuffer(device, uniform_buffers[index], 0);
-        vkFreeMemory(device, uniform_buffers_memory[index], 0);
-        vkDestroyFramebuffer(device, swapchain_framebuffers[index], 0);
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) {
+        vkDestroyBuffer(state.device, state.uniform_buffers[index], 0);
+        vkFreeMemory(state.device, state.uniform_buffers_memory[index], 0);
+        vkDestroyFramebuffer(state.device, state.swapchain_framebuffers[index], 0);
     }
 
-    vkDestroyDescriptorPool(device, uniform_descriptor_pool, 0);
+    vkDestroyDescriptorPool(state.device, state.uniform_descriptor_pool, 0);
 
-    vkFreeCommandBuffers(device, command_pool, (u32)swapchain_image_count, command_buffers);
-    vkDestroyPipeline(device, graphics_pipeline, 0);
-    vkDestroyPipelineLayout(device, pipeline_layout, 0);
-    vkDestroyRenderPass(device, render_pass, 0);
+    vkFreeCommandBuffers(state.device, state.command_pool, (u32)state.swapchain_image_count, state.command_buffers);
+    vkDestroyPipeline(state.device, state.graphics_pipeline, 0);
+    vkDestroyPipelineLayout(state.device, state.pipeline_layout, 0);
+    vkDestroyRenderPass(state.device, state.render_pass, 0);
 
-    for(usize index = 0; index < swapchain_image_count; index += 1) {
-        vkDestroyImageView(device, swapchain_image_views[index], 0);
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) {
+        vkDestroyImageView(state.device, state.swapchain_image_views[index], 0);
     }
 
-    vkDestroySwapchainKHR(device, swapchain, 0);
+    vkDestroySwapchainKHR(state.device, state.swapchain, 0);
 
-    sbclear(&swapchain_buffer);
+    sbclear(&state.swapchain_buffer);
 }
 
 void recreate_swapchain() {
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(state.device);
 
     cleanup_swapchain_artifacts();
 
@@ -1323,36 +1165,67 @@ void recreate_swapchain() {
 
 void create_vertex_buffer() {
     create_device_local_buffer(
-        device,
-        physical_device,
-        queue,
-        command_pool,
+        state.device,
+        state.physical_device,
+        state.queue,
+        state.command_pool,
         sizeof(vertices[0]) * vertex_count,
         vertices,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &vertex_buffer,
-        &vertex_buffer_memory
+        &state.vertex_buffer,
+        &state.vertex_buffer_memory
     );
 }
 
 void create_index_buffer() {
     create_device_local_buffer(
-        device,
-        physical_device,
-        queue,
-        command_pool,
+        state.device,
+        state.physical_device,
+        state.queue,
+        state.command_pool,
         sizeof(indices[0]) * index_count,
         indices,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        &index_buffer,
-        &index_buffer_memory
+        &state.index_buffer,
+        &state.index_buffer_memory
     );
 }
 
+void update_time() {
+    f64 now_time = glfwGetTime();
+    state.delta_time = (f32)now_time - state.elapsed_time;
+    state.elapsed_time = now_time;
+
+    // Measure speed
+    static double lastTime = 0.0;
+    double delta = now_time - lastTime;
+    static usize nbFrames = 0;
+    nbFrames++;
+    if ( delta >= 1.0 ){ // If last cout was more than 1 sec ago
+        double fps = (double)nbFrames / delta;
+
+        char buffer[128];
+        sprintf(buffer, "Area 52 | Version 0.1.0 | %.2lf FPS", fps);
+        glfwSetWindowTitle(state.window, buffer);
+
+        nbFrames = 0;
+        lastTime = now_time;
+    }
+}
+
 int main() {
-    sbinit(&scratch, 512 * 1024); // 512K
-    sbinit(&swapchain_buffer, 4 * 1024); // 4K
-    sbinit(&semaphore_buffer, 4 * 1024); // 4K
+    state.window_width = 800;
+    state.window_height = 600;
+    state.primary_monitor = 0;
+
+    state.theta = 1.0;
+    state.phi = 0.75;
+    state.mouse_sensitivity = 2.0;
+    state.player_speed = 32.0;
+
+    sbinit(&state.scratch, 512 * 1024); // 512K
+    sbinit(&state.swapchain_buffer, 4 * 1024); // 4K
+    sbinit(&state.semaphore_buffer, 4 * 1024); // 4K
 
     init_window();
     check_layers_support();
@@ -1367,6 +1240,7 @@ int main() {
     create_pipeline();
     create_swapchain_framebuffers();
     init_command_pool();
+    create_depth_image();
     create_texture_image();
     create_vertex_buffer();
     create_index_buffer();
@@ -1376,28 +1250,13 @@ int main() {
     create_command_buffers();
     create_sync_objects();
 
-    while(!glfwWindowShouldClose(window)) {
+    while(!glfwWindowShouldClose(state.window)) {
+        update_time();
         glfwPollEvents();
         update_and_render();
 
-        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
-        }
-        // Measure speed
-        static double lastTime = 0.0;
-        double currentTime = glfwGetTime();
-        double delta = currentTime - lastTime;
-        static usize nbFrames = 0;
-        nbFrames++;
-        if ( delta >= 1.0 ){ // If last cout was more than 1 sec ago
-            double fps = (double)nbFrames / delta;
-
-            char buffer[128];
-            sprintf(buffer, "Area 52 | Version 0.1.0 | %.2lf FPS", fps);
-            glfwSetWindowTitle(window, buffer);
-
-            nbFrames = 0;
-            lastTime = currentTime;
+        if(glfwGetKey(state.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            glfwSetWindowShouldClose(state.window, GLFW_TRUE);
         }
 
     }
@@ -1413,7 +1272,7 @@ int main() {
     // cleanup_swapchain_artifacts();
     // create_swapchain();
 
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(state.device);
 
     /*
     // TODO(sean): We might need to recreate the window or recreate the vulkan context, so don't throw this away just yet
