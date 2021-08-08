@@ -46,36 +46,47 @@ const f32 cube_size = (double_cube_size)/2.0;
 
 #define vertex_count 10
 global Vertex vertices[vertex_count] = {
-    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 1.0f}}}, // 0 // w
-    {{{-cube_size, -cube_size, cube_size}},  {{0.0f, 0.0f, 1.0f}}, {{1.0f, 0.0f}}}, // 1
-    {{{-cube_size, cube_size,  -cube_size}}, {{0.0f, 1.0f, 0.0f}}, {{0.0f, 1.0f}}}, // 2 // g
-    {{{-cube_size, cube_size,  cube_size}},  {{0.0f, 1.0f, 1.0f}}, {{0.0f, 0.0f}}}, // 3
-    {{{cube_size,  cube_size,  -cube_size}}, {{1.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}}}, // 4 // w
-    {{{cube_size,  cube_size,  cube_size}},  {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}}, // 5
-    {{{cube_size,  -cube_size, -cube_size}}, {{1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}}}, // 6 // b
-    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{0.0f, 0.0f}}}, // 7
+    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 1.0f}}},
+    {{{-cube_size, -cube_size, cube_size}},  {{0.0f, 0.0f, 1.0f}}, {{1.0f, 0.0f}}},
+    {{{-cube_size, cube_size,  -cube_size}}, {{0.0f, 1.0f, 0.0f}}, {{0.0f, 1.0f}}},
+    {{{-cube_size, cube_size,  cube_size}},  {{0.0f, 1.0f, 1.0f}}, {{0.0f, 0.0f}}},
+    {{{cube_size,  cube_size,  -cube_size}}, {{1.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}}},
+    {{{cube_size,  cube_size,  cube_size}},  {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}},
+    {{{cube_size,  -cube_size, -cube_size}}, {{1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}}},
+    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{0.0f, 0.0f}}},
 
-    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}}, // 8 // w
-    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{1.0f, 1.0f}}}, // 7
+    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}},
+    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{1.0f, 1.0f}}},
 };
 
 #define index_count 36
 global u16 indices[index_count] = {
     0, 1, 3,
     0, 3, 2,
-    2, 3, 4,
-    4, 3, 5,
-    4, 5, 6,
-    5, 7, 6,
-    0, 6, 7,
-    0, 7, 1,
-    1, 9, 3,
-    5, 3, 9,
-    8, 4, 6,
-    8, 2, 4,
+//    2, 3, 4,
+//    4, 3, 5,
+    5, 4, 6,
+    7, 5, 6,
+//    0, 6, 7,
+//    0, 7, 1,
+//    1, 9, 3,
+//    5, 3, 9,
+//    8, 4, 6,
+//    8, 2, 4,
 };
 
+void find_depth_image_format() {
+    VkFormat formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+    state.depth_image_format = find_supported_format(state.physical_device, 3, formats,
+                                                     VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    state.depth_image_has_stencil = state.depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || state.depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
 void create_depth_image() {
+    create_image(state.device, state.physical_device, state.swapchain_extent.width, state.swapchain_extent.height, state.depth_image_format,
+                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                 &state.depth_image, &state.depth_image_memory);
+    create_image_view(state.device, state.depth_image, state.depth_image_format, VK_IMAGE_ASPECT_DEPTH_BIT, &state.depth_image_view);
 }
 
 //TODO(sean): move some of this into a custom function
@@ -91,24 +102,14 @@ void create_texture_image() {
         panic(buffer);
     }
 
-    create_device_local_image(
-        state.device,
-        state.physical_device,
-        state.queue,
-        state.command_pool,
-        texture_width,
-        texture_height,
-        image_size,
-        pixels,
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        &state.texture_image,
-        &state.texture_image_memory
-    );
+    create_device_local_image(state.device, state.physical_device, state.queue, state.command_pool,
+                              texture_width, texture_height, image_size, pixels,
+                              VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                              &state.texture_image, &state.texture_image_memory);
 
     stbi_image_free(pixels);
 
-    create_image_view(state.device, state.texture_image, VK_FORMAT_R8G8B8A8_SRGB, &state.texture_image_view);
+    create_image_view(state.device, state.texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &state.texture_image_view);
 
     create_image_sampler(state.device, state.physical_device, &state.texture_image_sampler);
 }
@@ -653,7 +654,7 @@ void init_swapchain() {
     state.swapchain_image_views = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkImageView));
 
     for(usize index = 0; index < state.swapchain_image_count; index += 1) {
-        create_image_view(state.device, state.swapchain_images[index], state.swapchain_format, &state.swapchain_image_views[index]);
+        create_image_view(state.device, state.swapchain_images[index], state.swapchain_format, VK_IMAGE_ASPECT_COLOR_BIT, &state.swapchain_image_views[index]);
     }
 }
 
@@ -830,28 +831,43 @@ void create_pipeline() {
     color_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     color_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+    VkAttachmentDescription depth_attachment_desc = {};
+    depth_attachment_desc.format = state.depth_image_format;
+    depth_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
+    depth_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth_attachment_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkAttachmentReference color_attachment_ref = {};
     color_attachment_ref.attachment = 0;
     color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depth_attachment_ref = {};
+    depth_attachment_ref.attachment = 1;
+    depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass_desc = {};
     subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass_desc.colorAttachmentCount = 1;
     subpass_desc.pColorAttachments = &color_attachment_ref;
-
+    subpass_desc.pDepthStencilAttachment = &depth_attachment_ref;
 
     VkSubpassDependency subpass_dependency = {};
     subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     subpass_dependency.dstSubpass = 0;
-    subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     subpass_dependency.srcAccessMask = 0;
-    subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+    VkAttachmentDescription attachments[] = {color_attachment_desc, depth_attachment_desc};
     VkRenderPassCreateInfo render_pass_create_info = {};
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_create_info.attachmentCount = 1;
-    render_pass_create_info.pAttachments = &color_attachment_desc;
+    render_pass_create_info.attachmentCount = 2;
+    render_pass_create_info.pAttachments = attachments;
     render_pass_create_info.subpassCount = 1;
     render_pass_create_info.pSubpasses = &subpass_desc;
     render_pass_create_info.subpassCount = 1;
@@ -862,6 +878,18 @@ void create_pipeline() {
         panic("Failed to create render pass!");
     }
 
+    VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info = {};
+    depth_stencil_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depth_stencil_state_create_info.depthTestEnable = VK_TRUE;
+    depth_stencil_state_create_info.depthWriteEnable = VK_TRUE;
+    depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
+    depth_stencil_state_create_info.depthBoundsTestEnable = VK_FALSE;
+    depth_stencil_state_create_info.minDepthBounds = 0.0f;
+    depth_stencil_state_create_info.maxDepthBounds = 1.0f;
+    depth_stencil_state_create_info.stencilTestEnable = VK_FALSE;
+    //depth_stencil_state_create_info.front = ;
+    //depth_stencil_state_create_info.back = ;
+
     VkGraphicsPipelineCreateInfo pipeline_create_info = {};
     pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipeline_create_info.stageCount = 2;
@@ -871,7 +899,7 @@ void create_pipeline() {
     pipeline_create_info.pViewportState = &viewport_state_create_info;
     pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
     pipeline_create_info.pMultisampleState = &multisample_state_create_info;
-    pipeline_create_info.pDepthStencilState = 0;
+    pipeline_create_info.pDepthStencilState = &depth_stencil_state_create_info;
     pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
     pipeline_create_info.pDynamicState = 0;
     pipeline_create_info.layout = state.pipeline_layout;
@@ -890,12 +918,12 @@ void create_swapchain_framebuffers() {
     state.swapchain_framebuffers = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkFramebuffer));
 
     for (usize index = 0; index < state.swapchain_image_count; index += 1) {
-        VkImageView attachments[] = {state.swapchain_image_views[index]};
+        VkImageView attachments[] = {state.swapchain_image_views[index], state.depth_image_view};
 
         VkFramebufferCreateInfo framebuffer_create_info = {};
         framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebuffer_create_info.renderPass = state.render_pass;
-        framebuffer_create_info.attachmentCount = 1;
+        framebuffer_create_info.attachmentCount = 2;
         framebuffer_create_info.pAttachments = attachments;
         framebuffer_create_info.width = state.swapchain_extent.width;
         framebuffer_create_info.height = state.swapchain_extent.height;
@@ -940,43 +968,45 @@ void create_command_buffers() {
     for(usize index = 0; index < state.swapchain_image_count; index += 1) {
         VkCommandBufferBeginInfo begin_info = {};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        begin_info.flags = 0;
-        begin_info.pInheritanceInfo = 0;
 
-        if (vkBeginCommandBuffer(state.command_buffers[index], &begin_info) != VK_SUCCESS) {
-            //TODO(sean): diagnostic
-            panic("Failed to begin recording command buffer!");
+        if(vkBeginCommandBuffer(state.command_buffers[index], &begin_info) != VK_SUCCESS) {
+            panic("Failed to begin command buffer!");
         }
 
-        const VkClearValue render_clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        {
+            const VkClearValue clear_values[] = {
+                {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                {.depthStencil = {1.0f, 0}},
+            };
 
-        VkRenderPassBeginInfo render_pass_begin_info = {};
-        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_begin_info.renderPass = state.render_pass;
-        render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
-        render_pass_begin_info.renderArea.offset.x = 0;
-        render_pass_begin_info.renderArea.offset.y = 0;
-        render_pass_begin_info.renderArea.extent.width = state.swapchain_extent.width;
-        render_pass_begin_info.renderArea.extent.height = state.swapchain_extent.height;
-        render_pass_begin_info.pClearValues = &render_clear_color;
-        render_pass_begin_info.clearValueCount = 1;
+            VkRenderPassBeginInfo render_pass_begin_info = {};
+            render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            render_pass_begin_info.renderPass = state.render_pass;
+            render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
+            render_pass_begin_info.renderArea.offset.x = 0;
+            render_pass_begin_info.renderArea.offset.y = 0;
+            render_pass_begin_info.renderArea.extent.width = state.swapchain_extent.width;
+            render_pass_begin_info.renderArea.extent.height = state.swapchain_extent.height;
+            render_pass_begin_info.clearValueCount = 2;
+            render_pass_begin_info.pClearValues = clear_values;
 
-        vkCmdBeginRenderPass(state.command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(state.command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+            {
+                vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphics_pipeline);
 
-            vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphics_pipeline);
+                VkBuffer vertex_buffers[] = {state.vertex_buffer};
+                VkDeviceSize offsets[] = {0};
+                vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
+                vkCmdBindIndexBuffer(state.command_buffers[index], state.index_buffer, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1,
+                                        &state.descriptor_sets[index], 0, 0);
+                vkCmdDrawIndexed(state.command_buffers[index], index_count, 1, 0, 0, 0);
+            }
+            vkCmdEndRenderPass(state.command_buffers[index]);
+        }
 
-            VkBuffer vertex_buffers[] = {state.vertex_buffer};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
-            vkCmdBindIndexBuffer(state.command_buffers[index], state.index_buffer, 0, VK_INDEX_TYPE_UINT16);
-            vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1, &state.descriptor_sets[index], 0, 0);
-            vkCmdDrawIndexed(state.command_buffers[index], index_count, 1, 0, 0, 0);
-
-        vkCmdEndRenderPass(state.command_buffers[index]);
-
-        if (vkEndCommandBuffer(state.command_buffers[index]) != VK_SUCCESS) {
-            //TODO(sean): diagnostic
-            panic("Failed to record command buffer!");
+        if(vkEndCommandBuffer(state.command_buffers[index]) != VK_SUCCESS) {
+            panic("Failed to end command buffer!");
         }
     }
 }
@@ -1125,6 +1155,10 @@ void create_descriptor_sets() {
 }
 
 void cleanup_swapchain_artifacts() {
+    vkDestroyImageView(state.device, state.depth_image_view, 0);
+    vkDestroyImage(state.device, state.depth_image, 0);
+    vkFreeMemory(state.device, state.depth_image_memory, 0);
+
     for(usize index = 0; index < state.swapchain_image_count; index += 1) {
         vkDestroyBuffer(state.device, state.uniform_buffers[index], 0);
         vkFreeMemory(state.device, state.uniform_buffers_memory[index], 0);
@@ -1156,6 +1190,7 @@ void recreate_swapchain() {
     init_swapchain();
     create_shader_modules();
     create_pipeline();
+    create_depth_image();
     create_swapchain_framebuffers();
     create_uniform_buffers();
     create_descriptor_pool();
@@ -1232,15 +1267,16 @@ int main() {
     init_instance();
     init_surface();
     init_physical_device();
+    find_depth_image_format();
     pre_init_swapchain();
     init_swapchain();
     create_shader_modules();
     create_uniform_buffers();
     create_descriptor_set_layout();
     create_pipeline();
-    create_swapchain_framebuffers();
     init_command_pool();
     create_depth_image();
+    create_swapchain_framebuffers();
     create_texture_image();
     create_vertex_buffer();
     create_index_buffer();

@@ -292,6 +292,8 @@ void create_image(
     if(vkAllocateMemory(device, &allocate_info, 0, image_memory) != VK_SUCCESS) {
         panic("Failed to allocate image memory!");
     }
+
+    vkBindImageMemory(device, *image, *image_memory, 0);
 }
 
 void copy_buffer_to_buffer(
@@ -387,8 +389,6 @@ void create_device_local_image(
         texture_image_memory
     );
 
-    vkBindImageMemory(device, *texture_image, *texture_image_memory, 0);
-
     transition_image_layout(
         device,
         queue,
@@ -411,13 +411,13 @@ void create_device_local_image(
     vkFreeMemory(device, staging_buffer_memory, 0);
 }
 
-void create_image_view(VkDevice device, VkImage image, VkFormat format, VkImageView* image_view) {
+void create_image_view(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspect, VkImageView* image_view) {
     VkImageViewCreateInfo view_create_info = {};
     view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     view_create_info.image = image;
     view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     view_create_info.format = format;
-    view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    view_create_info.subresourceRange.aspectMask = aspect;
     view_create_info.subresourceRange.baseMipLevel = 0;
     view_create_info.subresourceRange.levelCount = 1;
     view_create_info.subresourceRange.baseArrayLayer = 0;
@@ -453,6 +453,21 @@ void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkS
     if(vkCreateSampler(device, &sampler_create_info, 0, sampler) != VK_SUCCESS) {
         panic("Failed to create sampler!");
     }
+}
+
+VkFormat find_supported_format(VkPhysicalDevice physical_device, u32 format_count, VkFormat* formats, VkImageTiling tiling, VkFormatFeatureFlags features) {
+    for(u32 index = 0; index < format_count; index += 1) {
+        VkFormatProperties properties;
+        vkGetPhysicalDeviceFormatProperties(physical_device, formats[index], &properties);
+
+        if(tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) {
+            return formats[index];
+        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) {
+            return formats[index];
+        }
+    }
+
+    panic("Failed to find supported format!");
 }
 
 #define UNTITLED_FPS_VKUTIL_H
