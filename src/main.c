@@ -975,7 +975,7 @@ void create_command_buffers() {
 
         {
             const VkClearValue clear_values[] = {
-                {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
                 {.depthStencil = {1.0f, 0}},
             };
 
