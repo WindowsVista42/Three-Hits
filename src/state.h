@@ -50,6 +50,7 @@ typedef struct State {
     u32 window_height;
     GLFWwindow *window;
     GLFWmonitor *primary_monitor;
+    b32 window_fullscreen;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debug_messenger;
