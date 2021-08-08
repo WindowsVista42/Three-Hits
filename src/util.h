@@ -89,54 +89,5 @@ global inline void panic(char* message) {
     exit(1);
 }
 
-// platform dependant
-typedef struct Timer Timer;
-Timer timer_new();
-void timer_init(Timer* timer);
-void timer_start(Timer* timer);
-void timer_end(Timer* timer);
-
-#ifdef WIN64
-#include <windows.h>
-
-typedef struct Timer {
-    LARGE_INTEGER frequency, t1, t2;
-    f64 elapsed;
-} Timer;
-
-Timer timer_new() {
-    Timer timer;
-    timer_init(&timer);
-    return timer;
-}
-
-void timer_init(Timer* timer) {
-    QueryPerformanceFrequency(&timer->frequency);
-}
-
-void timer_start(Timer* timer) {
-    QueryPerformanceCounter(&timer->t1);
-}
-
-void timer_end(Timer* timer) {
-    QueryPerformanceCounter(&timer->t2);
-    timer->elapsed = (f64)(timer->t2.QuadPart - timer->t1.QuadPart) / timer->frequency.QuadPart;
-}
-#endif
-
-#ifdef __unix__
-#endif
-
 #define UNTITLED_FPS_UTILS_H
 #endif //UNTITLED_FPS_UTILS_H
-
-/*
-typedef struct FlatVector {
-    void* data;
-    usize data_length;
-
-    void* offsets;
-    usize offsets_length;
-} FlatVector;
-*/
-
