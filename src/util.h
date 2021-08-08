@@ -82,12 +82,9 @@ global inline void sbinit(StagedBuffer* heap, usize allocation_size) {
     heap->pointer = malloc(allocation_size);
 }
 
-global inline void panic(char* message) {
-    fprintf(stderr, "Thread panicked at message: \"%s\"\n", message);
-    //fprintf(stderr, "Press enter to continue...");
-    //getchar();
+#define panic(message) \
+    fprintf(stderr, "Thread panicked at message: \"%s\"\n", message); \
     exit(1);
-}
 
 #define UNTITLED_FPS_UTILS_H
 #endif //UNTITLED_FPS_UTILS_H
