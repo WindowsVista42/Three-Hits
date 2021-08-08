@@ -254,11 +254,8 @@ global void cursor_position_callback(GLFWwindow* pwindow, double xpos, double yp
     lastx = state.mouse_pos.x;
     lasty = state.mouse_pos.y;
 
-    int winx, winy;
-    glfwGetWindowSize(state.window, &winx, &winy);
-
-    state.mouse_pos.x = (f32) xpos / (f32) winx;
-    state.mouse_pos.y = (f32) ypos / (f32) winy;
+    state.mouse_pos.x = (f32)xpos / 1024.0;
+    state.mouse_pos.y = (f32)ypos / 1024.0;
 
     state.mouse_delta.x = lastx - state.mouse_pos.x;
     state.mouse_delta.y = lasty - state.mouse_pos.y;
@@ -1294,27 +1291,23 @@ int main() {
         if(glfwGetKey(state.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(state.window, GLFW_TRUE);
         }
-
+        if(glfwGetKey(state.window, GLFW_KEY_F11) == GLFW_PRESS) {
+            state.window_fullscreen = !state.window_fullscreen;
+            if(state.window_fullscreen) {
+                state.window_width = 1920;
+                state.window_height = 1080;
+                glfwSetWindowSize(state.window, state.window_width, state.window_height);
+                glfwSetWindowPos(state.window, 0, 0);
+            } else {
+                state.window_width = 800;
+                state.window_height = 600;
+                glfwSetWindowSize(state.window, state.window_width, state.window_height);
+                glfwSetWindowPos(state.window, 100, 200);
+            }
+        }
     }
 
-    //TODO(sean): finish swapchain recreation steps
-
-    // if swapchain unoptimal or out of date
-    // recreate_swapchain = true
-    // else
-    // recreate_swapchain = false
-
-    // if recreate_swapchain
-    // cleanup_swapchain_artifacts();
-    // create_swapchain();
-
     vkDeviceWaitIdle(state.device);
-
-    /*
-    // TODO(sean): We might need to recreate the window or recreate the vulkan context, so don't throw this away just yet
-    glfwDestroyWindow(window);
-    glfwTerminate();
-    */
 
     return 0;
 }
