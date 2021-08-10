@@ -1187,8 +1187,8 @@ void create_vertex_buffer() {
         state.physical_device,
         state.queue,
         state.command_pool,
-        sizeof(vertices[0]) * vertex_count,
-        vertices,
+        sizeof(Vertex) * loader->level_vertex_count,
+        loader->level_vertices,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         &state.vertex_buffer,
         &state.vertex_buffer_memory
@@ -1201,8 +1201,8 @@ void create_index_buffer() {
         state.physical_device,
         state.queue,
         state.command_pool,
-        sizeof(indices[0]) * index_count,
-        indices,
+        sizeof(u32) * loader->level_index_count,
+        loader->level_indices,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         &state.index_buffer,
         &state.index_buffer_memory
