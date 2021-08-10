@@ -5,45 +5,7 @@
 #ifndef UNTITLED_FPS_PHYSICS_H
 #include "vmmath.h"
 
-/*
-typedef struct Sphere {
-    vec3 position;
-    f32 radius;
-} Sphere;
-*/
-
-vec3 closest_point_on_line_segment(vec3 A, vec3 B, vec3 point) {
-    vec3 AB = vec3_sub_vec3(B, A);
-    f32 t = vec3_dot(vec3_sub_vec3(point, A), AB) / vec3_dot(AB, AB);
-    //return vec3_mul_vec3(vec3_add_f32(A, f32_saturate(t)), AB);
-    return vec3_add_vec3(A, vec3_mul_f32(AB, fminf(fmaxf(t, 0.0f), 1.0f)));
-}
-
-//TODO(sean): get this to work with vertex - index data
-//TODO(sean): move this to just use re-duped vertex data
-//TODO(sean): line intersection
-b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N, f32* d) {
-    u32 m = 0;
-    vec3 n = {{0.0f, 0.0f, 0.0f}};
-    if(tA == true && tA >= tB && tA >= tC) {
-        flag += 1;
-        vec3 temp = {{P.x - A.x, P.y - A.y, P.z - A.z}};
-        n = vec3_add_vec3(n, temp);
-    } else if (tB == true && tB >= tA && tB >= tC) {
-        flag += 1;
-        vec3 temp = {{P.x - B.x, P.y - B.y, P.z - B.z}};
-        n = vec3_add_vec3(n, temp);
-    } else if (tC == true && tC >= tA && tC >= tB) {
-        flag += 1;
-        vec3 temp = {{P.x - C.x, P.y - C.y, P.z - C.z}};
-        n = vec3_add_vec3(n, temp);
-    }
-
-    if(flag > 0) {
-        *N = vec3_norm(n);
-        return true;
-    }
-
+b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N) {
     *N = vec3_norm(vec3_cross(vec3_sub_vec3(B, A), vec3_sub_vec3(C, A)));
 
     vec3 edge1, edge2, h, s, q;
@@ -66,6 +28,47 @@ b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N
     } else {
         return false;
     }
+}
+
+b32 sphere_intersects_point(vec3 p, vec3 P, f32 r, vec3* N) {
+    b32 tp;
+    f32 dp = ((P.x - p.x) * (P.x - p.x)) + ((P.y - p.y) * (P.y - p.y)) + ((P.z - p.z) * (P.z - p.z));
+    tp = (r * r) > dp;
+    vec3 temp = {{P.x - p.x, P.y - p.y, P.z - p.z}};
+    *N = vec3_norm(temp);
+    return tp;
+}
+
+//TODO(sean): get this to work with vertex - index data
+//TODO(sean): move this to just use re-duped vertex data
+//TODO(sean): line intersection
+b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N, f32* d) {
+    u32 m = 0;
+    vec3 n = {{0.0f, 0.0f, 0.0f}};
+    vec3 Rn, ABn, BCn, CAn, An, Bn, Cn;
+    b32 Ri, ABi, BCi, CAi, Ai, Bi, Ci;
+
+    Ri = ray_intersects_triangle(A, B, C, P, r, &Rn);
+    //ABi = sphere_intersects_line(A, B, P, r, &ABn);
+    //BCi = sphere_intersects_line(B, C, P, r, &BCn);
+    //CAi = sphere_intersects_line(C, A, P, r, &CAn);
+    Ai = sphere_intersects_point(A, P, r, &An);
+    Bi = sphere_intersects_point(A, P, r, &Bn);
+    Ci = sphere_intersects_point(A, P, r, &Cn);
+
+    // intersects with top
+    if(Ri) { n = vec3_add_vec3(n, Rn); *N = vec3_norm(n); return true;}
+
+    // intersects with side
+
+    // intersects with corner
+    if(Ai) { m += 1; n = vec3_add_vec3(n, An); }
+    else if(Bi) { m += 1; n = vec3_add_vec3(n, Bn); }
+    else if(Ci) { m += 1; n = vec3_add_vec3(n, Cn); }
+    if(m > 0) { *N = vec3_norm(n); return true; }
+
+    *N = n;
+    return false;
 }
 
 #define UNTITLED_FPS_PHYSICS_H
