@@ -69,6 +69,50 @@ global inline mat4 mat4_splat(f32 splat) {
     return matrix;
 }
 
+global inline f32 f32_min(f32 x, f32 y) {
+    if(x < y) {
+        return x;
+    } else {
+        return y;
+    }
+}
+
+global inline vec3 vec3_div_vec3(vec3 lhs, vec3 rhs) {
+    vec3 output;
+    output.x = lhs.x / rhs.x;
+    output.y = lhs.y / rhs.y;
+    output.z = lhs.z / rhs.z;
+    return output;
+}
+
+global inline vec3 vec3_div_f32(vec3 lhs, f32 rhs) {
+    vec3 output;
+    output.x = lhs.x / rhs;
+    output.y = lhs.y / rhs;
+    output.z = lhs.z / rhs;
+    return output;
+}
+
+global inline f32 f32_max(f32 x, f32 y) {
+    if(x < y) {
+        return y;
+    } else {
+        return x;
+    }
+}
+
+global inline vec3 vec3_add_f32(vec3 lhs, f32 rhs) {
+    vec3 output;
+    output.x = lhs.x + rhs;
+    output.y = lhs.y + rhs;
+    output.z = lhs.z + rhs;
+    return output;
+}
+
+global inline f32 f32_saturate(f32 x) {
+    return fminf(fmaxf(x, 0.0f), 1.0f);
+}
+
 global inline vec3 vec3_mul_f32(vec3 vector, f32 scalar) {
     vec3 output;
     output.x = vector.x * scalar;
