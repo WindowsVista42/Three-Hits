@@ -8,12 +8,14 @@
 b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N) {
     *N = vec3_norm(vec3_cross(vec3_sub_vec3(B, A), vec3_sub_vec3(C, A)));
 
+    const f32 EPSILON = 0.000001;
     vec3 edge1, edge2, h, s, q;
     f32 a, f, u, v;
     edge1 = vec3_sub_vec3(B, A);
     edge2 = vec3_sub_vec3(C, A);
     h = vec3_cross(*N, edge2);
     a = vec3_dot(edge1, h);
+    if(a > -EPSILON && a < EPSILON) { return false; }
     f = 1.0/a;
     s = vec3_sub_vec3(P, A);
     u = f * vec3_dot(s, h);
