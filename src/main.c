@@ -980,10 +980,10 @@ void create_command_buffers() {
                 VkBuffer vertex_buffers[] = {state.vertex_buffer};
                 VkDeviceSize offsets[] = {0};
                 vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
-                vkCmdBindIndexBuffer(state.command_buffers[index], state.index_buffer, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindIndexBuffer(state.command_buffers[index], state.index_buffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1,
                                         &state.descriptor_sets[index], 0, 0);
-                vkCmdDrawIndexed(state.command_buffers[index], index_count, 1, 0, 0, 0);
+                vkCmdDrawIndexed(state.command_buffers[index], state.index_count, 1, 0, 0, 0);
             }
             vkCmdEndRenderPass(state.command_buffers[index]);
         }
