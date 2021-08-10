@@ -23,11 +23,8 @@ b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N) {
     if(v < 0.0 || (u + v) > 1.0) { return false; }
 
     f32 t = f * vec3_dot(edge2, q);
-    if((t*t) < (r*r)) {
-        return true;
-    } else {
-        return false;
-    }
+    if((t*t) < (r*r)) { return true; }
+    else { return false; }
 }
 
 b32 sphere_intersects_point(vec3 p, vec3 P, f32 r, vec3* N) {
@@ -57,16 +54,32 @@ b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N
     Ci = sphere_intersects_point(A, P, r, &Cn);
 
     // intersects with top
-    if(Ri) { n = vec3_add_vec3(n, Rn); *N = vec3_norm(n); return true;}
+    if(Ri) {
+        n = vec3_add_vec3(n, Rn);
+        *N = vec3_norm(n);
+        return true;
+    }
 
     // intersects with side
 
     // intersects with corner
-    if(Ai) { m += 1; n = vec3_add_vec3(n, An); }
-    else if(Bi) { m += 1; n = vec3_add_vec3(n, Bn); }
-    else if(Ci) { m += 1; n = vec3_add_vec3(n, Cn); }
-    if(m > 0) { *N = vec3_norm(n); return true; }
+    if(Ai) {
+        m += 1;
+        n = vec3_add_vec3(n, An);
+    } else if(Bi) {
+        m += 1;
+        n = vec3_add_vec3(n, Bn);
+    } else if(Ci) {
+        m += 1;
+        n = vec3_add_vec3(n, Cn);
+    }
 
+    if(m > 0) {
+        *N = vec3_norm(n);
+        return true;
+    }
+
+    // does not intersect
     *N = n;
     return false;
 }
