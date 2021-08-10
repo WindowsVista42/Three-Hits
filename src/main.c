@@ -254,7 +254,7 @@ global void cursor_position_callback(GLFWwindow* pwindow, double xpos, double yp
 
 void init_window() {
     // init glfw window
-    glfwInit();
+    if(!glfwInit()) { panic("Failed to initialize GLFW (somehow?)!"); };
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
     state.window = glfwCreateWindow(state.window_width, state.window_height, "Spinning Cube", state.primary_monitor, 0);
