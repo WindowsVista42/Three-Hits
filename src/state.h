@@ -170,7 +170,36 @@ typedef struct GameState {
 
     f32 mouse_sensitivity;
     f32 player_speed;
-} State;
+
+    // Physics (reduped)
+    StagedBuffer physics_buffer;
+    StagedBuffer physics_scratch_buffer;
+    u32 level_physmesh_vertex_count;
+    vec3* level_physmesh;
+} GameState;
+
+#include "../lib/stb_image.h"
+
+// We only want to load this temporarily into memory
+typedef struct LoaderState {
+    StagedBuffer scratch;
+    StagedBuffer read_scratch;
+
+    // Level texture data
+    char* texture_path;
+    int texture_width;
+    int texture_height;
+    int texture_channels;
+    stbi_uc* texture_pixels;
+    VkDeviceSize image_size;
+
+    // Level vertex and index data
+    char* level_path;
+    u32 level_vertex_count;
+    Vertex* level_vertices;
+    u32 level_index_count;
+    u32* level_indices;
+} LoaderState;
 
 #define UNTITLED_FPS_STATE_H
 
