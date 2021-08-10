@@ -84,7 +84,7 @@ typedef struct UniformBufferObject {
 } UniformBufferObject;
 
 #define descriptor_count 2
-typedef struct State {
+typedef struct GameState {
     u32 window_width;
     u32 window_height;
     GLFWwindow *window;
@@ -118,11 +118,6 @@ typedef struct State {
     VkDeviceMemory depth_image_memory;
     VkImageView depth_image_view;
 
-    VkImage texture_image;
-    VkDeviceMemory texture_image_memory;
-    VkImageView texture_image_view;
-    VkSampler texture_image_sampler;
-
     VkShaderModule vertex_module;
     VkShaderModule fragment_module;
     VkDescriptorSetLayout descriptor_set_layout;
@@ -145,16 +140,17 @@ typedef struct State {
     f32 model_rotation_offset;
     vec3 model_position;
 
-    // We only want to load this temporarily into memory
-    //usize model_vertices_count;
-    //f32* model_vertices;
-    //usize model_indices_count;
-    //u16* model_indices;
-
+    // World model
     VkBuffer vertex_buffer;
     VkDeviceMemory vertex_buffer_memory;
+    u32 index_count;
     VkBuffer index_buffer;
     VkDeviceMemory index_buffer_memory;
+
+    VkImage texture_image;
+    VkDeviceMemory texture_image_memory;
+    VkImageView texture_image_view;
+    VkSampler texture_image_sampler;
 
     VkBuffer* uniform_buffers;
     VkDeviceMemory* uniform_buffers_memory;
