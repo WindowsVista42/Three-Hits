@@ -11,6 +11,7 @@
 #include "vkutil.h"
 #include "vmmath.h"
 #include "state.h"
+#include "physics.h"
 
 // lib
 #include <GLFW/glfw3.h>
