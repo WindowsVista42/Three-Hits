@@ -644,10 +644,10 @@ void init_swapchain() {
 void create_shader_modules() {
     // load shaders
     usize file_count = 2;
-    FILE **files = sbmalloc(&state.scratch, file_count * sizeof(FILE *));
-    char *file_names[] = {"../vert.spv", "../frag.spv"};
-    char **buffers = sbmalloc(&state.scratch, file_count * sizeof(char *));
-    usize *buffer_sizes = sbmalloc(&state.scratch, file_count * sizeof(usize));
+    FILE** files = sbmalloc(&state.scratch, file_count * sizeof(FILE*));
+    char* file_names[] = {"../vert.spv", "../frag.spv"};
+    char** buffers = sbmalloc(&state.scratch, file_count * sizeof(char*));
+    usize* buffer_sizes = sbmalloc(&state.scratch, file_count * sizeof(usize));
 
     for (usize index = 0; index < file_count; index += 1) {
         files[index] = fopen(file_names[index], "rb");
@@ -672,8 +672,8 @@ void create_shader_modules() {
         usize fsize = ftell(fp);
         fseek(fp, 0L, SEEK_SET);
 
-        buffers[index] = sbmalloc(&state.scratch, fsize * sizeof(char));
-        fread(buffers[index], fsize, sizeof(char), fp);
+        buffers[index] = sbmalloc(&state.scratch, fsize);
+        fread(buffers[index], fsize, 1, fp);
         buffer_sizes[index] = fsize;
     }
 
