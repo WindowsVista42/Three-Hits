@@ -1231,6 +1231,80 @@ void update_time() {
     }
 }
 
+void init_loader() {
+    loader = malloc(sizeof(LoaderState));
+
+    sbinit(&loader->scratch, 1 * 1024 * 1024); // 1M
+    sbinit(&loader->read_scratch, 2 * 1024 * 1024); // 2M
+}
+
+void load_level_texture() {
+    char *texture_path = "../viking_room.png";
+    loader->texture_path = sbmalloc(&loader->scratch, strlen(texture_path) * sizeof(char));
+    strcpy(loader->texture_path, texture_path);
+
+    loader->texture_pixels = stbi_load(loader->texture_path, &loader->texture_width, &loader->texture_height, &loader->texture_channels, STBI_rgb_alpha);
+    loader->image_size = loader->texture_width * loader->texture_height * 4;
+
+    if(loader->texture_pixels == 0) {
+        char buffer[128];
+        sprintf(buffer, "Failed to load texture image (%s)!", loader->texture_path);
+        panic(buffer);
+    }
+}
+
+void load_level_model() {
+    loader->level_path = "../viking_room.level";
+
+
+
+    {
+        FILE *fp = fopen(loader->level_path, "rb");
+
+        fread(&loader->level_vertex_count, sizeof(u32), 1, fp);
+        loader->level_vertices = sbmalloc(&loader->read_scratch, loader->level_vertex_count * sizeof(Vertex));
+        for (usize index = 0; index < loader->level_vertex_count; index += 1) {
+            fread(&loader->level_vertices[index].pos.x, sizeof(f32), 1, fp);
+            fread(&loader->level_vertices[index].pos.y, sizeof(f32), 1, fp);
+            fread(&loader->level_vertices[index].pos.z, sizeof(f32), 1, fp);
+
+            fread(&loader->level_vertices[index].color.x, sizeof(f32), 1, fp);
+            fread(&loader->level_vertices[index].color.y, sizeof(f32), 1, fp);
+            fread(&loader->level_vertices[index].color.z, sizeof(f32), 1, fp);
+
+            fread(&loader->level_vertices[index].uv.x, sizeof(f32), 1, fp);
+            fread(&loader->level_vertices[index].uv.y, sizeof(f32), 1, fp);
+        }
+
+        fread(&loader->level_index_count, sizeof(u32), 1, fp);
+        loader->level_indices = sbmalloc(&loader->read_scratch, loader->level_index_count * sizeof(u32));
+        for (usize index = 0; index < loader->level_index_count; index += 1) {
+            fread(&loader->level_indices[index], sizeof(u32), 1, fp);
+        }
+
+        fclose(fp);
+    }
+
+    //TODO(sean): load physmesh directly from level file
+    {
+        state.level_physmesh_vertex_count = loader->level_index_count;
+        state.level_physmesh = sbmalloc(&state.physics_buffer, loader->level_index_count * sizeof(vec3));
+        for(usize index = 0; index < loader->level_index_count; index += 1) {
+            state.level_physmesh[index] = loader->level_vertices[loader->level_indices[index]].pos;
+        }
+    }
+
+    state.index_count = loader->level_index_count;
+}
+
+void free_loader() {
+    stbi_image_free(loader->texture_pixels);
+    sbfree(&loader->read_scratch);
+    sbfree(&loader->scratch);
+    free(loader);
+    loader = 0;
+}
+
 int main() {
     state.window_width = 800;
     state.window_height = 600;
