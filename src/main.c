@@ -86,11 +86,11 @@ void update_uniforms(u32 current_image) {
     //ubo.model = mat4_look_at(VEC3_ZERO, adj_player_eye, VEC3_UNIT_Z);
     //ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
 
-    //ubo.model = mat4_rotate(mat4_splat(1.0), atan2f(model_pos.y - player_eye.y, model_pos.x - player_eye.x), VEC3_UNIT_Z);
+    //ubo.model = mat4_rotate(mat4_splat(1.0), atan2f(state.model_position.y - state.player_eye.y, state.model_position.x - state.player_eye.x), VEC3_UNIT_Z);
     ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
 
     state.model_rotation = f32_wrap(state.model_rotation, 2.0 * M_PI);
-    state.model_rotation_offset = f32_wrap(state.model_rotation_offset, 2.0 * M_PI);
+    //state.model_rotation_offset = f32_wrap(state.model_rotation_offset, 2.0 * M_PI);
 
     mat4 proj, view;
 
@@ -99,6 +99,7 @@ void update_uniforms(u32 current_image) {
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
         vec3 delta = VEC3_ZERO;
+        f32 player_speed = state.player_speed;
 
         if(glfwGetKey(state.window, GLFW_KEY_W) == GLFW_PRESS) {
             delta = vec3_sub_vec3(delta, xydir);
@@ -112,11 +113,14 @@ void update_uniforms(u32 current_image) {
         if(glfwGetKey(state.window, GLFW_KEY_D) == GLFW_PRESS) {
             delta = vec3_add_vec3(delta, normal);
         }
+        if(glfwGetKey(state.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            player_speed /= 2.0;
+        }
 
         if(vec3_par_ne_vec3(delta, VEC3_ZERO)) {
             delta = vec3_norm(delta);
             delta = vec3_mul_f32(delta, state.delta_time);
-            delta = vec3_mul_f32(delta, state.player_speed);
+            delta = vec3_mul_f32(delta, player_speed);
             state.player_eye = vec3_add_vec3(state.player_eye, delta);
         }
 
@@ -124,11 +128,37 @@ void update_uniforms(u32 current_image) {
 
         state.look_dir = vec3_from_theta_phi(state.theta, state.phi);
 
-        vec3 up = {{0.0f, 0.0f, 1.0f}};
+        {
+            // Check if we are colliding with any of the triangles
+            b32 collision = false;
+            vec3 collision_normal = VEC3_ZERO;
+            for (usize index = 0; index < state.level_physmesh_vertex_count; index += 3) {
+                //b32 colliding = false;
+                vec3 A = state.level_physmesh[index + 0];
+                vec3 B = state.level_physmesh[index + 1];
+                vec3 C = state.level_physmesh[index + 2];
+                vec3 P = state.player_eye;
+                f32 r = 0.2;
 
-        view = mat4_look_dir(state.player_eye, state.look_dir, up);
+                vec3 N;
+                f32 pen_depth;
+                if(sphere_collides_with_plane(A, B, C, P, r, &N, &pen_depth)) {
+                    collision = true;
+                    collision_normal = vec3_add_vec3(collision_normal, N);
+                }
+            }
+
+            state.player_eye.z -= 0.6f * state.delta_time;
+            if(collision) {
+                collision_normal = vec3_norm(collision_normal);
+                if(vec3_eq_vec3(collision_normal, VEC3_ZERO)) { collision_normal = VEC3_UNIT_Z; }
+                state.player_eye = vec3_add_vec3(state.player_eye, vec3_mul_f32(collision_normal, 0.6f * state.delta_time));
+                state.player_eye.z += 0.6f * state.delta_time;
+            }
+        }
     }
 
+    view = mat4_look_dir(state.player_eye, state.look_dir, VEC3_UNIT_Z);
     proj = mat4_perspective(f32_radians(100.0f), (float)state.swapchain_extent.width / (float)state.swapchain_extent.height, 0.01f, 1000.0f);
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
