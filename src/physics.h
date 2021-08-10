@@ -22,16 +22,8 @@ vec3 closest_point_on_line_segment(vec3 A, vec3 B, vec3 point) {
 //TODO(sean): get this to work with vertex - index data
 //TODO(sean): move this to just use re-duped vertex data
 //TODO(sean): line intersection
-b32 sphere_collides_with_plane(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N, f32* pen_depth) {
-    b32 tA, tB, tC;
-    f32 dA = ((P.x - A.x) * (P.x - A.x)) + ((P.y - A.y) * (P.y - A.y)) + ((P.z - A.z) * (P.z - A.z));
-    f32 dB = ((P.x - B.x) * (P.x - B.x)) + ((P.y - B.y) * (P.y - B.y)) + ((P.z - B.z) * (P.z - B.z));
-    f32 dC = ((P.x - C.x) * (P.x - C.x)) + ((P.y - C.y) * (P.y - C.y)) + ((P.z - C.z) * (P.z - C.z));
-    tA = (r * r) > dA;
-    tB = (r * r) > dB;
-    tC = (r * r) > dC;
-
-    u32 flag = 0;
+b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N, f32* d) {
+    u32 m = 0;
     vec3 n = {{0.0f, 0.0f, 0.0f}};
     if(tA == true && tA >= tB && tA >= tC) {
         flag += 1;

@@ -142,7 +142,7 @@ void update_uniforms(u32 current_image) {
 
                 vec3 N;
                 f32 pen_depth;
-                if(sphere_collides_with_plane(A, B, C, P, r, &N, &pen_depth)) {
+                if(sphere_collides_with_triangle(A, B, C, P, r, &N, &pen_depth)) {
                     collision = true;
                     collision_normal = vec3_add_vec3(collision_normal, N);
                 }
