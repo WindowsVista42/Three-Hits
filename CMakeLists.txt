@@ -3,7 +3,7 @@ project(untitled_fps C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS_DEBUG "-g -Wall -DNDEBUG")
-set(CMAKE_C_FLAGS_RELEASE "-Ofast")
+set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(CMAKE_C_LINKER_PREFERENCE ld)
 
 # GLFW
