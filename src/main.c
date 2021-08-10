@@ -59,23 +59,11 @@ void create_depth_image() {
 
 //TODO(sean): move some of this into a custom function
 void create_texture_image() {
-    int texture_width, texture_height, texture_channels;
-    char* image_path = "../grass_grass_0124_01_tiled_s.jpg";
-    stbi_uc* pixels = stbi_load(image_path, &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
-    VkDeviceSize image_size = texture_width * texture_height * 4;
-
-    if(pixels == 0) {
-        char buffer[128];
-        sprintf(buffer, "Failed to load texture image (%s)!", image_path);
-        panic(buffer);
-    }
 
     create_device_local_image(state.device, state.physical_device, state.queue, state.command_pool,
-                              texture_width, texture_height, image_size, pixels,
+                              loader->texture_width, loader->texture_height, loader->image_size, loader->texture_pixels,
                               VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                               &state.texture_image, &state.texture_image_memory);
-
-    stbi_image_free(pixels);
 
     create_image_view(state.device, state.texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &state.texture_image_view);
 
