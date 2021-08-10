@@ -39,41 +39,8 @@ global b32 validation_enabled = 0;
 
 global u32 supports_validation;
 
-global State state;
-
-const f32 double_cube_size = 20.0;
-const f32 cube_size = (double_cube_size)/2.0;
-
-#define vertex_count 10
-global Vertex vertices[vertex_count] = {
-    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 1.0f}}},
-    {{{-cube_size, -cube_size, cube_size}},  {{0.0f, 0.0f, 1.0f}}, {{1.0f, 0.0f}}},
-    {{{-cube_size, cube_size,  -cube_size}}, {{0.0f, 1.0f, 0.0f}}, {{0.0f, 1.0f}}},
-    {{{-cube_size, cube_size,  cube_size}},  {{0.0f, 1.0f, 1.0f}}, {{0.0f, 0.0f}}},
-    {{{cube_size,  cube_size,  -cube_size}}, {{1.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}}},
-    {{{cube_size,  cube_size,  cube_size}},  {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}},
-    {{{cube_size,  -cube_size, -cube_size}}, {{1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}}},
-    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{0.0f, 0.0f}}},
-
-    {{{-cube_size, -cube_size, -cube_size}}, {{1.0f, 1.0f, 1.0f}}, {{1.0f, 0.0f}}},
-    {{{cube_size,  -cube_size, cube_size}},  {{1.0f, 0.0f, 1.0f}}, {{1.0f, 1.0f}}},
-};
-
-#define index_count 36
-global u16 indices[index_count] = {
-    0, 1, 3,
-    0, 3, 2,
-//    2, 3, 4,
-//    4, 3, 5,
-    5, 4, 6,
-    7, 5, 6,
-//    0, 6, 7,
-//    0, 7, 1,
-//    1, 9, 3,
-//    5, 3, 9,
-//    8, 4, 6,
-//    8, 2, 4,
-};
+global GameState state;
+global LoaderState* loader;
 
 void find_depth_image_format() {
     VkFormat formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
