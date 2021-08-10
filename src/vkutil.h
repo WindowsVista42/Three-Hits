@@ -92,7 +92,6 @@ u32 find_memory_type(VkPhysicalDevice physical_device, u32 type_filter, VkMemory
     }
 
     panic("Failed to find suitable memory type!");
-    return UINT32_MAX;
 }
 
 VkCommandBuffer begin_quick_commands(
