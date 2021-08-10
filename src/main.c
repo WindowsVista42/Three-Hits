@@ -1219,7 +1219,7 @@ void update_time() {
     double delta = now_time - lastTime;
     static usize nbFrames = 0;
     nbFrames++;
-    if ( delta >= 1.0 ){ // If last cout was more than 1 sec ago
+    if(delta >= 1.0) { // If last cout was more than 1 sec ago
         double fps = (double)nbFrames / delta;
 
         char buffer[128];
@@ -1306,18 +1306,23 @@ void free_loader() {
 }
 
 int main() {
-    state.window_width = 800;
-    state.window_height = 600;
+    state.window_width = 960;
+    state.window_height = 540;
     state.primary_monitor = 0;
 
-    state.theta = 1.0;
+    state.theta = 1.15;
     state.phi = 0.75;
     state.mouse_sensitivity = 2.0;
-    state.player_speed = 32.0;
+    state.player_speed = 0.6;
+
+    state.player_eye.z = 0.5f;
 
     sbinit(&state.scratch, 512 * 1024); // 512K
     sbinit(&state.swapchain_buffer, 4 * 1024); // 4K
     sbinit(&state.semaphore_buffer, 4 * 1024); // 4K
+
+    sbinit(&state.physics_buffer, 512 * 1024); // 512K
+    sbinit(&state.physics_scratch_buffer, 16 * 1024); // 16K
 
     init_window();
     check_layers_support();
@@ -1334,9 +1339,18 @@ int main() {
     init_command_pool();
     create_depth_image();
     create_swapchain_framebuffers();
-    create_texture_image();
-    create_vertex_buffer();
-    create_index_buffer();
+    {
+        init_loader();
+
+        load_level_texture();
+        create_texture_image();
+
+        load_level_model();
+        create_vertex_buffer();
+        create_index_buffer();
+
+        free_loader();
+    }
     create_uniform_buffers();
     create_descriptor_pool();
     create_descriptor_sets();
@@ -1351,19 +1365,27 @@ int main() {
         if(glfwGetKey(state.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(state.window, GLFW_TRUE);
         }
+
+        //TODO(sean): move this kind of functionality into a struct
+        static b32 f11_held = true;
         if(glfwGetKey(state.window, GLFW_KEY_F11) == GLFW_PRESS) {
-            state.window_fullscreen = !state.window_fullscreen;
-            if(state.window_fullscreen) {
-                state.window_width = 1920;
-                state.window_height = 1080;
-                glfwSetWindowSize(state.window, state.window_width, state.window_height);
-                glfwSetWindowPos(state.window, 0, 0);
-            } else {
-                state.window_width = 800;
-                state.window_height = 600;
-                glfwSetWindowSize(state.window, state.window_width, state.window_height);
-                glfwSetWindowPos(state.window, 100, 200);
+            if(f11_held != true) {
+                state.window_fullscreen = !state.window_fullscreen;
+                if (state.window_fullscreen) {
+                    state.window_width = 1920;
+                    state.window_height = 1080;
+                    glfwSetWindowSize(state.window, state.window_width, state.window_height);
+                    glfwSetWindowPos(state.window, 0, 0);
+                } else {
+                    state.window_width = 800;
+                    state.window_height = 600;
+                    glfwSetWindowSize(state.window, state.window_width, state.window_height);
+                    glfwSetWindowPos(state.window, 100, 200);
+                }
             }
+            f11_held = true;
+        } else {
+            f11_held = false;
         }
     }
 
