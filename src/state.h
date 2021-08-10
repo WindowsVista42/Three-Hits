@@ -13,6 +13,45 @@ typedef struct Vertex {
     vec2 uv;
 } Vertex;
 
+//TODO(sean): use this instead of Vertex
+typedef struct DataVertex {
+    vec3 position;
+    u32 texture_indices; // packed u16 + u16
+    vec2 texture_uv;
+    vec2 lightmap_uv;
+} DataVertex;
+
+#define data_vertex_binding_description_count 1
+global VkVertexInputBindingDescription data_vertex_binding_descriptions[data_vertex_binding_description_count] = {
+    {   .binding = 0,
+        .stride = sizeof(DataVertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    }
+};
+#define data_vertex_attribute_description_count 4
+global VkVertexInputAttributeDescription data_vertex_attribute_descriptions[data_vertex_attribute_description_count] = {
+    {   .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(DataVertex, position),
+    },
+    {   .binding = 0,
+        .location = 1,
+        .format = VK_FORMAT_R16G16_UINT,
+        .offset = offsetof(DataVertex, texture_indices),
+    },
+    {   .binding = 0,
+        .location = 2,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(DataVertex, texture_uv)
+    },
+    {   .binding = 0,
+        .location = 3,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(DataVertex, lightmap_uv)
+    },
+};
+
 #define vertex_binding_description_count 1
 global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
     {   .binding = 0,
