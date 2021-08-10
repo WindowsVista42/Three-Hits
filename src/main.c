@@ -148,12 +148,13 @@ void update_uniforms(u32 current_image) {
                 }
             }
 
-            state.player_eye.z -= 0.6f * state.delta_time;
+            state.player_eye.z -= 1.0 * state.delta_time;
             if(collision) {
                 collision_normal = vec3_norm(collision_normal);
+                if(collision_normal.z > 0.85) { collision_normal = VEC3_UNIT_Z; }
                 if(vec3_eq_vec3(collision_normal, VEC3_ZERO)) { collision_normal = VEC3_UNIT_Z; }
-                state.player_eye = vec3_add_vec3(state.player_eye, vec3_mul_f32(collision_normal, 0.6f * state.delta_time));
-                state.player_eye.z += 0.6f * state.delta_time;
+                state.player_eye = vec3_add_vec3(state.player_eye, vec3_mul_f32(collision_normal, state.player_speed * state.delta_time));
+                state.player_eye.z += 1.0 * state.delta_time;
             }
         }
     }
@@ -1315,7 +1316,7 @@ int main() {
     state.mouse_sensitivity = 2.0;
     state.player_speed = 0.6;
 
-    state.player_eye.z = 0.5f;
+    state.player_eye.z = 0.5;
 
     sbinit(&state.scratch, 512 * 1024); // 512K
     sbinit(&state.swapchain_buffer, 4 * 1024); // 4K
