@@ -647,9 +647,9 @@ void init_swapchain() {
 
 void create_shader_modules() {
     // load shaders
-    usize file_count = 2;
+    usize file_count = 4;
     FILE** files = sbmalloc(&state.scratch, file_count * sizeof(FILE*));
-    char* file_names[] = {"../vert.spv", "../frag.spv"};
+    char* file_names[] = {"../level.vert.spv", "../level.frag.spv", "../enemy.vert.spv", "../enemy.frag.spv"};
     char** buffers = sbmalloc(&state.scratch, file_count * sizeof(char*));
     usize* buffer_sizes = sbmalloc(&state.scratch, file_count * sizeof(usize));
 
@@ -657,10 +657,10 @@ void create_shader_modules() {
         files[index] = fopen(file_names[index], "rb");
     }
 
-    usize valid = 1;
+    b32 valid = true;
     for (usize index = 0; index < file_count; index += 1) {
         if (files[index] == 0) {
-            valid = 0;
+            valid = false;
         }
     }
     // TODO(sean): we do this a lot, see if we can move it out into something else
@@ -686,8 +686,11 @@ void create_shader_modules() {
         assert(fclose(files[index]) == 0);
     }
 
-    create_shader_module(state.device, buffers[0], buffer_sizes[0], &state.vertex_module);
-    create_shader_module(state.device, buffers[1], buffer_sizes[1], &state.fragment_module);
+    create_shader_module(state.device, buffers[0], buffer_sizes[0], &state.level_modules.vertex);
+    create_shader_module(state.device, buffers[1], buffer_sizes[1], &state.level_modules.fragment);
+
+    create_shader_module(state.device, buffers[2], buffer_sizes[2], &state.enemy_modules.vertex);
+    create_shader_module(state.device, buffers[3], buffer_sizes[3], &state.enemy_modules.fragment);
 
     sbclear(&state.scratch);
 }
