@@ -6,7 +6,7 @@
 #include <string.h>
 #include <assert.h>
 
-// self
+// src
 #include "util.h"
 #include "vkutil.h"
 #include "vmmath.h"
@@ -17,8 +17,6 @@
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "../lib/stb_image.h"
-
-// begin graphics
 
 #define REQUIRED_LAYER_COUNT 1
 global const char* REQUIRED_LAYER_NAMES[REQUIRED_LAYER_COUNT] = {
@@ -33,7 +31,7 @@ global const char* REQUIRED_EXTENSION_NAMES[REQUIRED_EXTENSION_COUNT] = {
 global const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
 #ifdef NDEBUG
-global b32 validation_enabled = 1;
+global b32 validation_enabled = 0;
 #else
 global b32 validation_enabled = 0;
 #endif
@@ -63,11 +61,13 @@ void create_texture_image() {
     create_device_local_image(state.device, state.physical_device, state.queue, state.command_pool,
                               loader->texture_width, loader->texture_height, loader->image_size, loader->texture_pixels,
                               VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                              &state.texture_image, &state.texture_image_memory);
+                              &state.level_texture.image, &state.level_texture.memory);
 
-    create_image_view(state.device, state.texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &state.texture_image_view);
+    create_image_view(state.device, state.level_texture.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &state.level_texture.view);
+}
 
-    create_image_sampler(state.device, state.physical_device, &state.texture_image_sampler);
+void create_generic_sampler() {
+    create_image_sampler(state.device, state.physical_device, &state.generic_sampler);
 }
 
 // end state
@@ -75,31 +75,22 @@ void create_texture_image() {
 void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
 
-    //static vec3 player_eye = {{5.0, 5.0, 2.0}};
-    //static vec3 look_dir = {{0.58256, 0.586986, 0.562203}};
-
-    //static f32 rotation = 0.0;
     state.model_rotation += 3.0 * state.delta_time;
     state.model_rotation_offset += 3.0 * state.delta_time;
-    //vec3 axis = {{0.0, sinf(offset), cosf(offset)}};
-    //axis = vec3_norm(axis);
-    //ubo.model = mat4_look_at(VEC3_ZERO, adj_player_eye, VEC3_UNIT_Z);
-    //ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
-
-    //ubo.model = mat4_rotate(mat4_splat(1.0), atan2f(state.model_position.y - state.player_eye.y, state.model_position.x - state.player_eye.x), VEC3_UNIT_Z);
     ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
-
     state.model_rotation = f32_wrap(state.model_rotation, 2.0 * M_PI);
-    //state.model_rotation_offset = f32_wrap(state.model_rotation_offset, 2.0 * M_PI);
 
     mat4 proj, view;
 
-    {
+    state.delta_time /= 12.0;
+    for(usize i = 0; i < 12; i += 1) {
+        state.player_z_speed += state.gravity * state.delta_time * state.delta_time;
         vec3 xydir = {{state.look_dir.x, state.look_dir.y, 0.0}};
         xydir = vec3_norm(xydir);
         vec3 normal = {{-xydir.y, xydir.x, 0.0}};
         vec3 delta = VEC3_ZERO;
         f32 player_speed = state.player_speed;
+        f32 player_radius = state.player_radius;
 
         if(glfwGetKey(state.window, GLFW_KEY_W) == GLFW_PRESS) {
             delta = vec3_sub_vec3(delta, xydir);
@@ -115,13 +106,33 @@ void update_uniforms(u32 current_image) {
         }
         if(glfwGetKey(state.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
             player_speed /= 2.0;
+        } else if(glfwGetKey(state.window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            player_speed /= 2.0;
+            player_radius /= 2.0;
+        }
+
+        static b32 space_held = true;
+        static b32 can_jump = true;
+        if(glfwGetKey(state.window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            //state.player_eye.z += state.player_gravity * state.delta_time;
+            if(!space_held && can_jump) {
+                state.player_z_speed = -state.gravity * state.delta_time * 0.3;
+                space_held = true;
+                can_jump = false;
+            } else {
+                state.player_position.z -= state.player_z_speed;
+                space_held = false;
+            }
+        } else {
+            state.player_position.z -= state.player_z_speed;
+            space_held = false;
         }
 
         if(vec3_par_ne_vec3(delta, VEC3_ZERO)) {
             delta = vec3_norm(delta);
             delta = vec3_mul_f32(delta, state.delta_time);
             delta = vec3_mul_f32(delta, player_speed);
-            state.player_eye = vec3_add_vec3(state.player_eye, delta);
+            state.player_position = vec3_add_vec3(state.player_position, delta);
         }
 
         state.theta = f32_wrap(state.theta, 2.0 * M_PI);
@@ -130,36 +141,34 @@ void update_uniforms(u32 current_image) {
 
         {
             // Check if we are colliding with any of the triangles
-            b32 collision = false;
-            vec3 collision_normal = VEC3_ZERO;
             for (usize index = 0; index < state.level_physmesh_vertex_count; index += 3) {
                 //b32 colliding = false;
                 vec3 A = state.level_physmesh[index + 0];
                 vec3 B = state.level_physmesh[index + 1];
                 vec3 C = state.level_physmesh[index + 2];
-                vec3 P = state.player_eye;
-                f32 r = 0.2;
-
+                vec3 P = state.player_position;
+                f32 r = player_radius;
+                f32 rr = r * r;
                 vec3 N;
-                f32 pen_depth;
-                if(sphere_collides_with_triangle(A, B, C, P, r, &N, &pen_depth)) {
-                    collision = true;
-                    collision_normal = vec3_add_vec3(collision_normal, N);
-                }
-            }
+                f32 d;
 
-            state.player_eye.z -= 1.0 * state.delta_time;
-            if(collision) {
-                collision_normal = vec3_norm(collision_normal);
-                if(collision_normal.z > 0.85) { collision_normal = VEC3_UNIT_Z; }
-                if(vec3_eq_vec3(collision_normal, VEC3_ZERO)) { collision_normal = VEC3_UNIT_Z; }
-                state.player_eye = vec3_add_vec3(state.player_eye, vec3_mul_f32(collision_normal, state.player_speed * state.delta_time));
-                state.player_eye.z += 1.0 * state.delta_time;
+                if(sphere_collides_with_triangle(A, B, C, P, rr, &N, &d)) {
+                    d += 0.0001;
+                    f32 sliding_factor = vec3_dot(N, VEC3_UNIT_Z);
+
+                    if(sliding_factor > state.sliding_threshold) {
+                        N = VEC3_UNIT_Z;
+                        state.player_z_speed = state.gravity * state.delta_time * 0.1;
+                        can_jump = true;
+                    }
+                    if(vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
+                    state.player_position = vec3_add_vec3(state.player_position, vec3_mul_f32(N, d));
+                }
             }
         }
     }
 
-    view = mat4_look_dir(state.player_eye, state.look_dir, VEC3_UNIT_Z);
+    view = mat4_look_dir(state.player_position, state.look_dir, VEC3_UNIT_Z);
     proj = mat4_perspective(f32_radians(100.0f), (float)state.swapchain_extent.width / (float)state.swapchain_extent.height, 0.01f, 1000.0f);
 
     ubo.view_proj = mat4_mul_mat4(view, proj);
@@ -562,7 +571,7 @@ void pre_init_swapchain() {
 
     adequate = false;
     for(usize index = 0; index < present_mode_count; index += 1) {
-        if(present_modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) {
+        if(present_modes[index] == VK_PRESENT_MODE_FIFO_KHR) {
             state.present_mode = present_modes[index];
             adequate = true;
             break;
@@ -689,7 +698,9 @@ void create_shader_modules() {
     sbclear(&state.scratch);
 }
 
-void create_pipeline() {
+void create_pipeline(VkShaderModule vertex_module, VkShaderModule fragment_module) {}
+
+void create_level_pipeline() {
     VkPipelineShaderStageCreateInfo vertex_stage_create_info = {};
     vertex_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertex_stage_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -977,14 +988,27 @@ void create_command_buffers() {
             vkCmdBeginRenderPass(state.command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
                 vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphics_pipeline);
+                {
+                    VkBuffer vertex_buffers[] = {state.level_model.vertices.buffer};
+                    VkDeviceSize offsets[] = {0};
+                    vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
+                    vkCmdBindIndexBuffer(state.command_buffers[index], state.level_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1,
+                                            &state.descriptor_sets[index], 0, 0);
+                }
+                vkCmdDrawIndexed(state.command_buffers[index], state.level_model.index_count, 1, 0, 0, 0);
 
-                VkBuffer vertex_buffers[] = {state.vertex_buffer};
-                VkDeviceSize offsets[] = {0};
-                vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
-                vkCmdBindIndexBuffer(state.command_buffers[index], state.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-                vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1,
-                                        &state.descriptor_sets[index], 0, 0);
-                vkCmdDrawIndexed(state.command_buffers[index], state.index_count, 1, 0, 0, 0);
+                /*
+                vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.enemy_graphics_pipeline);
+                {
+                    VkBuffer vertex_buffers[] = {state.enemy_model.vertices.buffer, state.enemy_position_buffer.buffer};
+                    VkDeviceSize offsets[] = {0};
+                    vkCmdBindVertexBuffers(state.command_buffers[index], 0, 2, vertex_buffers, offsets);
+                    vkCmdBindIndexBuffer(state.command_buffers[index], state.enemy_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.enemy_pipeline_layout, 0, 1, &state.descriptor_sets[index], 0, 0);
+                }
+                vkCmdDrawIndexed(state.command_buffers[index], state.enemy_model.index_count, state.enemy_count, 0, 0, 0);
+                */
             }
             vkCmdEndRenderPass(state.command_buffers[index]);
         }
@@ -1059,7 +1083,8 @@ void create_uniform_buffers() {
             state.device, state.physical_device, buffer_size,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &state.uniform_buffers[index], &state.uniform_buffers_memory[index]);
+            &state.uniform_buffers[index], &state.uniform_buffers_memory[index]
+        );
     }
 }
 
@@ -1110,8 +1135,8 @@ void create_descriptor_sets() {
 
         VkDescriptorImageInfo image_info = {};
         image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = state.texture_image_view;
-        image_info.sampler = state.texture_image_sampler;
+        image_info.imageView = state.level_texture.view;
+        image_info.sampler = state.generic_sampler;
 
         VkWriteDescriptorSet descriptor_writes[descriptor_count] = {};
         descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1173,7 +1198,7 @@ void recreate_swapchain() {
     pre_init_swapchain();
     init_swapchain();
     create_shader_modules();
-    create_pipeline();
+    create_level_pipeline();
     create_depth_image();
     create_swapchain_framebuffers();
     create_uniform_buffers();
@@ -1191,8 +1216,8 @@ void create_vertex_buffer() {
         sizeof(Vertex) * loader->level_vertex_count,
         loader->level_vertices,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state.vertex_buffer,
-        &state.vertex_buffer_memory
+        &state.level_model.vertices.buffer,
+        &state.level_model.vertices.memory
     );
 }
 
@@ -1205,8 +1230,8 @@ void create_index_buffer() {
         sizeof(u32) * loader->level_index_count,
         loader->level_indices,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        &state.index_buffer,
-        &state.index_buffer_memory
+        &state.level_model.indices.buffer,
+        &state.level_model.indices.memory
     );
 }
 
@@ -1255,9 +1280,7 @@ void load_level_texture() {
 }
 
 void load_level_model() {
-    loader->level_path = "../viking_room.level";
-
-
+    loader->level_path = "../test_0.level";
 
     {
         FILE *fp = fopen(loader->level_path, "rb");
@@ -1291,11 +1314,11 @@ void load_level_model() {
         state.level_physmesh_vertex_count = loader->level_index_count;
         state.level_physmesh = sbmalloc(&state.physics_buffer, loader->level_index_count * sizeof(vec3));
         for(usize index = 0; index < loader->level_index_count; index += 1) {
-            state.level_physmesh[index] = loader->level_vertices[loader->level_indices[index]].pos;
+            state.level_physmesh[index] = vec3_mul_f32(loader->level_vertices[loader->level_indices[index]].pos, 1.00);
         }
     }
 
-    state.index_count = loader->level_index_count;
+    state.level_model.index_count = loader->level_index_count;
 }
 
 void free_loader() {
@@ -1314,9 +1337,17 @@ int main() {
     state.theta = 1.15;
     state.phi = 0.75;
     state.mouse_sensitivity = 2.0;
-    state.player_speed = 0.6;
 
-    state.player_eye.z = 0.5;
+    state.player_speed = 16.0;
+    state.player_height = 2.0;
+    state.player_radius = 1.0;
+    state.gravity = 64.0;
+    state.player_z_speed = 0.0f;
+    state.sliding_threshold = 0.7;
+
+    state.player_position.x = 7.0;
+    state.player_position.y = 7.0;
+    state.player_position.z = 7.0;
 
     sbinit(&state.scratch, 512 * 1024); // 512K
     sbinit(&state.swapchain_buffer, 4 * 1024); // 4K
@@ -1336,10 +1367,11 @@ int main() {
     create_shader_modules();
     create_uniform_buffers();
     create_descriptor_set_layout();
-    create_pipeline();
+    create_level_pipeline();
     init_command_pool();
     create_depth_image();
     create_swapchain_framebuffers();
+    create_generic_sampler();
     {
         init_loader();
 
