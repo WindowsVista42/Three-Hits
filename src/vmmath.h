@@ -355,6 +355,32 @@ global inline mat4 mat4_perspective(f32 fov, f32 asp, f32 z_near, f32 z_far) {
     return output;
 }
 
+global inline void vec3_print(char* prefix, vec3 x) {
+    printf(
+        "%s"
+        "(%f, %f, %f)\n"
+        "\n",
+        prefix,
+        x.raw[0], x.raw[1], x.raw[2]
+    );
+}
+
+global inline void mat4_print(char* prefix, mat4 x) {
+    printf(
+        "%s"
+        "(%f, %f, %f, %f)\n"
+        "(%f, %f, %f, %f)\n"
+        "(%f, %f, %f, %f)\n"
+        "(%f, %f, %f, %f)\n"
+        "\n",
+        prefix,
+        x.raw[0],  x.raw[1],  x.raw[2],  x.raw[3],
+        x.raw[4],  x.raw[5],  x.raw[6],  x.raw[7],
+        x.raw[8],  x.raw[9],  x.raw[10], x.raw[11],
+        x.raw[12], x.raw[13], x.raw[14], x.raw[15]
+    );
+}
+
 #define UNTITLED_FPS_VMMATH_H
 
 #endif //UNTITLED_FPS_VMMATH_H
