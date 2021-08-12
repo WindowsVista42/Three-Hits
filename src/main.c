@@ -31,7 +31,7 @@ global const char* REQUIRED_EXTENSION_NAMES[REQUIRED_EXTENSION_COUNT] = {
 global const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
 #ifdef NDEBUG
-global b32 validation_enabled = 0;
+global b32 validation_enabled = 1;
 #else
 global b32 validation_enabled = 0;
 #endif
