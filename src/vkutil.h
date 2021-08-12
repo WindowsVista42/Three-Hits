@@ -8,6 +8,34 @@
 #include "util.h"
 #include "stdio.h"
 
+typedef struct Buffer {
+    VkBuffer buffer;
+    VkDeviceMemory memory;
+} Buffer;
+
+typedef struct Model {
+    Buffer vertices;
+    u32 index_count;
+    Buffer indices;
+} Model;
+
+typedef struct Texture {
+    VkImage image;
+    VkDeviceMemory memory;
+    VkImageView view;
+} Texture;
+
+typedef struct Pipeline {
+    VkPipelineLayout layout;
+    VkRenderPass pass;
+    VkPipeline pipeline;
+} Pipeline;
+
+typedef struct Modules {
+    VkShaderModule vertex;
+    VkShaderModule fragment;
+} Modules;
+
 global VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type,

@@ -104,23 +104,6 @@ typedef struct UniformBufferObject {
     mat4 view_proj;
 } UniformBufferObject;
 
-typedef struct Buffer {
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-} Buffer;
-
-typedef struct ModelBuffer {
-    Buffer vertices;
-    u32 index_count;
-    Buffer indices;
-} ModelBuffer;
-
-typedef struct Texture {
-    VkImage image;
-    VkDeviceMemory memory;
-    VkImageView view;
-} Texture;
-
 #define descriptor_count 2
 typedef struct GameState {
     u32 window_width;
