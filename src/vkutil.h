@@ -352,27 +352,55 @@ void create_device_local_buffer(
     VkDeviceSize size,
     void* data,
     VkBufferUsageFlags usage,
-    VkBuffer* buffer,
-    VkDeviceMemory* buffer_memory
+    VkBuffer* local_buffer,
+    VkDeviceMemory* local_memory
 ) {
     VkBuffer staging_buffer;
-    VkDeviceMemory staging_buffer_memory;
+    VkDeviceMemory staging_memory;
     create_buffer(device, physical_device, size,
                   VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                  &staging_buffer, &staging_buffer_memory);
+                  &staging_buffer, &staging_memory);
 
-    write_buffer(device, staging_buffer_memory, 0, size, 0, data);
+    write_buffer(device, staging_memory, 0, size, 0, data);
 
     create_buffer(device, physical_device, size,
                   usage,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                  buffer, buffer_memory);
+                  local_buffer, local_memory);
 
-    copy_buffer_to_buffer(device, queue, command_pool, staging_buffer, *buffer, size);
+    copy_buffer_to_buffer(device, queue, command_pool, staging_buffer, *local_buffer, size);
 
     vkDestroyBuffer(device, staging_buffer, 0);
-    vkFreeMemory(device, staging_buffer_memory, 0);
+    vkFreeMemory(device, staging_memory, 0);
+}
+
+void create_device_local_and_staging_buffer(
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    VkDeviceSize size,
+    void* data,
+    VkBufferUsageFlags usage,
+    VkBuffer* local_buffer,
+    VkDeviceMemory* local_memory,
+    VkBuffer* staging_buffer,
+    VkDeviceMemory* staging_memory
+) {
+    create_buffer(device, physical_device, size,
+                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                  staging_buffer, staging_memory);
+
+    write_buffer(device, *staging_memory, 0, size, 0, data);
+
+    create_buffer(device, physical_device, size,
+                  usage,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                  local_buffer, local_memory);
+
+    copy_buffer_to_buffer(device, queue, command_pool, *staging_buffer, *local_buffer, size);
 }
 
 void create_device_local_image(
