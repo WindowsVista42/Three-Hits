@@ -663,11 +663,7 @@ void create_shader_modules() {
             valid = false;
         }
     }
-    // TODO(sean): we do this a lot, see if we can move it out into something else
-    if (valid == 0) {
-        //TODO(sean): diagnostic
-        panic("Failed to open files!");
-    }
+    panic_if_false(valid, "Failed to open files!");
 
     for (usize index = 0; index < file_count; index += 1) {
         FILE *fp = files[index];
@@ -681,7 +677,6 @@ void create_shader_modules() {
         buffer_sizes[index] = fsize;
     }
 
-    //TODO(sean): create a better assert than stdlib
     for (usize index = 0; index < file_count; index += 1) {
         assert(fclose(files[index]) == 0);
     }
@@ -695,215 +690,45 @@ void create_shader_modules() {
     sbclear(&state.scratch);
 }
 
-void create_pipeline(VkShaderModule vertex_module, VkShaderModule fragment_module) {}
 
-void create_level_pipeline() {
-    VkPipelineShaderStageCreateInfo vertex_stage_create_info = {};
-    vertex_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertex_stage_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertex_stage_create_info.module = state.vertex_module;
-    vertex_stage_create_info.pName = "main";
+void create_level_graphics_pipeline() {
+    create_graphics_pipeline(
+        state.device,
+        state.level_modules.vertex,
+        state.level_modules.fragment,
+        vertex_attribute_description_count,
+        vertex_attribute_descriptions,
+        level_vertex_input_binding_description_count,
+        vertex_binding_descriptions,
+        state.swapchain_extent.width,
+        state.swapchain_extent.height,
+        &state.ubo_sampler_descriptor_set_layout,
+        &state.level_pipeline.layout,
+        state.swapchain_format,
+        state.depth_image_format,
+        &state.level_pipeline.pass,
+        &state.level_pipeline.pipeline
+    );
+}
 
-    VkPipelineShaderStageCreateInfo fragment_stage_create_info = {};
-    fragment_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragment_stage_create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragment_stage_create_info.module = state.fragment_module;
-    fragment_stage_create_info.pName = "main";
-
-    // TODO(sean): formatting
-    VkPipelineShaderStageCreateInfo shader_stages[] = { vertex_stage_create_info, fragment_stage_create_info };
-
-    VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {};
-    vertex_input_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_state_create_info.vertexAttributeDescriptionCount = vertex_attribute_description_count;
-    vertex_input_state_create_info.pVertexAttributeDescriptions = vertex_attribute_descriptions;
-    vertex_input_state_create_info.vertexBindingDescriptionCount = vertex_binding_description_count;
-    vertex_input_state_create_info.pVertexBindingDescriptions = vertex_binding_descriptions;
-
-    VkPipelineInputAssemblyStateCreateInfo vertex_input_assembly_create_info = {};
-    vertex_input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    vertex_input_assembly_create_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    vertex_input_assembly_create_info.primitiveRestartEnable = VK_FALSE;
-
-    VkViewport viewport = {};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (f32)state.swapchain_extent.width;
-    viewport.height = (f32)state.swapchain_extent.height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    VkRect2D scissor = {};
-    scissor.offset.x = 0;
-    scissor.offset.y = 0;
-    scissor.extent.width = state.swapchain_extent.width;
-    scissor.extent.height = state.swapchain_extent.height;
-
-    VkPipelineViewportStateCreateInfo viewport_state_create_info = {};
-    viewport_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewport_state_create_info.viewportCount = 1;
-    viewport_state_create_info.pViewports = &viewport;
-    viewport_state_create_info.scissorCount = 1;
-    viewport_state_create_info.pScissors = &scissor;
-
-    VkPipelineRasterizationStateCreateInfo rasterization_state_create_info = {};
-    rasterization_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterization_state_create_info.depthClampEnable = VK_FALSE;
-    rasterization_state_create_info.rasterizerDiscardEnable = VK_FALSE;
-    rasterization_state_create_info.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterization_state_create_info.lineWidth = 1.0f;
-    rasterization_state_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterization_state_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterization_state_create_info.depthBiasEnable = VK_FALSE;
-    rasterization_state_create_info.depthBiasConstantFactor = 0.0f;
-    rasterization_state_create_info.depthBiasClamp = 0.0f;
-    rasterization_state_create_info.depthBiasSlopeFactor = 0.0f;
-
-    VkPipelineMultisampleStateCreateInfo multisample_state_create_info = {};
-    multisample_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisample_state_create_info.sampleShadingEnable = VK_FALSE;
-    multisample_state_create_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisample_state_create_info.minSampleShading = 1.0f;
-    multisample_state_create_info.pSampleMask = 0;
-    multisample_state_create_info.alphaToCoverageEnable = VK_FALSE;
-    multisample_state_create_info.alphaToOneEnable = VK_FALSE;
-
-    VkPipelineColorBlendAttachmentState color_blend_attachment_state = {};
-    color_blend_attachment_state.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT
-            | VK_COLOR_COMPONENT_G_BIT
-            | VK_COLOR_COMPONENT_B_BIT
-            | VK_COLOR_COMPONENT_A_BIT;
-    color_blend_attachment_state.blendEnable = VK_TRUE;
-    color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    VkPipelineColorBlendStateCreateInfo color_blend_state_create_info = {};
-    color_blend_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    color_blend_state_create_info.logicOpEnable = VK_FALSE;
-    color_blend_state_create_info.logicOp = VK_LOGIC_OP_COPY;
-    color_blend_state_create_info.attachmentCount = 1;
-    color_blend_state_create_info.pAttachments = &color_blend_attachment_state;
-    color_blend_state_create_info.blendConstants[0] = 0.0f;
-    color_blend_state_create_info.blendConstants[1] = 0.0f;
-    color_blend_state_create_info.blendConstants[2] = 0.0f;
-    color_blend_state_create_info.blendConstants[3] = 0.0f;
-
-    // TODO(sean): figure out if this need to be used for anything
-    // VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_LINE_WIDTH };
-
-    // VkPipelineDynamicStateCreateInfo dynamic_state_create_info = {};
-    // dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    // dynamic_state_create_info.dynamicStateCount = 2;
-    // dynamic_state_create_info.pDynamicStates = dynamic_states;
-
-    VkPipelineLayoutCreateInfo pipeline_layout_create_info = {};
-    pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_create_info.setLayoutCount = 1;
-    pipeline_layout_create_info.pSetLayouts = &state.descriptor_set_layout;
-    pipeline_layout_create_info.pushConstantRangeCount = 0;
-    pipeline_layout_create_info.pPushConstantRanges = 0;
-
-    if(vkCreatePipelineLayout(state.device, &pipeline_layout_create_info, 0, &state.pipeline_layout) != VK_SUCCESS) {
-        //TODO(sean): diagnostic
-        panic("Failed to create pipeline layout!");
-    }
-
-    VkAttachmentDescription color_attachment_desc = {};
-    color_attachment_desc.format = state.swapchain_format;
-    color_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    color_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    color_attachment_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    color_attachment_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentDescription depth_attachment_desc = {};
-    depth_attachment_desc.format = state.depth_image_format;
-    depth_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depth_attachment_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depth_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference color_attachment_ref = {};
-    color_attachment_ref.attachment = 0;
-    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depth_attachment_ref = {};
-    depth_attachment_ref.attachment = 1;
-    depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass_desc = {};
-    subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass_desc.colorAttachmentCount = 1;
-    subpass_desc.pColorAttachments = &color_attachment_ref;
-    subpass_desc.pDepthStencilAttachment = &depth_attachment_ref;
-
-    VkSubpassDependency subpass_dependency = {};
-    subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    subpass_dependency.dstSubpass = 0;
-    subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    subpass_dependency.srcAccessMask = 0;
-    subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-    VkAttachmentDescription attachments[] = {color_attachment_desc, depth_attachment_desc};
-    VkRenderPassCreateInfo render_pass_create_info = {};
-    render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_create_info.attachmentCount = 2;
-    render_pass_create_info.pAttachments = attachments;
-    render_pass_create_info.subpassCount = 1;
-    render_pass_create_info.pSubpasses = &subpass_desc;
-    render_pass_create_info.subpassCount = 1;
-    render_pass_create_info.pDependencies = &subpass_dependency;
-
-    if(vkCreateRenderPass(state.device, &render_pass_create_info, 0, &state.render_pass) != VK_SUCCESS) {
-        //TODO(sean): diagnostic
-        panic("Failed to create render pass!");
-    }
-
-    VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info = {};
-    depth_stencil_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depth_stencil_state_create_info.depthTestEnable = VK_TRUE;
-    depth_stencil_state_create_info.depthWriteEnable = VK_TRUE;
-    depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
-    depth_stencil_state_create_info.depthBoundsTestEnable = VK_FALSE;
-    depth_stencil_state_create_info.minDepthBounds = 0.0f;
-    depth_stencil_state_create_info.maxDepthBounds = 1.0f;
-    depth_stencil_state_create_info.stencilTestEnable = VK_FALSE;
-    //depth_stencil_state_create_info.front = ;
-    //depth_stencil_state_create_info.back = ;
-
-    VkGraphicsPipelineCreateInfo pipeline_create_info = {};
-    pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_create_info.stageCount = 2;
-    pipeline_create_info.pStages = shader_stages;
-    pipeline_create_info.pVertexInputState = &vertex_input_state_create_info;
-    pipeline_create_info.pInputAssemblyState = &vertex_input_assembly_create_info;
-    pipeline_create_info.pViewportState = &viewport_state_create_info;
-    pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
-    pipeline_create_info.pMultisampleState = &multisample_state_create_info;
-    pipeline_create_info.pDepthStencilState = &depth_stencil_state_create_info;
-    pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
-    pipeline_create_info.pDynamicState = 0;
-    pipeline_create_info.layout = state.pipeline_layout;
-    pipeline_create_info.renderPass = state.render_pass;
-    pipeline_create_info.subpass = 0;
-    pipeline_create_info.basePipelineHandle = 0;
-    pipeline_create_info.basePipelineIndex = -1;
-
-    if(vkCreateGraphicsPipelines(state.device, 0, 1, &pipeline_create_info, 0, &state.graphics_pipeline) != VK_SUCCESS) {
-        //TODO(sean): diagnostic
-        panic("Failed to create graphics pipeline!");
-    }
+void create_enemy_graphics_pipeline() {
+    create_graphics_pipeline(
+        state.device,
+        state.enemy_modules.vertex,
+        state.enemy_modules.fragment,
+        enemy_vertex_attribute_description_count,
+        enemy_vertex_attribute_descriptions,
+        enemy_vertex_binding_description_count,
+        enemy_vertex_binding_descriptions,
+        state.swapchain_extent.width,
+        state.swapchain_extent.height,
+        &state.ubo_sampler_descriptor_set_layout,
+        &state.enemy_pipeline.layout,
+        state.swapchain_format,
+        state.depth_image_format,
+        &state.enemy_pipeline.pass,
+        &state.enemy_pipeline.pipeline
+    );
 }
 
 void create_swapchain_framebuffers() {
@@ -914,7 +739,7 @@ void create_swapchain_framebuffers() {
 
         VkFramebufferCreateInfo framebuffer_create_info = {};
         framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebuffer_create_info.renderPass = state.render_pass;
+        framebuffer_create_info.renderPass = state.level_pipeline.pass;
         framebuffer_create_info.attachmentCount = 2;
         framebuffer_create_info.pAttachments = attachments;
         framebuffer_create_info.width = state.swapchain_extent.width;
@@ -973,7 +798,7 @@ void create_command_buffers() {
 
             VkRenderPassBeginInfo render_pass_begin_info = {};
             render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            render_pass_begin_info.renderPass = state.render_pass;
+            render_pass_begin_info.renderPass = state.level_pipeline.pass;
             render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
             render_pass_begin_info.renderArea.offset.x = 0;
             render_pass_begin_info.renderArea.offset.y = 0;
@@ -984,13 +809,13 @@ void create_command_buffers() {
 
             vkCmdBeginRenderPass(state.command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
-                vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphics_pipeline);
+                vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.level_pipeline.pipeline);
                 {
                     VkBuffer vertex_buffers[] = {state.level_model.vertices.buffer};
                     VkDeviceSize offsets[] = {0};
                     vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
                     vkCmdBindIndexBuffer(state.command_buffers[index], state.level_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipeline_layout, 0, 1,
+                    vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.level_pipeline.layout, 0, 1,
                                             &state.descriptor_sets[index], 0, 0);
                 }
                 vkCmdDrawIndexed(state.command_buffers[index], state.level_model.index_count, 1, 0, 0, 0);
@@ -1063,7 +888,7 @@ void create_descriptor_set_layout() {
     layout_create_info.bindingCount = 2;
     layout_create_info.pBindings = bindings;
 
-    if(vkCreateDescriptorSetLayout(state.device, &layout_create_info, 0, &state.descriptor_set_layout) != VK_SUCCESS) {
+    if(vkCreateDescriptorSetLayout(state.device, &layout_create_info, 0, &state.ubo_sampler_descriptor_set_layout) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create descriptor set layout!");
     }
@@ -1110,7 +935,7 @@ void create_descriptor_pool() {
 
 void create_descriptor_sets() {
     VkDescriptorSetLayout* layouts = sbmalloc(&state.swapchain_buffer, state.swapchain_image_count * sizeof(VkDescriptorSetLayout));
-    for(usize index = 0; index < state.swapchain_image_count; index += 1) { layouts[index] = state.descriptor_set_layout; }
+    for(usize index = 0; index < state.swapchain_image_count; index += 1) { layouts[index] = state.ubo_sampler_descriptor_set_layout; }
 
     VkDescriptorSetAllocateInfo allocate_info = {};
     allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1174,9 +999,9 @@ void cleanup_swapchain_artifacts() {
     vkDestroyDescriptorPool(state.device, state.uniform_descriptor_pool, 0);
 
     vkFreeCommandBuffers(state.device, state.command_pool, (u32)state.swapchain_image_count, state.command_buffers);
-    vkDestroyPipeline(state.device, state.graphics_pipeline, 0);
-    vkDestroyPipelineLayout(state.device, state.pipeline_layout, 0);
-    vkDestroyRenderPass(state.device, state.render_pass, 0);
+
+    destroy_pipeline(state.device, state.level_pipeline);
+    destroy_pipeline(state.device, state.enemy_pipeline);
 
     for(usize index = 0; index < state.swapchain_image_count; index += 1) {
         vkDestroyImageView(state.device, state.swapchain_image_views[index], 0);
@@ -1195,7 +1020,8 @@ void recreate_swapchain() {
     pre_init_swapchain();
     init_swapchain();
     create_shader_modules();
-    create_level_pipeline();
+    create_level_graphics_pipeline();
+    create_enemy_graphics_pipeline();
     create_depth_image();
     create_swapchain_framebuffers();
     create_uniform_buffers();
@@ -1364,7 +1190,8 @@ int main() {
     create_shader_modules();
     create_uniform_buffers();
     create_descriptor_set_layout();
-    create_level_pipeline();
+    create_level_graphics_pipeline();
+    create_enemy_graphics_pipeline();
     init_command_pool();
     create_depth_image();
     create_swapchain_framebuffers();
@@ -1381,7 +1208,6 @@ int main() {
 
         free_loader();
     }
-    create_uniform_buffers();
     create_descriptor_pool();
     create_descriptor_sets();
     create_command_buffers();
