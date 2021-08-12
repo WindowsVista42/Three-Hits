@@ -74,13 +74,7 @@ void create_generic_sampler() {
 
 void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
-
-    state.model_rotation += 3.0 * state.delta_time;
-    state.model_rotation_offset += 3.0 * state.delta_time;
-    ubo.model = mat4_rotate(mat4_splat(1.0), 0.0, VEC3_UNIT_Z);
-    state.model_rotation = f32_wrap(state.model_rotation, 2.0 * M_PI);
-
-    mat4 proj, view;
+    mat4 projection, view;
 
     state.delta_time /= 12.0;
     for(usize i = 0; i < 12; i += 1) {
@@ -169,9 +163,9 @@ void update_uniforms(u32 current_image) {
     }
 
     view = mat4_look_dir(state.player_position, state.look_dir, VEC3_UNIT_Z);
-    proj = mat4_perspective(f32_radians(100.0f), (float)state.swapchain_extent.width / (float)state.swapchain_extent.height, 0.01f, 1000.0f);
+    projection = mat4_perspective(f32_radians(100.0f), (float)state.swapchain_extent.width / (float)state.swapchain_extent.height, 0.01f, 1000.0f);
 
-    ubo.view_proj = mat4_mul_mat4(view, proj);
+    ubo.view_proj = mat4_mul_mat4(view, projection);
 
     write_buffer(state.device, state.uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &ubo);
 }
