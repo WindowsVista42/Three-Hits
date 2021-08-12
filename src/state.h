@@ -133,12 +133,14 @@ typedef struct GameState {
     VkImageView depth_image_view;
     Texture depth_texture;
 
-    VkShaderModule vertex_module;
-    VkShaderModule fragment_module;
-    VkDescriptorSetLayout descriptor_set_layout;
-    VkPipelineLayout pipeline_layout;
-    VkRenderPass render_pass;
-    VkPipeline graphics_pipeline;
+    VkDescriptorSetLayout ubo_sampler_descriptor_set_layout;
+
+    Modules level_modules;
+    Pipeline level_pipeline;
+
+    Modules enemy_modules;
+    Pipeline enemy_pipeline;
+
     VkCommandBuffer* command_buffers;
 
     StagedBuffer semaphore_buffer;
@@ -151,14 +153,10 @@ typedef struct GameState {
     DebugCallbackData debug_callback_data;
     StagedBuffer scratch;
 
-    f32 model_rotation;
-    f32 model_rotation_offset;
-    vec3 model_position;
-
     // World model
     VkSampler generic_sampler;
 
-    ModelBuffer level_model;
+    Model level_model;
     Texture level_texture;
 
     VkBuffer* uniform_buffers;
@@ -169,9 +167,10 @@ typedef struct GameState {
 
     // Enemy model
     u32 enemy_count;
-    ModelBuffer enemy_model;
+    Model enemy_model;
     Texture enemy_texture;
     Buffer enemy_position_buffer;
+    Buffer enemy_position_staging_buffer;
 
     f32 mouse_sensitivity;
     vec2 mouse_pos;
