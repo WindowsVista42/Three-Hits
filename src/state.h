@@ -13,6 +13,32 @@ typedef struct Vertex {
     vec2 uv;
 } Vertex;
 
+#define vertex_binding_description_count 1
+global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
+    {   .binding = 0,
+        .stride = sizeof(Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    }
+};
+#define vertex_attribute_description_count 3
+global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
+    {   .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, pos),
+    },
+    {   .binding = 0,
+        .location = 1,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, color),
+    },
+    {   .binding = 0,
+        .location = 2,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, uv),
+    }
+};
+
 //TODO(sean): use this instead of Vertex
 typedef struct DataVertex {
     vec3 position;
@@ -52,36 +78,48 @@ global VkVertexInputAttributeDescription data_vertex_attribute_descriptions[data
     },
 };
 
-#define vertex_binding_description_count 1
-global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
-    {   .binding = 0,
-        .stride = sizeof(Vertex),
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+typedef struct ModelPosition {
+    vec3 position;
+} ModelPosition;
+
+#define model_position_binding_description_count 1
+global VkVertexInputBindingDescription model_position_binding_descriptions[model_position_binding_description_count] = {
+    {   .binding = 1,
+        .stride = sizeof(ModelPosition),
+        .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
     }
 };
-#define vertex_attribute_description_count 3
-global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
-    {   .binding = 0,
-        .location = 0,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, pos),
-    },
-    {   .binding = 0,
+
+#define model_position_attribute_description_count 1
+global VkVertexInputAttributeDescription model_position_attribute_descriptions[model_position_attribute_description_count] = {
+    {   .binding = 1,
         .location = 1,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, color),
+        .offset = offsetof(ModelPosition, position),
     },
-    {   .binding = 0,
-        .location = 2,
-        .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(Vertex, uv),
-    }
 };
 
 typedef struct UniformBufferObject {
     mat4 model;
     mat4 view_proj;
 } UniformBufferObject;
+
+typedef struct Buffer {
+    VkBuffer buffer;
+    VkDeviceMemory memory;
+} Buffer;
+
+typedef struct ModelBuffer {
+    Buffer vertices;
+    u32 index_count;
+    Buffer indices;
+} ModelBuffer;
+
+typedef struct Texture {
+    VkImage image;
+    VkDeviceMemory memory;
+    VkImageView view;
+} Texture;
 
 #define descriptor_count 2
 typedef struct GameState {
@@ -117,6 +155,7 @@ typedef struct GameState {
     VkImage depth_image;
     VkDeviceMemory depth_image_memory;
     VkImageView depth_image_view;
+    Texture depth_texture;
 
     VkShaderModule vertex_module;
     VkShaderModule fragment_module;
@@ -141,16 +180,10 @@ typedef struct GameState {
     vec3 model_position;
 
     // World model
-    VkBuffer vertex_buffer;
-    VkDeviceMemory vertex_buffer_memory;
-    u32 index_count;
-    VkBuffer index_buffer;
-    VkDeviceMemory index_buffer_memory;
+    VkSampler generic_sampler;
 
-    VkImage texture_image;
-    VkDeviceMemory texture_image_memory;
-    VkImageView texture_image_view;
-    VkSampler texture_image_sampler;
+    ModelBuffer level_model;
+    Texture level_texture;
 
     VkBuffer* uniform_buffers;
     VkDeviceMemory* uniform_buffers_memory;
@@ -158,8 +191,13 @@ typedef struct GameState {
 
     VkDescriptorSet* descriptor_sets;
 
-    vec3 player_eye;
-    vec3 look_dir;
+    // Enemy model
+    u32 enemy_count;
+    ModelBuffer enemy_model;
+    Texture enemy_texture;
+    Buffer enemy_position_buffer;
+
+    f32 mouse_sensitivity;
     vec2 mouse_pos;
     vec2 mouse_delta;
     f32 theta;
@@ -168,14 +206,29 @@ typedef struct GameState {
     f32 elapsed_time;
     f32 delta_time;
 
-    f32 mouse_sensitivity;
-    f32 player_speed;
-
-    // Physics (reduped)
+    // Physics
     StagedBuffer physics_buffer;
     StagedBuffer physics_scratch_buffer;
+
+    f32 gravity;
+    f32 sliding_threshold;
+
     u32 level_physmesh_vertex_count;
     vec3* level_physmesh;
+
+    vec3 player_position;
+    vec3 look_dir;
+    f32 player_speed;
+    f32 player_height;
+    f32 player_radius;
+    f32 player_z_speed;
+
+    //u32 enemies_count;
+    vec3* enemy_positions;
+    f32 enemy_radii;
+    f32* enemy_z_speeds;
+
+    // we also need a render pass for enemies
 } GameState;
 
 #include "../lib/stb_image.h"
@@ -200,6 +253,19 @@ typedef struct LoaderState {
     u32 level_index_count;
     u32* level_indices;
 } LoaderState;
+
+typedef struct ProjType_s
+{
+    u8 r, g, b;
+    f32 base_radius, max_speed;
+} ProjType;
+
+typedef struct Proj_s {
+    int type;
+    f32 x, y;
+    f32 vx, vy;
+    f32 mass, radius;
+} Proj;
 
 #define UNTITLED_FPS_STATE_H
 
