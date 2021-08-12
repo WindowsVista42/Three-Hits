@@ -86,5 +86,11 @@ global inline void sbinit(StagedBuffer* heap, usize allocation_size) {
     fprintf(stderr, "Thread panicked at message: \"%s\"\n", message); \
     exit(1);
 
+
+#define panic_if_false(value, message) \
+    if (valid == 0) { \
+        panic("Failed to open files!"); \
+    }
+
 #define UNTITLED_FPS_UTILS_H
 #endif //UNTITLED_FPS_UTILS_H
