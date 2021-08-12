@@ -52,68 +52,48 @@ global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_at
     }
 };
 
-//TODO(sean): use this instead of Vertex
-typedef struct DataVertex {
-    vec3 position;
-    u32 texture_indices; // packed u16 + u16
-    vec2 texture_uv;
-    vec2 lightmap_uv;
-} DataVertex;
-
-#define data_vertex_binding_description_count 1
-global VkVertexInputBindingDescription data_vertex_binding_descriptions[data_vertex_binding_description_count] = {
+#define enemy_vertex_binding_description_count 2
+global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[enemy_vertex_binding_description_count] = {
     {   .binding = 0,
-        .stride = sizeof(DataVertex),
+        .stride = sizeof(Vertex),
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-    }
-};
-#define data_vertex_attribute_description_count 4
-global VkVertexInputAttributeDescription data_vertex_attribute_descriptions[data_vertex_attribute_description_count] = {
-    {   .binding = 0,
-        .location = 0,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(DataVertex, position),
     },
-    {   .binding = 0,
-        .location = 1,
-        .format = VK_FORMAT_R16G16_UINT,
-        .offset = offsetof(DataVertex, texture_indices),
-    },
-    {   .binding = 0,
-        .location = 2,
-        .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(DataVertex, texture_uv)
-    },
-    {   .binding = 0,
-        .location = 3,
-        .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(DataVertex, lightmap_uv)
-    },
-};
-
-typedef struct ModelPosition {
-    vec3 position;
-} ModelPosition;
-
-#define model_position_binding_description_count 1
-global VkVertexInputBindingDescription model_position_binding_descriptions[model_position_binding_description_count] = {
     {   .binding = 1,
-        .stride = sizeof(ModelPosition),
+        .stride = sizeof(ModelPositionRotation),
         .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
     }
 };
 
-#define model_position_attribute_description_count 1
-global VkVertexInputAttributeDescription model_position_attribute_descriptions[model_position_attribute_description_count] = {
-    {   .binding = 1,
+#define enemy_vertex_attribute_description_count 5
+global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[enemy_vertex_attribute_description_count] = {
+    {   .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, pos),
+    },
+    {   .binding = 0,
         .location = 1,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(ModelPosition, position),
+        .offset = offsetof(Vertex, color),
+    },
+    {   .binding = 0,
+        .location = 2,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, uv),
+    },
+    {   .binding = 0,
+        .location = 3,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(ModelPositionRotation, position),
+    },
+    {   .binding = 0,
+        .location = 4,
+        .format = VK_FORMAT_R32_SFLOAT,
+        .offset = offsetof(ModelPositionRotation, rotation),
     },
 };
 
 typedef struct UniformBufferObject {
-    mat4 model;
     mat4 view_proj;
 } UniformBufferObject;
 
