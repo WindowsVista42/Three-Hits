@@ -231,6 +231,11 @@ global inline vec3 vec3_cross(vec3 lhs, vec3 rhs) {
     return output;
 }
 
+global inline f32 vec3_distsq_vec3(vec3 lhs, vec3 rhs) {
+    vec3 difference = vec3_sub_vec3(lhs, rhs);
+    return vec3_dot(difference, difference);
+}
+
 global inline f32 vec3_dot(vec3 lhs, vec3 rhs) {
     return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
 }
