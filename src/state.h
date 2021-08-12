@@ -13,8 +13,21 @@ typedef struct Vertex {
     vec2 uv;
 } Vertex;
 
-#define vertex_binding_description_count 1
-global VkVertexInputBindingDescription vertex_binding_descriptions[vertex_binding_description_count] = {
+//TODO(sean): use this instead of Vertex
+typedef struct DataVertex {
+    vec3 position;
+    u32 texture_indices; // packed u16 + u16
+    vec2 texture_uv;
+    vec2 lightmap_uv;
+} DataVertex;
+
+typedef struct ModelPositionRotation {
+    vec3 position;
+    f32 rotation;
+} ModelPositionRotation;
+
+#define level_vertex_input_binding_description_count 1
+global VkVertexInputBindingDescription vertex_binding_descriptions[level_vertex_input_binding_description_count] = {
     {   .binding = 0,
         .stride = sizeof(Vertex),
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
