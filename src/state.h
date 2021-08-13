@@ -102,6 +102,7 @@ typedef struct UniformBufferObject {
 } UniformBufferObject;
 
 #define descriptor_count 2
+
 typedef struct GameState {
     u32 window_width;
     u32 window_height;
@@ -202,8 +203,7 @@ typedef struct GameState {
     f32 player_radius;
     f32 player_z_speed;
 
-    //u32 enemies_count;
-    vec3* enemy_positions;
+    vec4* enemy_position_rotations;
     f32 enemy_radii;
     f32* enemy_z_speeds;
 
