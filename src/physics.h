@@ -38,7 +38,7 @@ b32 sphere_intersects_point(vec3 p, vec3 P, f32 rr, vec3* N, f32* d) {
     return rr > vec3_distsq_vec3(P, p);
 }
 
-b32 sphere_intersects_line(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
+b32 line_intersects_sphere(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
     f32 up0, up1, u;
     vec3 j, k;
     j = vec3_sub_vec3(P, A);
@@ -49,7 +49,9 @@ b32 sphere_intersects_line(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
     if(u < 0.0 || u > 1.0) { return false; }
 
     vec3 iP = vec3_add_vec3(A, vec3_mul_f32(vec3_sub_vec3(B, A), u));
-    return sphere_intersects_point(iP, P, rr, N, d);
+    b32 intersects = sphere_intersects_point(iP, P, rr, N, d);
+    *d = vec3_distsq_vec3(iP, A);
+    return intersects;
 }
 
 b32 line_intersects_sphere_incorrect(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
