@@ -1334,6 +1334,10 @@ void free_loader() {
     loader = 0;
 }
 
+void print_diagnostics() {
+    printf("budget: %.2fms, usage: %.2fms / %.2f%%\n", (1.0 / 60.0) * 1000.0, (state.delta_time) * 1000.0, (state.delta_time / (1.0 / 60.0)) * 100.0);
+}
+
 int main() {
     state.window_width = 960;
     state.window_height = 540;
