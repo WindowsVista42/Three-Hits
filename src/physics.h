@@ -5,7 +5,7 @@
 #ifndef UNTITLED_FPS_PHYSICS_H
 #include "vmmath.h"
 
-b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 rr, vec3* N, f32* d) {
+b32 triangle_normal_intersects_bottom_of_sphere(vec3 A, vec3 B, vec3 C, vec3 P, f32 rr, vec3* N, f32* d) {
     *N = vec3_norm(vec3_cross(vec3_sub_vec3(B, A), vec3_sub_vec3(C, A)));
 
     const f32 EPSILON = 0.000001;
@@ -52,6 +52,20 @@ b32 sphere_intersects_line(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
     return sphere_intersects_point(iP, P, rr, N, d);
 }
 
+b32 line_intersects_sphere_incorrect(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
+    f32 up0, up1, u;
+    vec3 j, k;
+    j = vec3_sub_vec3(P, A);
+    k = vec3_sub_vec3(B, A);
+    up0 = vec3_dot(j, k);
+    up1 = vec3_dot(k, k);
+    u = up0 / up1;
+    if(u < 0.0 || u > 1.0) { return false; }
+
+    vec3 iP = vec3_add_vec3(A, vec3_mul_f32(vec3_sub_vec3(B, A), u));
+    return sphere_intersects_point(iP, P, rr, N, d);
+}
+
 //TODO(sean): get this to work with vertex - index data
 //TODO(sean): move this to just use re-duped vertex data
 //TODO(sean): line intersection
@@ -62,10 +76,10 @@ b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N
     f32 Rd, ABd, BCd, CAd, Ad, Bd, Cd;
     b32 Ri, ABi, BCi, CAi, Ai, Bi, Ci;
 
-    Ri = ray_intersects_triangle(A, B, C, P, rr, &Rn, &Rd);
-    ABi = sphere_intersects_line(A, B, P, rr, &ABn, &ABd);
-    BCi = sphere_intersects_line(B, C, P, rr, &BCn, &BCd);
-    CAi = sphere_intersects_line(C, A, P, rr, &CAn, &CAd);
+    Ri = triangle_normal_intersects_bottom_of_sphere(A, B, C, P, rr, &Rn, &Rd);
+    ABi = line_intersects_sphere_incorrect(A, B, P, rr, &ABn, &ABd);
+    BCi = line_intersects_sphere_incorrect(B, C, P, rr, &BCn, &BCd);
+    CAi = line_intersects_sphere_incorrect(C, A, P, rr, &CAn, &CAd);
     Ai = sphere_intersects_point(A, P, rr, &An, &Ad);
     Bi = sphere_intersects_point(B, P, rr, &Bn, &Bd);
     Ci = sphere_intersects_point(C, P, rr, &Cn, &Cd);
