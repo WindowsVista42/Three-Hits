@@ -1162,7 +1162,7 @@ void recreate_swapchain() {
     create_command_buffers();
 }
 
-void create_vertex_buffer() {
+void create_level_buffers() {
     create_device_local_buffer(
         state.device,
         state.physical_device,
@@ -1174,9 +1174,7 @@ void create_vertex_buffer() {
         &state.level_model.vertices.buffer,
         &state.level_model.vertices.memory
     );
-}
 
-void create_index_buffer() {
     create_device_local_buffer(
         state.device,
         state.physical_device,
