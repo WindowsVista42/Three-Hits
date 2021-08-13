@@ -901,10 +901,12 @@ void create_command_buffers() {
     }
 
     for(usize index = 0; index < state.swapchain_image_count; index += 1) {
+        VkCommandBuffer command_buffer = state.command_buffers[index];
+
         VkCommandBufferBeginInfo begin_info = {};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if(vkBeginCommandBuffer(state.command_buffers[index], &begin_info) != VK_SUCCESS) {
+        if(vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
             panic("Failed to begin command buffer!");
         }
 
@@ -914,46 +916,58 @@ void create_command_buffers() {
                 {.depthStencil = {1.0f, 0}},
             };
 
-            VkRenderPassBeginInfo render_pass_begin_info = {};
-            render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            render_pass_begin_info.renderPass = state.level_pipeline.pass;
-            render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
-            render_pass_begin_info.renderArea.offset.x = 0;
-            render_pass_begin_info.renderArea.offset.y = 0;
-            render_pass_begin_info.renderArea.extent.width = state.swapchain_extent.width;
-            render_pass_begin_info.renderArea.extent.height = state.swapchain_extent.height;
-            render_pass_begin_info.clearValueCount = 2;
-            render_pass_begin_info.pClearValues = clear_values;
+            VkRenderPassBeginInfo level_render_pass_begin_info = {};
+            level_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            level_render_pass_begin_info.renderPass = state.level_pipeline.pass;
+            level_render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
+            level_render_pass_begin_info.renderArea.offset.x = 0;
+            level_render_pass_begin_info.renderArea.offset.y = 0;
+            level_render_pass_begin_info.renderArea.extent.width = state.swapchain_extent.width;
+            level_render_pass_begin_info.renderArea.extent.height = state.swapchain_extent.height;
+            level_render_pass_begin_info.clearValueCount = 2;
+            level_render_pass_begin_info.pClearValues = clear_values;
 
-            vkCmdBeginRenderPass(state.command_buffers[index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(command_buffer, &level_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
-                vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.level_pipeline.pipeline);
+                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.level_pipeline.pipeline);
                 {
                     VkBuffer vertex_buffers[] = {state.level_model.vertices.buffer};
                     VkDeviceSize offsets[] = {0};
-                    vkCmdBindVertexBuffers(state.command_buffers[index], 0, 1, vertex_buffers, offsets);
-                    vkCmdBindIndexBuffer(state.command_buffers[index], state.level_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.level_pipeline.layout, 0, 1,
-                                            &state.descriptor_sets[index], 0, 0);
+                    vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+                    vkCmdBindIndexBuffer(command_buffer, state.level_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.level_pipeline.layout, 0, 1, &state.descriptor_sets[index], 0, 0);
                 }
-                vkCmdDrawIndexed(state.command_buffers[index], state.level_model.index_count, 1, 0, 0, 0);
-
-                /*
-                vkCmdBindPipeline(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.enemy_graphics_pipeline);
-                {
-                    VkBuffer vertex_buffers[] = {state.enemy_model.vertices.buffer, state.enemy_position_buffer.buffer};
-                    VkDeviceSize offsets[] = {0};
-                    vkCmdBindVertexBuffers(state.command_buffers[index], 0, 2, vertex_buffers, offsets);
-                    vkCmdBindIndexBuffer(state.command_buffers[index], state.enemy_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindDescriptorSets(state.command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, state.enemy_pipeline_layout, 0, 1, &state.descriptor_sets[index], 0, 0);
-                }
-                vkCmdDrawIndexed(state.command_buffers[index], state.enemy_model.index_count, state.enemy_count, 0, 0, 0);
-                */
+                vkCmdDrawIndexed(command_buffer, state.level_model.index_count, 1, 0, 0, 0);
             }
-            vkCmdEndRenderPass(state.command_buffers[index]);
-        }
+            vkCmdEndRenderPass(command_buffer);
 
-        if(vkEndCommandBuffer(state.command_buffers[index]) != VK_SUCCESS) {
+            VkRenderPassBeginInfo enemy_render_pass_begin_info = {};
+            enemy_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            enemy_render_pass_begin_info.renderPass = state.enemy_pipeline.pass;
+            enemy_render_pass_begin_info.framebuffer = state.swapchain_framebuffers[index];
+            enemy_render_pass_begin_info.renderArea.offset.x = 0;
+            enemy_render_pass_begin_info.renderArea.offset.y = 0;
+            enemy_render_pass_begin_info.renderArea.extent.width = state.swapchain_extent.width;
+            enemy_render_pass_begin_info.renderArea.extent.height = state.swapchain_extent.height;
+            enemy_render_pass_begin_info.clearValueCount = 2;
+            enemy_render_pass_begin_info.pClearValues = clear_values;
+
+            vkCmdBeginRenderPass(command_buffer, &enemy_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+            {
+                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.enemy_pipeline.pipeline);
+                {
+                    VkBuffer vertex_buffers[] = {state.enemy_model.vertices.buffer, state.enemy_position_rotation_buffer.buffer};
+                    VkDeviceSize offsets[] = {0, 0};
+                    vkCmdBindVertexBuffers(command_buffer, 0, 2, vertex_buffers, offsets);
+                    vkCmdBindIndexBuffer(command_buffer, state.enemy_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.enemy_pipeline.layout, 0, 1, &state.descriptor_sets[index], 0, 0);
+                }
+                vkCmdDrawIndexed(command_buffer, enemy_index_count, state.max_enemy_count, 0, 0, 0);
+            }
+            vkCmdEndRenderPass(command_buffer);
+    }
+
+        if(vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
             panic("Failed to end command buffer!");
         }
     }
