@@ -36,6 +36,21 @@ typedef struct Modules {
     VkShaderModule fragment;
 } Modules;
 
+typedef struct GraphicsPipelineOptions {
+    VkCullModeFlags cull_mode;
+    VkFrontFace front_face;
+
+    VkAttachmentLoadOp color_load_op;
+    VkAttachmentStoreOp color_store_op;
+    VkImageLayout color_initial_layout;
+    VkImageLayout color_final_layout;
+
+    VkAttachmentLoadOp depth_load_op;
+    VkAttachmentStoreOp depth_store_op;
+    VkImageLayout depth_initial_layout;
+    VkImageLayout depth_final_layout;
+} PipelineOptions;
+
 global VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -536,6 +551,7 @@ void create_graphics_pipeline(
     u32 swapchain_width,
     u32 swapchain_height,
     VkDescriptorSetLayout* descriptor_set_layout,
+    PipelineOptions* pipeline_options,
     VkPipelineLayout* pipeline_layout,
     VkFormat swapchain_format,
     VkFormat depth_image_format,
@@ -603,8 +619,8 @@ void create_graphics_pipeline(
     rasterization_state_create_info.rasterizerDiscardEnable = VK_FALSE;
     rasterization_state_create_info.polygonMode = VK_POLYGON_MODE_FILL;
     rasterization_state_create_info.lineWidth = 1.0f;
-    rasterization_state_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterization_state_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterization_state_create_info.cullMode = pipeline_options->cull_mode;
+    rasterization_state_create_info.frontFace = pipeline_options->front_face;
     rasterization_state_create_info.depthBiasEnable = VK_FALSE;
     rasterization_state_create_info.depthBiasConstantFactor = 0.0f;
     rasterization_state_create_info.depthBiasClamp = 0.0f;
@@ -658,22 +674,22 @@ void create_graphics_pipeline(
     VkAttachmentDescription color_attachment_desc = {};
     color_attachment_desc.format = swapchain_format;
     color_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    color_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment_desc.loadOp = pipeline_options->color_load_op;
+    color_attachment_desc.storeOp = pipeline_options->color_store_op;
     color_attachment_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    color_attachment_desc.initialLayout = pipeline_options->color_initial_layout;
+    color_attachment_desc.finalLayout = pipeline_options->color_final_layout;
 
     VkAttachmentDescription depth_attachment_desc = {};
     depth_attachment_desc.format = depth_image_format;
     depth_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment_desc.loadOp = pipeline_options->depth_load_op;
+    depth_attachment_desc.storeOp = pipeline_options->depth_store_op;
     depth_attachment_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depth_attachment_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depth_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth_attachment_desc.initialLayout = pipeline_options->depth_initial_layout;
+    depth_attachment_desc.finalLayout = pipeline_options->depth_final_layout;
 
     VkAttachmentReference color_attachment_ref = {};
     color_attachment_ref.attachment = 0;
@@ -683,11 +699,15 @@ void create_graphics_pipeline(
     depth_attachment_ref.attachment = 1;
     depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription subpass_desc = {};
-    subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass_desc.colorAttachmentCount = 1;
-    subpass_desc.pColorAttachments = &color_attachment_ref;
-    subpass_desc.pDepthStencilAttachment = &depth_attachment_ref;
+    VkSubpassDescription subpass_desc[1] = {};
+    subpass_desc[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass_desc[0].colorAttachmentCount = 1;
+    subpass_desc[0].pColorAttachments = &color_attachment_ref;
+    subpass_desc[0].pDepthStencilAttachment = &depth_attachment_ref;
+//    subpass_desc[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+//    subpass_desc[1].colorAttachmentCount = 1;
+//    subpass_desc[1].pColorAttachments = &color_attachment_ref;
+//    subpass_desc[1].pDepthStencilAttachment = &depth_attachment_ref;
 
     VkSubpassDependency subpass_dependency = {};
     subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -703,7 +723,7 @@ void create_graphics_pipeline(
     render_pass_create_info.attachmentCount = 2;
     render_pass_create_info.pAttachments = attachments;
     render_pass_create_info.subpassCount = 1;
-    render_pass_create_info.pSubpasses = &subpass_desc;
+    render_pass_create_info.pSubpasses = subpass_desc;
     render_pass_create_info.subpassCount = 1;
     render_pass_create_info.pDependencies = &subpass_dependency;
 
