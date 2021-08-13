@@ -179,47 +179,13 @@ void update_uniforms(u32 current_image) {
 
     state.delta_time /= 12.0;
     for(usize i = 0; i < 12; i += 1) {
-        state.player_z_speed += state.gravity * state.delta_time * state.delta_time;
-        vec3 xydir = {{state.look_dir.x, state.look_dir.y, 0.0}};
-        xydir = vec3_norm(xydir);
-        vec3 normal = {{-xydir.y, xydir.x, 0.0}};
-        vec3 delta = VEC3_ZERO;
-        f32 player_speed = state.player_speed;
-        f32 player_radius = state.player_radius;
-
-        if(glfwGetKey(state.window, GLFW_KEY_W) == GLFW_PRESS) {
-            delta = vec3_sub_vec3(delta, xydir);
-        }
-        if(glfwGetKey(state.window, GLFW_KEY_A) == GLFW_PRESS) {
-            delta = vec3_sub_vec3(delta, normal);
-        }
-        if(glfwGetKey(state.window, GLFW_KEY_S) == GLFW_PRESS) {
-            delta = vec3_add_vec3(delta, xydir);
-        }
-        if(glfwGetKey(state.window, GLFW_KEY_D) == GLFW_PRESS) {
-            delta = vec3_add_vec3(delta, normal);
-        }
-        if(glfwGetKey(state.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-            player_speed /= 2.0;
-        } else if(glfwGetKey(state.window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-            player_speed /= 2.0;
-            player_radius /= 2.0;
-        }
-
-        static b32 space_held = true;
-        static b32 can_jump = true;
-        if(glfwGetKey(state.window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            //state.player_eye.z += state.player_gravity * state.delta_time;
-            if(!space_held && can_jump) {
-                state.player_z_speed = -state.gravity * state.delta_time * 0.3;
-                space_held = true;
-                can_jump = false;
-            } else {
-                state.player_position.z -= state.player_z_speed;
-                space_held = false;
-            }
+        if(space_pressed && !space_held && airborne) {
+            state.player_z_speed = -state.player_jump_speed;
+            state.player_position.z -= state.player_z_speed * state.delta_time;
+            space_held = true;
+            airborne = false;
         } else {
-            state.player_position.z -= state.player_z_speed;
+            state.player_position.z -= state.player_z_speed * state.delta_time;
             space_held = false;
         }
 
@@ -230,22 +196,47 @@ void update_uniforms(u32 current_image) {
             state.player_position = vec3_add_vec3(state.player_position, delta);
         }
 
-        state.theta = f32_wrap(state.theta, 2.0 * M_PI);
-
-        state.look_dir = vec3_from_theta_phi(state.theta, state.phi);
-
+        static u32 count = 0;
+        count += 1;
+        state.player_z_speed += state.gravity * state.delta_time;
         {
-            // Check if we are colliding with any of the triangles
-            for (usize index = 0; index < state.level_physmesh_vertex_count; index += 3) {
-                //b32 colliding = false;
+            static b32 hit_head = false;
+
+            u32 vertex_count = 0;
+            vec3* vertices = sbmalloc(&state.physics_scratch_buffer, 1200 * sizeof(vec3));
+
+            f32 r = player_radius;
+            f32 rr = r * r;
+            vec3 N;
+            f32 d;
+
+            for(usize index = 0; index < state.level_physmesh_vertex_count; index += 3) {
                 vec3 A = state.level_physmesh[index + 0];
                 vec3 B = state.level_physmesh[index + 1];
                 vec3 C = state.level_physmesh[index + 2];
                 vec3 P = state.player_position;
-                f32 r = player_radius;
-                f32 rr = r * r;
-                vec3 N;
-                f32 d;
+
+                // player intersection culling
+                vec3 ABC = vec3_div_f32(vec3_add_vec3(vec3_add_vec3(A, B), C), 3.0);
+                f32 ABCrr = vec3_distsq_vec3(ABC, A);
+                f32 ABCBrr = vec3_distsq_vec3(ABC, B);
+                f32 ABCCrr = vec3_distsq_vec3(ABC, C);
+                if(ABCBrr > ABCrr) { ABCrr = ABCBrr; }
+                if(ABCCrr > ABCrr) { ABCrr = ABCCrr; }
+                if(vec3_distsq_vec3(ABC, P) < ABCrr + rr) {
+                    vertices[vertex_count + 0] = A;
+                    vertices[vertex_count + 1] = B;
+                    vertices[vertex_count + 2] = C;
+                    vertex_count += 3;
+                }
+            }
+
+            // Check if we are colliding with any of the triangles
+            for (usize index = 0; index < vertex_count; index += 3) {
+                vec3 A = vertices[index + 0];
+                vec3 B = vertices[index + 1];
+                vec3 C = vertices[index + 2];
+                vec3 P = state.player_position;
 
                 if(sphere_collides_with_triangle(A, B, C, P, rr, &N, &d)) {
                     d += 0.0001;
