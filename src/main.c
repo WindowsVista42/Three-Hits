@@ -1347,23 +1347,28 @@ int main() {
     state.phi = 0.75;
     state.mouse_sensitivity = 2.0;
 
+    state.gravity = 64.0;
+    state.sliding_threshold = 0.7;
+    state.slide_gravity_factor = 0.8;
+
     state.player_speed = 16.0;
+    state.player_jump_speed = 20.0;
     state.player_height = 2.0;
     state.player_radius = 1.0;
-    state.gravity = 64.0;
     state.player_z_speed = 0.0f;
-    state.sliding_threshold = 0.7;
 
     state.player_position.x = 7.0;
     state.player_position.y = 7.0;
     state.player_position.z = 7.0;
 
+    state.max_enemy_count = 5;
+
     sbinit(&state.scratch, 512 * 1024); // 512K
     sbinit(&state.swapchain_buffer, 4 * 1024); // 4K
     sbinit(&state.semaphore_buffer, 4 * 1024); // 4K
 
-    sbinit(&state.physics_buffer, 512 * 1024); // 512K
-    sbinit(&state.physics_scratch_buffer, 16 * 1024); // 16K
+    sbinit(&state.physics_buffer, 4 * 1024 * 1024); // 512K
+    sbinit(&state.physics_scratch_buffer, 512 * 1024); // 16K
 
     init_window();
     check_layers_support();
@@ -1389,8 +1394,8 @@ int main() {
         create_texture_image();
 
         load_level_model();
-        create_vertex_buffer();
-        create_index_buffer();
+        create_level_buffers();
+        create_enemy_buffers();
 
         free_loader();
     }
@@ -1403,6 +1408,7 @@ int main() {
         update_time();
         glfwPollEvents();
         update_and_render();
+        //print_diagnostics();
 
         if(glfwGetKey(state.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(state.window, GLFW_TRUE);
