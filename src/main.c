@@ -1188,6 +1188,46 @@ void create_level_buffers() {
     );
 }
 
+void create_enemy_buffers() {
+    create_device_local_buffer(
+        state.device,
+        state.physical_device,
+        state.queue,
+        state.command_pool,
+        sizeof(Vertex) * enemy_vertex_count,
+        enemy_vertices,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &state.enemy_model.vertices.buffer,
+        &state.enemy_model.vertices.memory
+    );
+
+    create_device_local_buffer(
+        state.device,
+        state.physical_device,
+        state.queue,
+        state.command_pool,
+        sizeof(u32) * enemy_index_count,
+        enemy_indices,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        &state.enemy_model.indices.buffer,
+        &state.enemy_model.indices.memory
+    );
+
+    create_device_local_and_staging_buffer(
+        state.device,
+        state.physical_device,
+        state.queue,
+        state.command_pool,
+        sizeof(vec4) * state.max_enemy_count,
+        &state.enemy_position_rotations,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &state.enemy_position_rotation_buffer.buffer,
+        &state.enemy_position_rotation_buffer.memory,
+        &state.enemy_position_rotation_staging_buffer.buffer,
+        &state.enemy_position_rotation_staging_buffer.memory
+    );
+}
+
 void update_time() {
     f64 now_time = glfwGetTime();
     state.delta_time = (f32)now_time - state.elapsed_time;
