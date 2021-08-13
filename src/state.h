@@ -54,12 +54,12 @@ global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[enemy_v
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
     },
     {   .binding = 1,
-        .stride = sizeof(ModelPositionRotation),
+        .stride = sizeof(vec4),
         .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
     }
 };
 
-#define enemy_vertex_attribute_description_count 5
+#define enemy_vertex_attribute_description_count 4
 global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[enemy_vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
@@ -76,16 +76,25 @@ global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[ene
         .format = VK_FORMAT_R32G32_SFLOAT,
         .offset = offsetof(Vertex, uv),
     },
-    {   .binding = 0,
+    {   .binding = 1,
         .location = 3,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(ModelPositionRotation, position),
+        .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+        .offset = 0,
     },
-    {   .binding = 0,
-        .location = 4,
-        .format = VK_FORMAT_R32_SFLOAT,
-        .offset = offsetof(ModelPositionRotation, rotation),
-    },
+};
+
+#define enemy_vertex_count 4
+global Vertex enemy_vertices[enemy_vertex_count] = {
+    {{{-1.0, 0.0, -1.0}}, {{1.0, 1.0, 1.0}}, {{0.0, 0.0}}},
+    {{{-1.0, 0.0,  1.0}}, {{1.0, 1.0, 1.0}}, {{0.0, 1.0}}},
+    {{{ 1.0, 0.0, -1.0}}, {{1.0, 1.0, 1.0}}, {{1.0, 0.0}}},
+    {{{ 1.0, 0.0,  1.0}}, {{1.0, 1.0, 1.0}}, {{1.0, 1.0}}},
+};
+
+#define enemy_index_count 6
+global u32 enemy_indices[enemy_index_count] = {
+    0, 1, 2,
+    2, 1, 3
 };
 
 typedef struct UniformBufferObject {
