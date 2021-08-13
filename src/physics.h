@@ -32,6 +32,34 @@ b32 triangle_normal_intersects_bottom_of_sphere(vec3 A, vec3 B, vec3 C, vec3 P, 
     else { return false; }
 }
 
+b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 S, vec3 E, vec3* N, f32* d) {
+    *N = vec3_norm(vec3_cross(vec3_sub_vec3(B, A), vec3_sub_vec3(C, A)));
+    vec3 R = vec3_norm(vec3_sub_vec3(E, S));
+
+    const f32 EPSILON = 0.000001;
+    vec3 edge1, edge2, h, s, q;
+    f32 a, f, u, v;
+
+    edge1 = vec3_sub_vec3(B, A);
+    edge2 = vec3_sub_vec3(C, A);
+    h = vec3_cross(R, edge2);
+    a = vec3_dot(edge1, h);
+    if(a > -EPSILON && a < EPSILON) { return false; }
+    f = 1.0/a;
+    s = vec3_sub_vec3(S, A);
+    u = f * vec3_dot(s, h);
+    if(u < 0.0 || u > 1.0) { return false; }
+    q = vec3_cross(s, edge1);
+    v = f * vec3_dot(R, q);
+    if(v < 0.0 || (u + v) > 1.0) { return false; }
+
+    f32 t = f * vec3_dot(edge2, q);
+    f32 tt = t * t;
+    *d = tt;
+    if(t > EPSILON) { return true; }
+    else { return false; }
+}
+
 b32 sphere_intersects_point(vec3 p, vec3 P, f32 rr, vec3* N, f32* d) {
     *N = vec3_norm(vec3_sub_vec3(P, p));
     *d = rr - vec3_distsq_vec3(P, p);
