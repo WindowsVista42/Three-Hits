@@ -1273,10 +1273,11 @@ void load_level_texture() {
 }
 
 void load_level_model() {
-    loader->level_path = "../test_0.level";
+    loader->level_path = "../test_1.level";
 
     {
         FILE *fp = fopen(loader->level_path, "rb");
+        panic_if_zero(fp, "Failed to open level!");
 
         fread(&loader->level_vertex_count, sizeof(u32), 1, fp);
         loader->level_vertices = sbmalloc(&loader->read_scratch, loader->level_vertex_count * sizeof(Vertex));
@@ -1312,6 +1313,17 @@ void load_level_model() {
     }
 
     state.level_model.index_count = loader->level_index_count;
+
+    {
+        state.enemy_count = 5;
+        state.enemy_position_rotations = sbmalloc(&state.physics_buffer, state.max_enemy_count * sizeof(vec4));
+        for(u32 index = 0; index < state.enemy_count; index += 1) {
+            state.enemy_position_rotations[index].x = ((f32)rand() / (f32)RAND_MAX) * 20.0f;
+            state.enemy_position_rotations[index].y = ((f32)rand() / (f32)RAND_MAX) * 20.0f;
+            state.enemy_position_rotations[index].z = 1.0f;
+            state.enemy_position_rotations[index].w = 0.0f;
+        }
+    }
 }
 
 void free_loader() {
