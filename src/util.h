@@ -87,9 +87,9 @@ global inline void sbinit(StagedBuffer* heap, usize allocation_size) {
     exit(1);
 
 
-#define panic_if_false(value, message) \
-    if (valid == 0) { \
-        panic("Failed to open files!"); \
+#define panic_if_zero(value, message) \
+    if ((value) == 0) { \
+        panic(message); \
     }
 
 #define UNTITLED_FPS_UTILS_H
