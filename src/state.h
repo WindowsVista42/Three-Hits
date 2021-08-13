@@ -21,11 +21,6 @@ typedef struct DataVertex {
     vec2 lightmap_uv;
 } DataVertex;
 
-typedef struct ModelPositionRotation {
-    vec3 position;
-    f32 rotation;
-} ModelPositionRotation;
-
 #define level_vertex_input_binding_description_count 1
 global VkVertexInputBindingDescription vertex_binding_descriptions[level_vertex_input_binding_description_count] = {
     {   .binding = 0,
