@@ -239,26 +239,31 @@ void update_uniforms(u32 current_image) {
                 vec3 P = state.player_position;
 
                 if(sphere_collides_with_triangle(A, B, C, P, rr, &N, &d)) {
-                    d += 0.0001;
+                    d += (1.0 / 512.0);
                     f32 sliding_factor = vec3_dot(N, VEC3_UNIT_Z);
 
                     if(sliding_factor > state.sliding_threshold) {
                         N = VEC3_UNIT_Z;
-                        state.player_z_speed = state.gravity * state.delta_time * 0.1;
-                        can_jump = true;
+                        state.player_z_speed = state.gravity * state.slide_gravity_factor * state.delta_time;
+                        airborne = true;
+                        hit_head = false;
+                    } else if (sliding_factor < -state.sliding_threshold && !airborne && !hit_head) {
+                        state.player_z_speed = 0.0f;
+                        hit_head = true;
                     }
                     if(vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
                     state.player_position = vec3_add_vec3(state.player_position, vec3_mul_f32(N, d));
                 }
             }
+
+            sbclear(&state.physics_scratch_buffer);
         }
     }
+    state.delta_time *= 12.0;
 
     view = mat4_look_dir(state.player_position, state.look_dir, VEC3_UNIT_Z);
     projection = mat4_perspective(f32_radians(100.0f), (float)state.swapchain_extent.width / (float)state.swapchain_extent.height, 0.01f, 1000.0f);
-
     ubo.view_proj = mat4_mul_mat4(view, projection);
-
     write_buffer(state.device, state.uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &ubo);
 }
 
