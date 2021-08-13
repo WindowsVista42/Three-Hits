@@ -236,19 +236,6 @@ typedef struct LoaderState {
     u32* level_indices;
 } LoaderState;
 
-typedef struct ProjType_s
-{
-    u8 r, g, b;
-    f32 base_radius, max_speed;
-} ProjType;
-
-typedef struct Proj_s {
-    int type;
-    f32 x, y;
-    f32 vx, vy;
-    f32 mass, radius;
-} Proj;
-
 #define UNTITLED_FPS_STATE_H
 
 #endif //UNTITLED_FPS_STATE_H
