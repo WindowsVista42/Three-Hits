@@ -780,6 +780,20 @@ void create_shader_modules() {
 
 
 void create_level_graphics_pipeline() {
+    PipelineOptions pipeline_options;
+    pipeline_options.cull_mode = VK_CULL_MODE_BACK_BIT;
+    pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+    pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+    pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+    pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     create_graphics_pipeline(
         state.device,
         state.level_modules.vertex,
@@ -791,6 +805,7 @@ void create_level_graphics_pipeline() {
         state.swapchain_extent.width,
         state.swapchain_extent.height,
         &state.ubo_sampler_descriptor_set_layout,
+        &pipeline_options,
         &state.level_pipeline.layout,
         state.swapchain_format,
         state.depth_image_format,
@@ -800,6 +815,20 @@ void create_level_graphics_pipeline() {
 }
 
 void create_enemy_graphics_pipeline() {
+    PipelineOptions pipeline_options;
+    pipeline_options.cull_mode = VK_CULL_MODE_NONE;
+    pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+    pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+    pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+    pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     create_graphics_pipeline(
         state.device,
         state.enemy_modules.vertex,
@@ -811,6 +840,7 @@ void create_enemy_graphics_pipeline() {
         state.swapchain_extent.width,
         state.swapchain_extent.height,
         &state.ubo_sampler_descriptor_set_layout,
+        &pipeline_options,
         &state.enemy_pipeline.layout,
         state.swapchain_format,
         state.depth_image_format,
