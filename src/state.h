@@ -193,6 +193,7 @@ typedef struct GameState {
 
     f32 gravity;
     f32 sliding_threshold;
+    f32 slide_gravity_factor;
 
     u32 level_physmesh_vertex_count;
     vec3* level_physmesh;
@@ -200,6 +201,7 @@ typedef struct GameState {
     vec3 player_position;
     vec3 look_dir;
     f32 player_speed;
+    f32 player_jump_speed;
     f32 player_height;
     f32 player_radius;
     f32 player_z_speed;
