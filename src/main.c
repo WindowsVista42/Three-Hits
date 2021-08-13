@@ -70,11 +70,112 @@ void create_generic_sampler() {
     create_image_sampler(state.device, state.physical_device, &state.generic_sampler);
 }
 
-// end state
-
+//TODO(sean): move statics out
 void update_uniforms(u32 current_image) {
     UniformBufferObject ubo = {};
     mat4 projection, view;
+
+    {
+        f32 wall_distance = 1024.0;
+        vec3 E = vec3_add_vec3(state.player_position, vec3_mul_f32(vec3_mul_f32(state.look_dir, -1.0), 64.0));
+
+        for (usize index = 0; index < state.level_physmesh_vertex_count; index += 3) {
+            vec3 A = state.level_physmesh[index + 0];
+            vec3 B = state.level_physmesh[index + 1];
+            vec3 C = state.level_physmesh[index + 2];
+            vec3 P = state.player_position;
+            vec3 N;
+            f32 d;
+
+            // distance for closest intersection from S to E
+            if (ray_intersects_triangle(A, B, C, P, E, &N, &d) == true) {
+                if (d < wall_distance) {
+                    wall_distance = d;
+                }
+            }
+        }
+
+        u32 hit_index = UINT32_MAX;
+        f32 best_enemy_distance = 1024.0;
+        if (glfwGetMouseButton(state.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            for (usize index = 0; index < state.enemy_count; index += 1) {
+                vec3 Pe = *(vec3 *) &state.enemy_position_rotations[index].x;
+                vec3 P = state.player_position;
+                vec3 enemyN;
+                f32 enemy_distance;
+                f32 r = 1.8;
+                f32 rr = r * r;
+
+                // we know that we intersect the enemy
+                if (line_intersects_sphere(P, E, Pe, rr, &enemyN, &enemy_distance) == true) {
+                    if (enemy_distance < wall_distance && enemy_distance < best_enemy_distance) {
+                        best_enemy_distance = enemy_distance;
+                        hit_index = index;
+                    }
+                }
+            }
+        }
+
+        if (hit_index != UINT32_MAX) {
+            state.enemy_position_rotations[hit_index].x += 5.0 * state.delta_time;
+        }
+
+        for(usize index = 0; index < state.enemy_count; index += 1) {
+            state.enemy_position_rotations[index].w = atan2f(state.player_position.x - state.enemy_position_rotations[index].x,
+                                                         state.player_position.y - state.enemy_position_rotations[index].y);
+        }
+        u64 copy_size = state.enemy_count * sizeof(vec4);
+
+        write_buffer(state.device, state.enemy_position_rotation_staging_buffer.memory, 0, copy_size, 0, state.enemy_position_rotations);
+
+        copy_buffer_to_buffer(
+            state.device,
+            state.queue,
+            state.command_pool,
+            state.enemy_position_rotation_staging_buffer.buffer,
+            state.enemy_position_rotation_buffer.buffer,
+            copy_size
+        );
+    }
+
+    b32 space_pressed = false;
+    static b32 space_held = false;
+    static b32 airborne = true;
+    vec3 xydir = {{state.look_dir.x, state.look_dir.y, 0.0}};
+    xydir = vec3_norm(xydir);
+    vec3 normal = {{-xydir.y, xydir.x, 0.0}};
+    vec3 delta = VEC3_ZERO;
+    f32 player_speed = state.player_speed;
+    f32 player_radius = state.player_radius;
+    {
+        if(glfwGetKey(state.window, GLFW_KEY_W) == GLFW_PRESS) {
+            delta = vec3_sub_vec3(delta, xydir);
+        }
+        if(glfwGetKey(state.window, GLFW_KEY_A) == GLFW_PRESS) {
+            delta = vec3_sub_vec3(delta, normal);
+        }
+        if(glfwGetKey(state.window, GLFW_KEY_S) == GLFW_PRESS) {
+            delta = vec3_add_vec3(delta, xydir);
+        }
+        if(glfwGetKey(state.window, GLFW_KEY_D) == GLFW_PRESS) {
+            delta = vec3_add_vec3(delta, normal);
+        }
+        if(glfwGetKey(state.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            player_speed /= 2.0;
+        } else if(glfwGetKey(state.window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            player_speed /= 2.0;
+            player_radius /= 2.0;
+        }
+
+
+        if(glfwGetKey(state.window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            space_pressed = true;
+        }
+
+        state.theta = f32_wrap(state.theta, 2.0 * M_PI);
+
+        state.look_dir = vec3_from_theta_phi(state.theta, state.phi);
+    }
 
     state.delta_time /= 12.0;
     for(usize i = 0; i < 12; i += 1) {
