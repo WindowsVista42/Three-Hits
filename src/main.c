@@ -727,7 +727,6 @@ void init_swapchain() {
 
 
     if (vkCreateSwapchainKHR(state.device, &swapchain_create_info, 0, &state.swapchain) != VK_SUCCESS) {
-        //TODO(sean): diagnostic
         panic("Failed to create swapchain!");
     }
 
@@ -743,7 +742,6 @@ void init_swapchain() {
 }
 
 void create_shader_modules() {
-    // load shaders
     usize file_count = 4;
     FILE** files = sbmalloc(&state.scratch, file_count * sizeof(FILE*));
     char* file_names[] = {"../level.vert.spv", "../level.frag.spv", "../enemy.vert.spv", "../enemy.frag.spv"};
@@ -752,15 +750,8 @@ void create_shader_modules() {
 
     for (usize index = 0; index < file_count; index += 1) {
         files[index] = fopen(file_names[index], "rb");
+        panic_if_zero(files[index], "Failed to open shader code files!");
     }
-
-    b32 valid = true;
-    for (usize index = 0; index < file_count; index += 1) {
-        if (files[index] == 0) {
-            valid = false;
-        }
-    }
-    panic_if_false(valid, "Failed to open files!");
 
     for (usize index = 0; index < file_count; index += 1) {
         FILE *fp = files[index];
