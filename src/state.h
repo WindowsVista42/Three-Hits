@@ -237,7 +237,13 @@ typedef struct GameState {
     f32 enemy_radii;
     f32* enemy_z_speeds;
 
-    // we also need a render pass for enemies
+    // crosshair
+    //TODO(sean): move this to a uniform
+    Modules crosshair_modules;
+    Pipeline crosshair_pipeline;
+    vec4 crosshair_color;
+    Buffer crosshair_color_buffer;
+    Buffer crosshair_color_staging_buffer;
 } GameState;
 
 #include "../lib/stb_image.h"
