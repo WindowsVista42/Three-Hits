@@ -47,7 +47,7 @@ global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_at
     }
 };
 
-#define enemy_vertex_binding_description_count 2
+#define enemy_vertex_binding_description_count 3
 global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[enemy_vertex_binding_description_count] = {
     {   .binding = 0,
         .stride = sizeof(Vertex),
@@ -56,10 +56,14 @@ global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[enemy_v
     {   .binding = 1,
         .stride = sizeof(vec4),
         .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
+    },
+    {   .binding = 2,
+        .stride = sizeof(vec4),
+        .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
     }
 };
 
-#define enemy_vertex_attribute_description_count 4
+#define enemy_vertex_attribute_description_count 5
 global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[enemy_vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
@@ -78,6 +82,11 @@ global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[ene
     },
     {   .binding = 1,
         .location = 3,
+        .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+        .offset = 0,
+    },
+    {   .binding = 2,
+        .location = 4,
         .format = VK_FORMAT_R32G32B32A32_SFLOAT,
         .offset = 0,
     },
