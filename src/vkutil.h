@@ -36,7 +36,7 @@ typedef struct Modules {
     VkShaderModule fragment;
 } Modules;
 
-typedef struct GraphicsPipelineOptions {
+typedef struct PipelineOptions {
     VkCullModeFlags cull_mode;
     VkFrontFace front_face;
 
