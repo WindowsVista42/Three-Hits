@@ -198,12 +198,20 @@ typedef struct GameState {
     VkDescriptorSet* descriptor_sets;
 
     u32 max_enemy_count;
-    u32 enemy_count;
+    u32 enemy_alive_count;
 
+    StagedBuffer enemy_buffer;
     Model enemy_model;
     Texture enemy_texture;
     Buffer enemy_position_rotation_buffer;
     Buffer enemy_position_rotation_staging_buffer;
+
+    i32* enemy_healths;
+    f32* enemy_hit_times;
+
+    vec4* enemy_colors;
+    Buffer enemy_color_buffer;
+    Buffer enemy_color_staging_buffer;
 
     f32 mouse_sensitivity;
     vec2 mouse_pos;
