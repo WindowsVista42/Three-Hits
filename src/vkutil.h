@@ -550,6 +550,7 @@ void create_graphics_pipeline(
     const VkVertexInputBindingDescription* vertex_binding_descriptions,
     u32 swapchain_width,
     u32 swapchain_height,
+    u32 descriptor_set_layout_count,
     VkDescriptorSetLayout* descriptor_set_layout,
     PipelineOptions* pipeline_options,
     VkPipelineLayout* pipeline_layout,
@@ -662,7 +663,7 @@ void create_graphics_pipeline(
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info = {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_create_info.setLayoutCount = 1;
+    pipeline_layout_create_info.setLayoutCount = descriptor_set_layout_count;
     pipeline_layout_create_info.pSetLayouts = descriptor_set_layout;
     pipeline_layout_create_info.pushConstantRangeCount = 0;
     pipeline_layout_create_info.pPushConstantRanges = 0;
