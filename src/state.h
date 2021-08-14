@@ -92,6 +92,23 @@ global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[ene
     },
 };
 
+#define crosshair_vertex_binding_description_count 1
+global VkVertexInputBindingDescription crosshair_vertex_binding_descriptions[enemy_vertex_binding_description_count] = {
+    {   .binding = 0,
+        .stride = sizeof(vec4),
+        .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
+    },
+};
+
+#define crosshair_vertex_attribute_description_count 1
+global VkVertexInputAttributeDescription crosshair_vertex_attribute_descriptions[enemy_vertex_attribute_description_count] = {
+    {   .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+        .offset = 0,
+    },
+};
+
 #define enemy_vertex_count 4
 global Vertex enemy_vertices[enemy_vertex_count] = {
     {{{-1.0, 0.0, -1.0}}, {{1.0, 1.0, 1.0}}, {{0.0, 0.0}}},
