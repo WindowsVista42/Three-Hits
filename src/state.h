@@ -163,6 +163,7 @@ typedef struct GameState {
     VkDeviceMemory depth_image_memory;
     VkImageView depth_image_view;
     Texture depth_texture;
+    u32 current_image;
 
     VkDescriptorSetLayout ubo_sampler_descriptor_set_layout;
 
