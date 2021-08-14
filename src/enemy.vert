@@ -8,9 +8,11 @@ layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_color;
 layout(location = 2) in vec2 in_tex_coord;
 layout(location = 3) in vec4 in_model_position_rotation;
+layout(location = 4) in vec4 in_model_color;
 
 layout(location = 0) out vec3 frag_color;
 layout(location = 1) out vec2 tex_coord;
+layout(location = 2) out vec4 out_model_color;
 
 mat4 rotation_z(float angle) {
     return mat4(
@@ -31,4 +33,5 @@ void main() {
     gl_Position = view_proj * model;
     frag_color = in_color;
     tex_coord = in_tex_coord;
+    out_model_color = in_model_color;
 }
