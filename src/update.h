@@ -471,11 +471,9 @@ void update(GameState* state) {
                         ALfloat offset;
                         alGetSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, &offset);
                         ALfloat remainder = state->enemy_shoot_delay - offset;
-                        printf("Remainder: %f\n", remainder);
                         alSourceStop(state->enemy_windup_sound_sources[index]);
                         alSourcei(state->enemy_windup_sound_sources[index], AL_BUFFER, state->enemy_windup_sound_buffer);
                         alSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, remainder);
-                        printf("%d\n", alGetError());
                         alSourcePlay(state->enemy_windup_sound_sources[index]);
 
                         state->windup_needs_reverse[index] = false;
@@ -504,11 +502,9 @@ void update(GameState* state) {
                         ALfloat offset;
                         alGetSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, &offset);
                         ALfloat remainder = state->enemy_shoot_delay - offset;
-                        printf("Remainder: %f\n", remainder);
                         alSourceStop(state->enemy_windup_sound_sources[index]);
                         alSourcei(state->enemy_windup_sound_sources[index], AL_BUFFER, state->enemy_reverse_windup_sound_buffer);
                         alSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, remainder);
-                        printf("%d\n", alGetError());
                         alSourcePlay(state->enemy_windup_sound_sources[index]);
 
                         state->windup_needs_reverse[index] = false;

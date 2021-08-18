@@ -62,7 +62,7 @@ void load_level_sounds(GameState* state, LoaderState* loader) {
     generate_sound_sources(&state->audio_buffer, &state->enemy_gun_sound_sources, state->max_enemy_count, 1.0f, AL_FALSE, state->enemy_gun_sound_buffer, state->reverb_slot);
     set_sources_f(state->enemy_gun_sound_sources, state->max_enemy_count, AL_ROLLOFF_FACTOR, 0.2);
 
-    generate_sound_sources(&state->audio_buffer, &state->enemy_windup_sound_sources, state->max_enemy_count, 0.2f, AL_FALSE, state->enemy_windup_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->audio_buffer, &state->enemy_windup_sound_sources, state->max_enemy_count, 0.5f, AL_FALSE, state->enemy_windup_sound_buffer, state->reverb_slot);
     set_sources_f(state->enemy_windup_sound_sources, state->max_enemy_count, AL_ROLLOFF_FACTOR, 0.8);
 
     generate_sound_sources(&state->audio_buffer, &state->door_sound_sources, state->door_count, 1.2f, AL_FALSE, state->door_opening_sound_buffer, state->reverb_slot);
