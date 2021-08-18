@@ -14,6 +14,7 @@ typedef struct Buffer {
 } Buffer;
 
 typedef struct Model {
+    u32 vertex_count;
     Buffer vertices;
     u32 index_count;
     Buffer indices;
@@ -398,24 +399,32 @@ void create_device_local_and_staging_buffer(
     VkDeviceSize size,
     void* data,
     VkBufferUsageFlags usage,
-    VkBuffer* local_buffer,
-    VkDeviceMemory* local_memory,
-    VkBuffer* staging_buffer,
-    VkDeviceMemory* staging_memory
+    Buffer* local_buffer,
+    Buffer* staging_buffer
 ) {
-    create_buffer(device, physical_device, size,
-                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                  staging_buffer, staging_memory);
+    create_buffer(
+        device,
+        physical_device,
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &staging_buffer->buffer,
+        &staging_buffer->memory
+    );
 
-    write_buffer(device, *staging_memory, 0, size, 0, data);
+    write_buffer(device, staging_buffer->memory, 0, size, 0, data);
 
-    create_buffer(device, physical_device, size,
-                  usage,
-                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                  local_buffer, local_memory);
+    create_buffer(
+        device,
+        physical_device,
+        size,
+        usage,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        &local_buffer->buffer,
+        &local_buffer->memory
+    );
 
-    copy_buffer_to_buffer(device, queue, command_pool, *staging_buffer, *local_buffer, size);
+    copy_buffer_to_buffer(device, queue, command_pool, staging_buffer->buffer, local_buffer->buffer, size);
 }
 
 void create_device_local_image(
@@ -504,8 +513,8 @@ void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkS
 
     VkSamplerCreateInfo sampler_create_info = {};
     sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    sampler_create_info.magFilter = VK_FILTER_LINEAR;
-    sampler_create_info.minFilter = VK_FILTER_LINEAR;
+    sampler_create_info.magFilter = VK_FILTER_NEAREST;
+    sampler_create_info.minFilter = VK_FILTER_NEAREST;
     sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -553,11 +562,9 @@ void create_graphics_pipeline(
     u32 descriptor_set_layout_count,
     VkDescriptorSetLayout* descriptor_set_layout,
     PipelineOptions* pipeline_options,
-    VkPipelineLayout* pipeline_layout,
+    Pipeline* pipeline,
     VkFormat swapchain_format,
-    VkFormat depth_image_format,
-    VkRenderPass* render_pass,
-    VkPipeline* graphics_pipeline
+    VkFormat depth_image_format
 ) {
     // TODO(sean): figure out if this need to be used for anything
     // VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_LINE_WIDTH };
@@ -668,7 +675,7 @@ void create_graphics_pipeline(
     pipeline_layout_create_info.pushConstantRangeCount = 0;
     pipeline_layout_create_info.pPushConstantRanges = 0;
 
-    if(vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, pipeline_layout) != VK_SUCCESS) {
+    if(vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline->layout) != VK_SUCCESS) {
         panic("Failed to create pipeline layout!");
     }
 
@@ -728,7 +735,7 @@ void create_graphics_pipeline(
     render_pass_create_info.subpassCount = 1;
     render_pass_create_info.pDependencies = &subpass_dependency;
 
-    if(vkCreateRenderPass(device, &render_pass_create_info, 0, render_pass) != VK_SUCCESS) {
+    if(vkCreateRenderPass(device, &render_pass_create_info, 0, &pipeline->pass) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create render pass!");
     }
@@ -757,13 +764,13 @@ void create_graphics_pipeline(
     pipeline_create_info.pDepthStencilState = &depth_stencil_state_create_info;
     pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
     pipeline_create_info.pDynamicState = 0;
-    pipeline_create_info.layout = *pipeline_layout;
-    pipeline_create_info.renderPass = *render_pass;
+    pipeline_create_info.layout = pipeline->layout;
+    pipeline_create_info.renderPass = pipeline->pass;
     pipeline_create_info.subpass = 0;
     pipeline_create_info.basePipelineHandle = 0;
     pipeline_create_info.basePipelineIndex = -1;
 
-    if(vkCreateGraphicsPipelines(device, 0, 1, &pipeline_create_info, 0, graphics_pipeline) != VK_SUCCESS) {
+    if(vkCreateGraphicsPipelines(device, 0, 1, &pipeline_create_info, 0, &pipeline->pipeline) != VK_SUCCESS) {
         //TODO(sean): diagnostic
         panic("Failed to create graphics pipeline!");
     }
@@ -773,6 +780,12 @@ void destroy_pipeline(VkDevice device, Pipeline pipeline) {
     vkDestroyPipeline(device, pipeline.pipeline, 0);
     vkDestroyPipelineLayout(device, pipeline.layout, 0);
     vkDestroyRenderPass(device, pipeline.pass, 0);
+}
+
+void destroy_texture(VkDevice device, Texture texture) {
+    vkDestroyImageView(device, texture.view, 0);
+    vkDestroyImage(device, texture.image, 0);
+    vkFreeMemory(device, texture.memory, 0);
 }
 
 #define UNTITLED_FPS_VKUTIL_H

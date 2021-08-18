@@ -355,6 +355,10 @@ global inline mat4 mat4_perspective(f32 fov, f32 asp, f32 z_near, f32 z_far) {
     return output;
 }
 
+global inline void vec4_print(vec4 input) {
+    printf("(%f, %f, %f, %f)\n", input.x, input.y, input.z, input.w);
+}
+
 global inline vec3 vec3_copy(vec3 input) {
     vec3 output;
     output.x = input.x;

@@ -9,7 +9,7 @@ layout(location = 2) in vec4 in_model_color;
 layout(location = 0) out vec4 out_color;
 
 void main() {
-    //out_color = mix(vec4(in_color, 0.0), texture(tex_sampler, in_tex_coord), 1.0);
-    out_color = in_model_color;
+    out_color = vec4(mix(in_model_color.rgb, texture(tex_sampler, in_tex_coord).rgb, 0.5), in_model_color.a);
+    //out_color = in_model_color;
     //out_color = vec4(1.0);
 }

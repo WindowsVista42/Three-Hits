@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include "util.h"
 #include "vmmath.h"
+#include "alutil.h"
 
 typedef struct Vertex {
     vec3 pos;
@@ -158,10 +159,6 @@ typedef struct GameState {
     VkFramebuffer *swapchain_framebuffers;
     VkCommandPool command_pool;
     VkFormat depth_image_format;
-    b32 depth_image_has_stencil;
-    VkImage depth_image;
-    VkDeviceMemory depth_image_memory;
-    VkImageView depth_image_view;
     Texture depth_texture;
     u32 current_image;
 
@@ -208,6 +205,8 @@ typedef struct GameState {
 
     i32* enemy_healths;
     f32* enemy_hit_times;
+    f32* enemy_shoot_times;
+    f32 enemy_shoot_delay;
 
     vec4* enemy_colors;
     Buffer enemy_color_buffer;
@@ -230,20 +229,46 @@ typedef struct GameState {
     f32 sliding_threshold;
     f32 slide_gravity_factor;
 
-    u32 level_physmesh_vertex_count;
-    vec3* level_physmesh;
+    u32 physmesh_vertex_count;
+    vec3* physmesh_vertices;
+    u32 closest_ray_index;
 
+    // doors
+    f32 door_activation_distance;
+    f32 max_door_open_time;
+    f32 door_move_speed;
+
+    u32 door_count;
+    u32* door_requirements; // 0 = none, 1+ = some programmable event
+    vec4* door_position_rotations;
+    vec4* door_colors;
+    f32* door_timings;
+
+    u32 door_physmesh_range_count;
+    u32* door_physmesh_ranges;
+
+    Model door_model;
+    Buffer door_color_buffer;
+    Buffer door_color_staging_buffer;
+    Buffer door_position_rotation_buffer;
+    Buffer door_position_rotation_staging_buffer;
+
+    //
+    u32 max_keycard_count;
+    u32 keycard_count;
+    Buffer keycard_position_rotation_buffer;
+    Buffer keycard_position_rotation_staging_buffer;
+    vec4* keycard_position_rotations;
+
+    //
     vec3 player_position;
     vec3 look_dir;
     f32 player_speed;
     f32 player_jump_speed;
-    f32 player_height;
     f32 player_radius;
     f32 player_z_speed;
 
     vec4* enemy_position_rotations;
-    f32 enemy_radii;
-    f32* enemy_z_speeds;
 
     // crosshair
     //TODO(sean): move this to a uniform
@@ -252,6 +277,47 @@ typedef struct GameState {
     vec4 crosshair_color;
     Buffer crosshair_color_buffer;
     Buffer crosshair_color_staging_buffer;
+
+    // audio
+    StagedBuffer audio_buffer;
+
+    AlDevice* al_device;
+    AlContext* al_context;
+    ReverbProperties reverb;
+    SoundEffect reverb_effect;
+    SoundSlot reverb_slot;
+
+    SoundBuffer pistol_sound_buffer;
+    SoundBuffer enemy_alert_sound_buffer;
+    SoundBuffer enemy_ambience_sound_buffer;
+    SoundBuffer enemy_explosion_sound_buffer;
+    SoundBuffer enemy_gun_sound_buffer;
+    SoundBuffer door_opening_sound_buffer;
+    SoundBuffer player_movement_sound_buffer;
+    SoundBuffer player_jump_sound_buffer;
+    SoundBuffer enemy_windup_sound_buffer;
+    SoundBuffer enemy_reverse_windup_sound_buffer;
+
+    SoundSource player_gun_sound_source;
+    SoundSource player_movement_sound_source;
+
+    SoundSource* enemy_alert_sound_sources;
+    SoundSource* enemy_ambience_sound_sources;
+    SoundSource* enemy_gun_sound_sources;
+    SoundSource* door_sound_sources;
+    SoundSource* enemy_windup_sound_sources;
+    b32* windup_needs_reverse;
+    b32* enemy_sees_player;
+
+    // guns
+    f32 pistol_shoot_delay;
+    f32 pistol_reload_speed;
+    u32 loaded_pistol_ammo_count;
+    u32 pistol_magazine_size;
+
+    f32 enemy_simulation_radius;
+
+    i32 player_health;
 } GameState;
 
 #include "../lib/stb_image.h"
@@ -275,6 +341,11 @@ typedef struct LoaderState {
     Vertex* level_vertices;
     u32 level_index_count;
     u32* level_indices;
+
+    u32 door_vertex_count;
+    Vertex* door_vertices;
+    u32 door_index_count;
+    u32* door_indices;
 } LoaderState;
 
 #define UNTITLED_FPS_STATE_H
