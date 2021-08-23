@@ -91,13 +91,13 @@ void read_vertices(StagedBuffer* scratch_buffer, u32* vertex_count, Vertex** ver
     fread(vertex_count, sizeof(u32), 1, fp);
     *vertices = sbmalloc(scratch_buffer, *vertex_count * sizeof(Vertex));
     for (usize index = 0; index < *vertex_count; index += 1) {
-        fread(&(*vertices)[index].pos.x, sizeof(f32), 1, fp);
-        fread(&(*vertices)[index].pos.y, sizeof(f32), 1, fp);
-        fread(&(*vertices)[index].pos.z, sizeof(f32), 1, fp);
+        fread(&(*vertices)[index].position.x, sizeof(f32), 1, fp);
+        fread(&(*vertices)[index].position.y, sizeof(f32), 1, fp);
+        fread(&(*vertices)[index].position.z, sizeof(f32), 1, fp);
 
-        fread(&(*vertices)[index].color.x, sizeof(f32), 1, fp);
-        fread(&(*vertices)[index].color.y, sizeof(f32), 1, fp);
-        fread(&(*vertices)[index].color.z, sizeof(f32), 1, fp);
+        fread(&(*vertices)[index].normal.x, sizeof(f32), 1, fp);
+        fread(&(*vertices)[index].normal.y, sizeof(f32), 1, fp);
+        fread(&(*vertices)[index].normal.z, sizeof(f32), 1, fp);
 
         fread(&(*vertices)[index].uv.x, sizeof(f32), 1, fp);
         fread(&(*vertices)[index].uv.y, sizeof(f32), 1, fp);
@@ -244,44 +244,33 @@ void load_level_model(GameState* state, LoaderState* loader) {
         state->windup_needs_reverse = sbmalloc(&state->audio_buffer, state->max_enemy_count * sizeof(b32));
     }
 
-    // load healthpacks
+    // load lights
     {
-        /*
-        state->max_healthpack_count = 10;
-        state->healthpack_count = state->max_healthpack_count;
-        u32 i = 0;
+        Light lights[light_count] = {
+            {{{-4.5, -21.5, 0.0, sqrtf(1.0/16.0)}}, {{0.1, 0.1, 1.0, 1.0}}},
+            {{{-33.0, -9.0, 0.0, sqrtf(1.0/2.0)}}, {{1.0, 0.1, 0.1, 1.0}}},
+            {{{-34.5, -64.5, 10.0, sqrtf(1.0/4.0)}}, {{1.0, 1.0, 0.1, 1.0}}},
+            {{{21.5, -77.5, 10.0, sqrtf(1.0/2.0)}}, {{1.0, 1.0, 0.1, 1.0}}},
+            {{{9.5, -48.5, -9.5, sqrtf(1.0/1.0)}}, {{0.1, 1.0, 0.1, 1.0}}},
+            {{{0.5, -56.0, 10.0, sqrtf(1.0/1.0)}}, {{1.0, 1.0, 0.1, 1.0}}},
+        };
 
-        state->healthpack_position_rotations = sbmalloc(&state->physics_buffer, state->max_enemy_count * sizeof(vec4));
-        state->healthpack_colors = sbmalloc(&state->enemy_buffer, state->max_enemy_count * sizeof(vec4));
-
-        // rest
-        state->healthpack_count = i;
-        for(u32 index = state->healthpack_count; index < state->max_healthpack_count; index += 1) {
-            state->healthpack_position_rotations[index].x = 100.0 + (f32)i;
-            state->healthpack_position_rotations[index].y = 100.0 + (f32)i;
-            state->healthpack_position_rotations[index].z = 1.0f;
-            state->healthpack_position_rotations[index].w = 0.0f;
-        }
-        */
-    }
-
-    // load ammopacks
-    {
-
+        create_device_local_buffer_2(
+            state->device,
+            state->physical_device,
+            state->queue,
+            state->command_pool,
+            light_count * sizeof(Light),
+            lights,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            &state->light_buffer
+        );
     }
 
     // load keycards
     {
 
     }
-
-    // load shadow-casting lights
-    {
-    }
-    // X Y Z R
-    // R G B I
-    // load fill lights
-
 }
 
 #define THREE_HITS_LOAD_H

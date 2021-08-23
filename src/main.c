@@ -51,7 +51,7 @@ int main() {
     create_descriptor_set_layout(state);
 
     create_level_graphics_pipeline(state);
-    create_enemy_graphics_pipeline(state);
+    create_entity_graphics_pipeline(state);
     create_crosshair_graphics_pipeline(state);
 
     init_command_pool(state);
@@ -88,6 +88,7 @@ int main() {
     create_command_buffers(state);
     create_sync_objects(state);
 
+    alListenerf(AL_GAIN, 0.0f);
     glfwSetTime(0.0);
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);

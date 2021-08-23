@@ -27,6 +27,7 @@ typedef struct Texture {
 } Texture;
 
 typedef struct Pipeline {
+    // Add Descriptor Set Layout?
     VkPipelineLayout layout;
     VkRenderPass pass;
     VkPipeline pipeline;
@@ -391,6 +392,36 @@ void create_device_local_buffer(
     vkFreeMemory(device, staging_memory, 0);
 }
 
+void create_device_local_buffer_2(
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    VkDeviceSize size,
+    void* data,
+    VkBufferUsageFlags usage,
+    Buffer* buffer
+) {
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_memory;
+    create_buffer(device, physical_device, size,
+                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                  &staging_buffer, &staging_memory);
+
+    write_buffer(device, staging_memory, 0, size, 0, data);
+
+    create_buffer(device, physical_device, size,
+                  usage,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                  &buffer->buffer, &buffer->memory);
+
+    copy_buffer_to_buffer(device, queue, command_pool, staging_buffer, buffer->buffer, size);
+
+    vkDestroyBuffer(device, staging_buffer, 0);
+    vkFreeMemory(device, staging_memory, 0);
+}
+
 void create_device_local_and_staging_buffer(
     VkDevice device,
     VkPhysicalDevice physical_device,
@@ -513,8 +544,8 @@ void create_image_sampler(VkDevice device, VkPhysicalDevice physical_device, VkS
 
     VkSamplerCreateInfo sampler_create_info = {};
     sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    sampler_create_info.magFilter = VK_FILTER_NEAREST;
-    sampler_create_info.minFilter = VK_FILTER_NEAREST;
+    sampler_create_info.magFilter = VK_FILTER_NEAREST;//VK_FILTER_NEAREST;
+    sampler_create_info.minFilter = VK_FILTER_LINEAR;//VK_FILTER_NEAREST;
     sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;

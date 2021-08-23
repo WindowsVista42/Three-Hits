@@ -9,17 +9,17 @@ void cleanup_swapchain_artifacts(GameState* state) {
     destroy_texture(state->device, state->depth_texture);
 
     for(usize index = 0; index < state->swapchain_image_count; index += 1) {
-        vkDestroyBuffer(state->device, state->uniform_buffers[index], 0);
-        vkFreeMemory(state->device, state->uniform_buffers_memory[index], 0);
+        vkDestroyBuffer(state->device, state->camera_uniforms[index].buffer, 0);
+        vkFreeMemory(state->device, state->camera_uniforms[index].memory, 0);
         vkDestroyFramebuffer(state->device, state->swapchain_framebuffers[index], 0);
     }
 
-    vkDestroyDescriptorPool(state->device, state->uniform_descriptor_pool, 0);
+    vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
 
     vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);
 
     destroy_pipeline(state->device, state->level_pipeline);
-    destroy_pipeline(state->device, state->enemy_pipeline);
+    destroy_pipeline(state->device, state->entity_pipeline);
     destroy_pipeline(state->device, state->crosshair_pipeline);
 
     for(usize index = 0; index < state->swapchain_image_count; index += 1) {
@@ -40,7 +40,7 @@ void update_swapchain(GameState* state) {
     init_swapchain(state);
     create_shader_modules(state);
     create_level_graphics_pipeline(state);
-    create_enemy_graphics_pipeline(state);
+    create_entity_graphics_pipeline(state);
     create_crosshair_graphics_pipeline(state);
     create_depth_image(state);
     create_swapchain_framebuffers(state);
@@ -64,7 +64,7 @@ void update_time(GameState* state) {
         double fps = (double)nbFrames / delta;
 
         char buffer[128];
-        sprintf(buffer, "Area 52 | Version 0.1.0 | %.2lf FPS", fps);
+        sprintf(buffer, "Three Hits | Version 0.1.0 | %.2lf FPS", fps);
         glfwSetWindowTitle(state->window, buffer);
 
         nbFrames = 0;
@@ -101,9 +101,12 @@ void update(GameState* state) {
         //    state->player_z_speed = 0.0;
         //}
 
-        //if(glfwGetKey(state->window, GLFW_KEY_R) == GLFW_PRESS) {
-        //    vec3_print("Player position: ", state->player_position);
-        //}
+        // -33.5
+        // -11.5
+
+        if(glfwGetKey(state->window, GLFW_KEY_Q) == GLFW_PRESS) {
+            vec3_print("Player position: ", state->player_position);
+        }
 
         f32 wall_distance = 4096.0;
         vec3 E = vec3_add_vec3(state->player_position, vec3_mul_f32(vec3_mul_f32(state->look_dir, -1.0), 128.0));
@@ -397,8 +400,9 @@ void update(GameState* state) {
 
                 f32 move_speed = 3.0;
                 vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &state->enemy_position_rotations[index], state->player_position));
-                *(vec3 *) &state->enemy_position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemy_position_rotations[index],
-                                                                                  vec3_mul_f32(PN, delta_time * -move_speed));
+                if(vec3_distsq_vec3(P, state->player_position) > rr + state->player_radius + 1.0) {
+                    *(vec3 *) &state->enemy_position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemy_position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
+                }
 
                 // Check if we are colliding with any of our kind
                 for (usize phys_index = 0; phys_index < state->enemy_alive_count; phys_index += 1) {
@@ -648,8 +652,8 @@ void update(GameState* state) {
 
     view = mat4_look_dir(player_eye, state->look_dir, VEC3_UNIT_Z);
     projection = mat4_perspective(f32_radians(100.0f), (float)state->swapchain_extent.width / (float)state->swapchain_extent.height, 0.01f, 1000.0f);
-    ubo.view_proj = mat4_mul_mat4(view, projection);
-    write_buffer(state->device, state->uniform_buffers_memory[current_image], 0, sizeof(ubo), 0, &ubo);
+    ubo.view_projection = mat4_mul_mat4(view, projection);
+    write_buffer(state->device, state->camera_uniforms[current_image].memory, 0, sizeof(ubo), 0, &ubo);
 
     {
         ALenum source_state;

@@ -9,18 +9,22 @@
 #include "alutil.h"
 
 typedef struct Vertex {
-    vec3 pos;
-    vec3 color;
+    vec3 position;
+    vec3 normal;
     vec2 uv;
 } Vertex;
 
-//TODO(sean): use this instead of Vertex
 typedef struct DataVertex {
     vec3 position;
-    u32 texture_indices; // packed u16 + u16
-    vec2 texture_uv;
-    vec2 lightmap_uv;
+    vec3 normal;
+    vec3 texture_uvi;
+    vec3 lightmap_uvi;
 } DataVertex;
+
+typedef struct Light {
+    vec4 position_falloff;
+    vec4 color_alpha;
+} Light;
 
 #define level_vertex_input_binding_description_count 1
 global VkVertexInputBindingDescription vertex_binding_descriptions[level_vertex_input_binding_description_count] = {
@@ -29,17 +33,17 @@ global VkVertexInputBindingDescription vertex_binding_descriptions[level_vertex_
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
     }
 };
-#define vertex_attribute_description_count 3
-global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_attribute_description_count] = {
+#define level_vertex_attribute_description_count 3
+global VkVertexInputAttributeDescription vertex_attribute_descriptions[level_vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, pos),
+        .offset = offsetof(Vertex, position),
     },
     {   .binding = 0,
         .location = 1,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, color),
+        .offset = offsetof(Vertex, normal),
     },
     {   .binding = 0,
         .location = 2,
@@ -48,8 +52,8 @@ global VkVertexInputAttributeDescription vertex_attribute_descriptions[vertex_at
     }
 };
 
-#define enemy_vertex_binding_description_count 3
-global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[enemy_vertex_binding_description_count] = {
+#define entity_vertex_binding_description_count 3
+global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[entity_vertex_binding_description_count] = {
     {   .binding = 0,
         .stride = sizeof(Vertex),
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
@@ -64,17 +68,17 @@ global VkVertexInputBindingDescription enemy_vertex_binding_descriptions[enemy_v
     }
 };
 
-#define enemy_vertex_attribute_description_count 5
-global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[enemy_vertex_attribute_description_count] = {
+#define entity_vertex_attribute_description_count 5
+global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[entity_vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, pos),
+        .offset = offsetof(Vertex, position),
     },
     {   .binding = 0,
         .location = 1,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, color),
+        .offset = offsetof(Vertex, normal),
     },
     {   .binding = 0,
         .location = 2,
@@ -94,7 +98,7 @@ global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[ene
 };
 
 #define crosshair_vertex_binding_description_count 1
-global VkVertexInputBindingDescription crosshair_vertex_binding_descriptions[enemy_vertex_binding_description_count] = {
+global VkVertexInputBindingDescription crosshair_vertex_binding_descriptions[entity_vertex_binding_description_count] = {
     {   .binding = 0,
         .stride = sizeof(vec4),
         .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
@@ -102,7 +106,7 @@ global VkVertexInputBindingDescription crosshair_vertex_binding_descriptions[ene
 };
 
 #define crosshair_vertex_attribute_description_count 1
-global VkVertexInputAttributeDescription crosshair_vertex_attribute_descriptions[enemy_vertex_attribute_description_count] = {
+global VkVertexInputAttributeDescription crosshair_vertex_attribute_descriptions[entity_vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
         .format = VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -112,10 +116,10 @@ global VkVertexInputAttributeDescription crosshair_vertex_attribute_descriptions
 
 #define enemy_vertex_count 4
 global Vertex enemy_vertices[enemy_vertex_count] = {
-    {{{-1.0, 0.0, -1.0}}, {{1.0, 1.0, 1.0}}, {{0.0, 0.0}}},
-    {{{-1.0, 0.0,  1.0}}, {{1.0, 1.0, 1.0}}, {{0.0, 1.0}}},
-    {{{ 1.0, 0.0, -1.0}}, {{1.0, 1.0, 1.0}}, {{1.0, 0.0}}},
-    {{{ 1.0, 0.0,  1.0}}, {{1.0, 1.0, 1.0}}, {{1.0, 1.0}}},
+    {{{-1.0, 0.0, -1.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 0.0}}},
+    {{{-1.0, 0.0,  1.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 1.0}}},
+    {{{ 1.0, 0.0, -1.0}}, {{0.0, 1.0, 0.0}}, {{1.0, 0.0}}},
+    {{{ 1.0, 0.0,  1.0}}, {{0.0, 1.0, 0.0}}, {{1.0, 1.0}}},
 };
 
 #define enemy_index_count 6
@@ -125,10 +129,14 @@ global u32 enemy_indices[enemy_index_count] = {
 };
 
 typedef struct UniformBufferObject {
-    mat4 view_proj;
+    mat4 view_projection;
 } UniformBufferObject;
 
-#define descriptor_count 2
+#define descriptor_count 3
+#define light_count 6
+
+/*  We get a maximum of 4 descriptor sets if we want to run on intel igpus.
+*/
 
 typedef struct GameState {
     u32 window_width;
@@ -162,13 +170,11 @@ typedef struct GameState {
     Texture depth_texture;
     u32 current_image;
 
-    VkDescriptorSetLayout ubo_sampler_descriptor_set_layout;
-
     Modules level_modules;
     Pipeline level_pipeline;
 
-    Modules enemy_modules;
-    Pipeline enemy_pipeline;
+    Modules entity_modules;
+    Pipeline entity_pipeline;
 
     VkCommandBuffer* command_buffers;
 
@@ -188,18 +194,28 @@ typedef struct GameState {
     Model level_model;
     Texture level_texture;
 
-    VkBuffer* uniform_buffers;
-    VkDeviceMemory* uniform_buffers_memory;
-    VkDescriptorPool uniform_descriptor_pool;
+    VkDescriptorPool global_descriptor_pool;
 
-    VkDescriptorSet* descriptor_sets;
+//    VkBuffer* uniform_buffers;
+//    VkDeviceMemory* uniform_buffers_memory;
+//    VkDescriptorSet* descriptor_sets;
 
+    //TODO(sean): figure out if this is *very* specific to pipelines
+    VkDescriptorSetLayout ubo_sampler_descriptor_set_layout;
+
+    VkDescriptorSet* global_descriptor_sets; // shared data
+    Buffer* camera_uniforms;
+    Buffer light_buffer;
+
+//
     u32 max_enemy_count;
     u32 enemy_alive_count;
 
     StagedBuffer enemy_buffer;
+
     Model enemy_model;
     Texture enemy_texture;
+    VkDescriptorSet enemy_descriptor_set;
     Buffer enemy_position_rotation_buffer;
     Buffer enemy_position_rotation_staging_buffer;
 
