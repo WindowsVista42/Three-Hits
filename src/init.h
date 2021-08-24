@@ -907,7 +907,7 @@ void create_descriptor_pool(GameState* state) {
     sampler_pool_size.descriptorCount = state->swapchain_image_count;
 
     VkDescriptorPoolSize light_pool_size = {};
-    light_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    light_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     light_pool_size.descriptorCount = state->swapchain_image_count;
 
     VkDescriptorPoolSize pool_sizes[descriptor_count] = {ubo_pool_size, sampler_pool_size, light_pool_size};
