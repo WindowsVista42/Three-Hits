@@ -71,31 +71,6 @@ void create_depth_image(GameState* state) {
     );
 }
 
-void create_texture_image(GameState* state, LoaderState* loader) {
-    create_device_local_image(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        loader->texture_width,
-        loader->texture_height,
-        loader->image_size,
-        loader->texture_pixels,
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        &state->level_texture.image,
-        &state->level_texture.memory
-    );
-
-    create_image_view(
-        state->device,
-        state->level_texture.image,
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        &state->level_texture.view
-    );
-}
-
 void create_generic_sampler(GameState* state) {
     create_image_sampler(state->device, state->physical_device, &state->generic_sampler);
 }
@@ -555,7 +530,7 @@ void create_level_graphics_pipeline(GameState* state) {
         state->swapchain_extent.width,
         state->swapchain_extent.height,
         1,
-        &state->ubo_sampler_descriptor_set_layout,
+        &state->global_descriptor_set_layout,
         &pipeline_options,
         &state->level_pipeline,
         state->swapchain_format,
@@ -589,7 +564,7 @@ void create_entity_graphics_pipeline(GameState* state) {
         state->swapchain_extent.width,
         state->swapchain_extent.height,
         1,
-        &state->ubo_sampler_descriptor_set_layout,
+        &state->global_descriptor_set_layout,
         &pipeline_options,
         &state->entity_pipeline,
         state->swapchain_format,
@@ -701,127 +676,6 @@ void init_command_pool(GameState* state) {
     }
 }
 
-void create_command_buffers(GameState* state) {
-    state->command_buffers = sbmalloc(&state->swapchain_buffer, state->swapchain_image_count * sizeof(VkCommandBuffer));
-
-    VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
-    command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    command_buffer_allocate_info.commandPool = state->command_pool;
-    command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    command_buffer_allocate_info.commandBufferCount = (u32)state->swapchain_image_count;
-
-    if(vkAllocateCommandBuffers(state->device, &command_buffer_allocate_info, state->command_buffers) != VK_SUCCESS) {
-        panic("Failed to allocate command buffers!");
-    }
-
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) {
-        VkCommandBuffer command_buffer = state->command_buffers[index];
-
-        VkCommandBufferBeginInfo begin_info = {};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if(vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
-            panic("Failed to begin command buffer!");
-        }
-
-        {
-            const VkClearValue clear_values[] = {
-                {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
-                {.depthStencil = {1.0f, 0}},
-            };
-
-            VkRenderPassBeginInfo level_render_pass_begin_info = {};
-            level_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            level_render_pass_begin_info.renderPass = state->level_pipeline.pass;
-            level_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
-            level_render_pass_begin_info.renderArea.offset.x = 0;
-            level_render_pass_begin_info.renderArea.offset.y = 0;
-            level_render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
-            level_render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
-            level_render_pass_begin_info.clearValueCount = 2;
-            level_render_pass_begin_info.pClearValues = clear_values;
-
-            vkCmdBeginRenderPass(command_buffer, &level_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-            {
-                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->level_pipeline.pipeline);
-                {
-                    VkBuffer vertex_buffers[] = {state->level_model.vertices.buffer};
-                    VkDeviceSize offsets[] = {0};
-                    vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-                    vkCmdBindIndexBuffer(command_buffer, state->level_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->level_pipeline.layout, 0, 1, &state->global_descriptor_sets[index], 0, 0);
-                }
-                vkCmdDrawIndexed(command_buffer, state->level_model.index_count, 1, 0, 0, 0);
-            }
-            vkCmdEndRenderPass(command_buffer);
-
-            VkRenderPassBeginInfo enemy_render_pass_begin_info = {};
-            enemy_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            enemy_render_pass_begin_info.renderPass = state->entity_pipeline.pass;
-            enemy_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
-            enemy_render_pass_begin_info.renderArea.offset.x = 0;
-            enemy_render_pass_begin_info.renderArea.offset.y = 0;
-            enemy_render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
-            enemy_render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
-            enemy_render_pass_begin_info.clearValueCount = 2;
-            enemy_render_pass_begin_info.pClearValues = clear_values;
-
-            vkCmdBeginRenderPass(command_buffer, &enemy_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-            {
-                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->entity_pipeline.pipeline);
-                {
-                    VkBuffer vertex_buffers[] = {state->door_model.vertices.buffer, state->door_position_rotation_buffer.buffer, state->door_color_buffer.buffer};
-                    VkDeviceSize offsets[] = {0, 0, 0};
-                    vkCmdBindVertexBuffers(command_buffer, 0, 3, vertex_buffers, offsets);
-                    vkCmdBindIndexBuffer(command_buffer, state->door_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->entity_pipeline.layout, 0, 1, &state->global_descriptor_sets[index], 0, 0);
-                }
-                vkCmdDrawIndexed(command_buffer, state->door_model.index_count, state->door_count, 0, 0, 0);
-            }
-            vkCmdEndRenderPass(command_buffer);
-
-            vkCmdBeginRenderPass(command_buffer, &enemy_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-            {
-                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->entity_pipeline.pipeline);
-                {
-                    VkBuffer vertex_buffers[] = {state->enemy_model.vertices.buffer, state->enemy_position_rotation_buffer.buffer, state->enemy_color_buffer.buffer};
-                    VkDeviceSize offsets[] = {0, 0, 0};
-                    vkCmdBindVertexBuffers(command_buffer, 0, 3, vertex_buffers, offsets);
-                    vkCmdBindIndexBuffer(command_buffer, state->enemy_model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->entity_pipeline.layout, 0, 1, &state->global_descriptor_sets[index], 0, 0);
-                }
-                vkCmdDrawIndexed(command_buffer, enemy_index_count, state->max_enemy_count, 0, 0, 0);
-            }
-            vkCmdEndRenderPass(command_buffer);
-
-            VkRenderPassBeginInfo crosshair_render_pass_begin_info = {};
-            crosshair_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            crosshair_render_pass_begin_info.renderPass = state->crosshair_pipeline.pass;
-            crosshair_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
-            crosshair_render_pass_begin_info.renderArea.offset.x = 0;
-            crosshair_render_pass_begin_info.renderArea.offset.y = 0;
-            crosshair_render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
-            crosshair_render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
-            crosshair_render_pass_begin_info.clearValueCount = 2;
-            crosshair_render_pass_begin_info.pClearValues = clear_values;
-
-            vkCmdBeginRenderPass(command_buffer, &crosshair_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-            {
-                VkBuffer vertex_buffers[] = {state->crosshair_color_buffer.buffer};
-                VkDeviceSize offsets[] = {0};
-                vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->crosshair_pipeline.pipeline);
-                vkCmdDraw(command_buffer, 3, 1, 0, 0);
-            }
-            vkCmdEndRenderPass(command_buffer);
-        }
-
-        if(vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-            panic("Failed to end command buffer!");
-        }
-    }
-}
-
 void create_sync_objects(GameState* state) {
     state->image_available_semaphores = sbmalloc(&state->semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
     state->render_finished_semaphores = sbmalloc(&state->semaphore_buffer, MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
@@ -835,12 +689,11 @@ void create_sync_objects(GameState* state) {
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for(usize index = 0; index < MAX_FRAMES_IN_FLIGHT; index += 1)
-    {
+    for(usize index = 0; index < MAX_FRAMES_IN_FLIGHT; index += 1) {
         if(vkCreateSemaphore(state->device, &semaphore_info, 0, &state->image_available_semaphores[index]) != VK_SUCCESS
-           || vkCreateSemaphore(state->device, &semaphore_info, 0, &state->render_finished_semaphores[index]) != VK_SUCCESS
-           || vkCreateFence(state->device, &fence_info, 0, &state->in_flight_fences[index]) != VK_SUCCESS)
-        {
+            || vkCreateSemaphore(state->device, &semaphore_info, 0, &state->render_finished_semaphores[index]) != VK_SUCCESS
+            || vkCreateFence(state->device, &fence_info, 0, &state->in_flight_fences[index]) != VK_SUCCESS
+        ) {
             panic("Failed to create synchronization structures for a frame!");
         }
     }
@@ -874,7 +727,7 @@ void create_descriptor_set_layout(GameState* state) {
     layout_create_info.bindingCount = descriptor_count;
     layout_create_info.pBindings = bindings;
 
-    if(vkCreateDescriptorSetLayout(state->device, &layout_create_info, 0, &state->ubo_sampler_descriptor_set_layout) != VK_SUCCESS) {
+    if(vkCreateDescriptorSetLayout(state->device, &layout_create_info, 0, &state->global_descriptor_set_layout) != VK_SUCCESS) {
         panic("Failed to create descriptor set layout!");
     }
 }
@@ -896,261 +749,6 @@ void create_uniform_buffers(GameState* state) {
         );
     }
 }
-
-void create_descriptor_pool(GameState* state) {
-    VkDescriptorPoolSize ubo_pool_size = {};
-    ubo_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubo_pool_size.descriptorCount = state->swapchain_image_count;
-
-    VkDescriptorPoolSize sampler_pool_size = {};
-    sampler_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    sampler_pool_size.descriptorCount = state->swapchain_image_count;
-
-    VkDescriptorPoolSize light_pool_size = {};
-    light_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    light_pool_size.descriptorCount = state->swapchain_image_count;
-
-    VkDescriptorPoolSize pool_sizes[descriptor_count] = {ubo_pool_size, sampler_pool_size, light_pool_size};
-
-    VkDescriptorPoolCreateInfo pool_create_info = {};
-    pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_create_info.poolSizeCount = descriptor_count;
-    pool_create_info.pPoolSizes = pool_sizes;
-    pool_create_info.maxSets = state->swapchain_image_count;
-
-    if(vkCreateDescriptorPool(state->device, &pool_create_info, 0, &state->global_descriptor_pool) != VK_SUCCESS) {
-        panic("Failed to create uniform descriptor pool!");
-    }
-}
-
-void create_descriptor_sets(GameState* state) {
-    VkDescriptorSetLayout* layouts = sbmalloc(&state->swapchain_buffer, state->swapchain_image_count * sizeof(VkDescriptorSetLayout));
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) { layouts[index] = state->ubo_sampler_descriptor_set_layout; }
-
-    VkDescriptorSetAllocateInfo allocate_info = {};
-    allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocate_info.descriptorPool = state->global_descriptor_pool;
-    allocate_info.descriptorSetCount = state->swapchain_image_count;
-    allocate_info.pSetLayouts = layouts;
-
-    state->global_descriptor_sets = sbmalloc(&state->swapchain_buffer, state->swapchain_image_count * sizeof(VkDescriptorSet));
-    if (vkAllocateDescriptorSets(state->device, &allocate_info, state->global_descriptor_sets) != VK_SUCCESS) {
-        panic("Failed to allocate uniform descriptor sets!");
-    }
-
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) {
-        VkDescriptorSet descriptor_set = state->global_descriptor_sets[index];
-
-        VkDescriptorBufferInfo uniform_buffer_info = {};
-        uniform_buffer_info.buffer = state->camera_uniforms[index].buffer;
-        uniform_buffer_info.offset = 0;
-        uniform_buffer_info.range = sizeof(UniformBufferObject);
-
-        VkDescriptorImageInfo image_info = {};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = state->level_texture.view;
-        image_info.sampler = state->generic_sampler;
-
-        VkDescriptorBufferInfo lights_buffer_info = {};
-        lights_buffer_info.buffer = state->light_buffer.buffer;
-        lights_buffer_info.offset = 0;
-        lights_buffer_info.range = light_count * sizeof(Light);
-
-        VkWriteDescriptorSet descriptor_writes[descriptor_count] = {
-            {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount = 1,
-                .pBufferInfo = &uniform_buffer_info,
-                .pImageInfo = 0,
-                .pTexelBufferView = 0,
-            },
-            {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 1,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1,
-                .pBufferInfo = 0,
-                .pImageInfo = &image_info,
-                .pTexelBufferView = 0,
-            },
-            {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 2,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                .descriptorCount = 1,
-                .pBufferInfo = &lights_buffer_info,
-                .pImageInfo = 0,
-                .pTexelBufferView = 0,
-            }
-        };
-
-        vkUpdateDescriptorSets(state->device, descriptor_count, descriptor_writes, 0, 0);
-    }
-}
-
-void create_level_buffers(GameState* state, LoaderState* loader) {
-    create_device_local_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(Vertex) * loader->level_vertex_count,
-        loader->level_vertices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->level_model.vertices.buffer,
-        &state->level_model.vertices.memory
-    );
-
-    create_device_local_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(u32) * loader->level_index_count,
-        loader->level_indices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        &state->level_model.indices.buffer,
-        &state->level_model.indices.memory
-    );
-}
-
-void create_enemy_buffers(GameState* state, LoaderState* loader) {
-    create_device_local_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(Vertex) * enemy_vertex_count,
-        enemy_vertices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->enemy_model.vertices.buffer,
-        &state->enemy_model.vertices.memory
-    );
-
-    create_device_local_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(u32) * enemy_index_count,
-        enemy_indices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        &state->enemy_model.indices.buffer,
-        &state->enemy_model.indices.memory
-    );
-
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4) * state->max_enemy_count,
-        state->enemy_position_rotations,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->enemy_position_rotation_buffer,
-        &state->enemy_position_rotation_staging_buffer
-    );
-
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4) * state->max_enemy_count,
-        state->enemy_colors,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->enemy_color_buffer,
-        &state->enemy_color_staging_buffer
-    );
-}
-
-//TODO(sean): use fewer staging buffers
-void create_door_buffers(GameState* state, LoaderState* loader) {
-    create_device_local_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(Vertex) * loader->door_vertex_count,
-        loader->door_vertices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->door_model.vertices.buffer,
-        &state->door_model.vertices.memory
-    );
-
-    create_device_local_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(u32) * loader->door_index_count,
-        loader->door_indices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        &state->door_model.indices.buffer,
-        &state->door_model.indices.memory
-    );
-
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4) * state->door_count,
-        state->door_colors,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->door_color_buffer,
-        &state->door_color_staging_buffer
-    );
-
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4) * state->door_count,
-        state->door_position_rotations,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->door_position_rotation_buffer,
-        &state->door_position_rotation_staging_buffer
-    );
-}
-
-/*
-void create_healthpack_buffers(GameState* state) {
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4) * state->max_healthpack_count,
-        state->healthpack_position_rotations,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->healthpack_position_rotation_buffer,
-        &state->healthpack_position_rotation_staging_buffer
-    );
-}
-*/
-
-/*
-void create_keycard_buffers(GameState* state) {
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4) * state->max_keycard_count,
-        state->keycard_position_rotations,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->keycard_position_rotation_buffer,
-        &state->keycard_position_rotation_staging_buffer
-    );
-}
-*/
 
 void create_crosshair_buffers(GameState* state) {
     create_device_local_and_staging_buffer(
@@ -1189,31 +787,27 @@ void init_open_al_defaults(GameState* state) {
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
 }
 
-void init_loader(GameState* state, LoaderState** loader) {
-    *loader = malloc(sizeof(LoaderState));
-
-    sbinit(&(*loader)->scratch, 1 * 1024 * 1024); // 1M
-    sbinit(&(*loader)->read_scratch, 2 * 1024 * 1024); // 2M
-}
-
-void free_loader(GameState* state, LoaderState* loader) {
-    stbi_image_free(loader->texture_pixels);
-    sbfree(&loader->read_scratch);
-    sbfree(&loader->scratch);
-    free(loader);
-    loader = 0;
-}
-
 void init_defaults(GameState* state) {
+    state->level_index = 0;
+
+    //TODO(sean): load this from a config file
+    state->mouse_sensitivity = 2.0;
+
     state->window_width = 960;
     state->window_height = 540;
     state->primary_monitor = 0;
 
+    //TODO(sean): laod this from file
     state->theta = 1.15;
     state->phi = 0.75;
-    state->mouse_sensitivity = 2.0;
-
     state->gravity = 80.0;
+    state->player_position.x = 0.0;
+    state->player_position.y = 0.0;
+    state->player_position.z = 0.0;
+    state->max_door_open_time = 2.0f;
+    state->enemy_simulation_radius = 20.0f;
+
+    // engine constants
     state->sliding_threshold = 0.7;
     state->slide_gravity_factor = 0.8;
 
@@ -1223,22 +817,16 @@ void init_defaults(GameState* state) {
     state->player_radius = 1.0;
     state->player_z_speed = 0.0f;
 
-    state->player_position.x = 0.0;
-    state->player_position.y = 0.0;
-    state->player_position.z = 0.0;
-
     state->crosshair_color = vec4_new(1.0, 1.0, 1.0, 1.0);
 
     state->door_activation_distance = 16.0f;
     state->door_move_speed = 4.0f;
-    state->max_door_open_time = 2.0f;
 
     state->pistol_shoot_delay = 0.2f;
     state->pistol_reload_speed = 2.0f;
     state->loaded_pistol_ammo_count = 12;
     state->pistol_magazine_size = 12;
 
-    state->enemy_simulation_radius = 20.0f;
     state->enemy_shoot_delay = 2.0f;
 }
 

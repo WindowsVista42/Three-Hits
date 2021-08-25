@@ -76,6 +76,43 @@ void print_diagnostics(GameState* state) {
     printf("budget: %.2fms, usage: %.2fms / %.2f%%\n", (1.0 / 60.0) * 1000.0, (state->delta_time) * 1000.0, (state->delta_time / (1.0 / 60.0)) * 100.0);
 }
 
+void sync_entity_position_rotations(
+    VkDevice device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    vec3 player_position,
+    EntityList* entities
+) {
+    for(usize index = 0; index < entities->capacity; index += 1) {
+        entities->position_rotations[index].w = atan2f(
+            player_position.x - entities->position_rotations[index].x,
+            player_position.y - entities->position_rotations[index].y
+        );
+    }
+
+    u64 position_rotation_copy_size = entities->capacity * sizeof(vec4);
+    write_buffer(device, entities->position_rotation_staging_buffer.memory, 0, position_rotation_copy_size, 0, entities->position_rotations);
+    copy_buffer_to_buffer(
+        device,
+        queue,
+        command_pool,
+        entities->position_rotation_staging_buffer.buffer,
+        entities->position_rotation_buffer.buffer,
+        position_rotation_copy_size
+    );
+
+    u64 color_copy_size = entities->capacity * sizeof(vec4);
+    write_buffer(device, entities->color_staging_buffer.memory, 0, color_copy_size, 0, entities->colors);
+    copy_buffer_to_buffer(
+        device,
+        queue,
+        command_pool,
+        entities->color_staging_buffer.buffer,
+        entities->color_buffer.buffer,
+        color_copy_size
+    );
+}
+
 void update(GameState* state) {
     u32 current_image = state->current_image;
 
@@ -93,17 +130,6 @@ void update(GameState* state) {
     vec3 player_eye = state->player_position;
     player_eye.z += 0.5;
     {
-
-        //if(glfwGetKey(state->window, GLFW_KEY_R) == GLFW_PRESS) {
-        //    state->player_position.x = 0.0;
-        //    state->player_position.y = 0.0;
-        //    state->player_position.z = 0.0;
-        //    state->player_z_speed = 0.0;
-        //}
-
-        // -33.5
-        // -11.5
-
         if(glfwGetKey(state->window, GLFW_KEY_Q) == GLFW_PRESS) {
             vec3_print("Player position: ", state->player_position);
         }
@@ -141,23 +167,29 @@ void update(GameState* state) {
 
         // doors
         {
-            for (usize index = 0; index < state->door_count; index += 1) {
+            for (usize index = 0; index < state->doors.capacity; index += 1) {
                 u32 lower = state->door_physmesh_ranges[index];
                 u32 upper = state->door_physmesh_ranges[index + 1];
 
                 // door opens
                 if (lower <= state->closest_ray_index && state->closest_ray_index < upper && active_action && wall_distance < state->door_activation_distance) {
-                    alSourcePlay(state->door_sound_sources[index]);
-                    state->door_timings[index] = state->max_door_open_time * 2.0 - state->door_timings[index];
-                    break;
+                    if(state->door_requirements[index] == 0 || state->door_requirements[index] & state->player_keycards) {
+                        alSourcePlay(state->door_sound_sources[index]);
+                        state->door_timings[index] = state->max_door_open_time * 2.0 - state->door_timings[index];
+                        break;
+                    } else {
+                        //TODO(sean): switch
+                        printf("Cannot open door you don't have the right keycard\n");
+                        printf("Door requires %d\n", state->door_requirements[index]);
+                    }
                 }
             }
 
             // door logic
             //TODO(sean): I dont really like this, but it gets the job done
-            for (usize index = 0; index < state->door_count; index += 1) {
+            for (usize index = 0; index < state->doors.capacity; index += 1) {
                 if (state->door_timings[index] > state->max_door_open_time) {
-                    state->door_position_rotations[index].z += state->delta_time * state->door_move_speed;
+                    state->doors.position_rotations[index].z += state->delta_time * state->door_move_speed;
 
                     u32 lower = state->door_physmesh_ranges[index];
                     u32 upper = state->door_physmesh_ranges[index + 1];
@@ -165,7 +197,7 @@ void update(GameState* state) {
                         state->physmesh_vertices[phys_index].z += state->delta_time * state->door_move_speed;
                     }
                 } else if (state->door_timings[index] > 0.0f) {
-                    state->door_position_rotations[index].z -= state->delta_time * state->door_move_speed;
+                    state->doors.position_rotations[index].z -= state->delta_time * state->door_move_speed;
 
                     u32 lower = state->door_physmesh_ranges[index];
                     u32 upper = state->door_physmesh_ranges[index + 1];
@@ -181,19 +213,19 @@ void update(GameState* state) {
 
             write_buffer(
                 state->device,
-                state->door_position_rotation_staging_buffer.memory,
+                state->doors.position_rotation_staging_buffer.memory,
                 0,
-                state->door_count * sizeof(vec4),
+                state->doors.capacity * sizeof(vec4),
                 0,
-                state->door_position_rotations
+                state->doors.position_rotations
             );
             copy_buffer_to_buffer(
                 state->device,
                 state->queue,
                 state->command_pool,
-                state->door_position_rotation_staging_buffer.buffer,
-                state->door_position_rotation_buffer.buffer,
-                state->door_count * sizeof(vec4)
+                state->doors.position_rotation_staging_buffer.buffer,
+                state->doors.position_rotation_buffer.buffer,
+                state->doors.capacity * sizeof(vec4)
             );
         }
 
@@ -228,8 +260,8 @@ void update(GameState* state) {
                     state->loaded_pistol_ammo_count = state->pistol_magazine_size;
                 }
 
-                for (usize index = 0; index < state->enemy_alive_count; index += 1) {
-                    vec3 Pe = *(vec3 *) &state->enemy_position_rotations[index].x;
+                for (usize index = 0; index < state->enemies.length; index += 1) {
+                    vec3 Pe = *(vec3 *) &state->enemies.position_rotations[index].x;
                     vec3 P = player_eye;
                     vec3 enemyN;
                     f32 enemy_distance;
@@ -269,73 +301,48 @@ void update(GameState* state) {
         if (hit_index != UINT32_MAX) {
             alSourcePlay(state->enemy_alert_sound_sources[hit_index]);
 
-            if(state->enemy_healths[hit_index] > 0) { state->enemy_healths[hit_index] -= 1; }
+            if(state->enemy_healths[hit_index] > 0) {
+                state->enemy_healths[hit_index] -= 1;
+            }
             if(state->enemy_healths[hit_index] <= 0) { // we just killed it
                 // swap with last one
-                usize back_index = state->enemy_alive_count - 1;
+                usize back_index = state->enemies.length - 1;
                 i32 temp_health = state->enemy_healths[hit_index];
-                vec4 _temp_color = vec4_copy(state->enemy_colors[hit_index]);
-                vec4 temp_position_rotation = vec4_copy(state->enemy_position_rotations[hit_index]);
+                vec4 _temp_color = vec4_copy(state->enemies.colors[hit_index]);
+                vec4 temp_position_rotation = vec4_copy(state->enemies.position_rotations[hit_index]);
 
                 state->enemy_healths[hit_index] = state->enemy_healths[back_index];
-                state->enemy_colors[hit_index] = state->enemy_colors[back_index];
-                state->enemy_position_rotations[hit_index] = state->enemy_position_rotations[back_index];
+                state->enemies.colors[hit_index] = state->enemies.colors[back_index];
+                state->enemies.position_rotations[hit_index] = state->enemies.position_rotations[back_index];
 
                 state->enemy_healths[back_index] = temp_health;
-                state->enemy_colors[back_index] = death_flash_color;
-                state->enemy_position_rotations[back_index] = temp_position_rotation;
+                state->enemies.colors[back_index] = death_flash_color;
+                state->enemies.position_rotations[back_index] = temp_position_rotation;
 
-                state->enemy_alive_count -= 1;
+                state->enemies.length -= 1;
 
                 alSourceStop(state->enemy_alert_sound_sources[back_index]);
                 alSourceStop(state->enemy_ambience_sound_sources[back_index]);
                 alSourceStop(state->enemy_windup_sound_sources[hit_index]);
                 alSourcei(state->enemy_alert_sound_sources[back_index], AL_BUFFER, state->enemy_explosion_sound_buffer);
-                alSourcefv(state->enemy_alert_sound_sources[back_index], AL_POSITION, (f32*)&state->enemy_position_rotations[back_index]);
+                alSourcefv(state->enemy_alert_sound_sources[back_index], AL_POSITION, (f32*)&state->enemies.position_rotations[back_index]);
                 alSourcef(state->enemy_alert_sound_sources[back_index], AL_GAIN, 1.0f);
                 alSourcef(state->enemy_alert_sound_sources[back_index], AL_ROLLOFF_FACTOR, 0.8f);
                 alSourcePlay(state->enemy_alert_sound_sources[back_index]);
             } else {
-                state->enemy_colors[hit_index] = damage_flash_color;
+                state->enemies.colors[hit_index] = damage_flash_color;
                 state->enemy_hit_times[hit_index] = 0.125;
             }
         } else {
-            for(usize index = 0; index < state->enemy_alive_count; index += 1) {
+            for(usize index = 0; index < state->enemies.length; index += 1) {
                 if(state->enemy_hit_times[index] < 0.0) {
-                    state->enemy_colors[index] = default_color;
+                    state->enemies.colors[index] = default_color;
                 }
                 state->enemy_hit_times[index] -= state->delta_time;
             }
         }
 
-        for(usize index = 0; index < state->max_enemy_count; index += 1) {
-            state->enemy_position_rotations[index].w = atan2f(
-                state->player_position.x - state->enemy_position_rotations[index].x,
-                state->player_position.y - state->enemy_position_rotations[index].y
-            );
-        }
-
-        u64 position_rotation_copy_size = state->max_enemy_count * sizeof(vec4);
-        write_buffer(state->device, state->enemy_position_rotation_staging_buffer.memory, 0, position_rotation_copy_size, 0, state->enemy_position_rotations);
-        copy_buffer_to_buffer(
-            state->device,
-            state->queue,
-            state->command_pool,
-            state->enemy_position_rotation_staging_buffer.buffer,
-            state->enemy_position_rotation_buffer.buffer,
-            position_rotation_copy_size
-        );
-
-        u64 color_copy_size = state->max_enemy_count * sizeof(vec4);
-        write_buffer(state->device, state->enemy_color_staging_buffer.memory, 0, color_copy_size, 0, state->enemy_colors);
-        copy_buffer_to_buffer(
-            state->device,
-            state->queue,
-            state->command_pool,
-            state->enemy_color_staging_buffer.buffer,
-            state->enemy_color_buffer.buffer,
-            color_copy_size
-        );
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->enemies);
     }
 
     b32 space_pressed = false;
@@ -386,10 +393,10 @@ void update(GameState* state) {
     {
         static b32 play_enemy_windup[30] = {};
         f32 delta_time = state->delta_time / 4.0;
-        // Enemy physics
+        // enemy physics
         for(usize i = 0; i < 4; i += 1) {
-            for (usize index = 0; index < state->enemy_alive_count; index += 1) {
-                vec3 P = *(vec3 *) &state->enemy_position_rotations[index];
+            for (usize index = 0; index < state->enemies.length; index += 1) {
+                vec3 P = *(vec3 *) &state->enemies.position_rotations[index];
                 f32 rr = 1.0;
                 vec3 N;
                 f32 d;
@@ -399,21 +406,23 @@ void update(GameState* state) {
                 if (vec3_distsq_vec3(P, state->player_position) > srsr) { continue; }
 
                 f32 move_speed = 3.0;
-                vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &state->enemy_position_rotations[index], state->player_position));
-                if(vec3_distsq_vec3(P, state->player_position) > rr + state->player_radius + 1.0) {
-                    *(vec3 *) &state->enemy_position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemy_position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
+                vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &state->enemies.position_rotations[index], state->player_position));
+                if (vec3_distsq_vec3(P, state->player_position) > rr + (state->player_radius * state->player_radius) + 4.0) {
+                    *(vec3 *) &state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemies.position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
+                } else {
+                    *(vec3 *) &state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemies.position_rotations[index], vec3_mul_f32(PN, delta_time * move_speed));
                 }
 
                 // Check if we are colliding with any of our kind
-                for (usize phys_index = 0; phys_index < state->enemy_alive_count; phys_index += 1) {
+                for (usize phys_index = 0; phys_index < state->enemies.length; phys_index += 1) {
                     if (phys_index == index) { continue; }
-                    vec3 p = *(vec3 *) &state->enemy_position_rotations[phys_index];
+                    vec3 p = *(vec3 *) &state->enemies.position_rotations[phys_index];
                     N = vec3_norm(vec3_sub_vec3(P, p));
                     f32 distsq = vec3_distsq_vec3(P, p);
 
                     if (distsq < rr + rr) {
                         d = sqrtf((rr + rr) - distsq);
-                        *(vec3 *) &state->enemy_position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemy_position_rotations[index], vec3_mul_f32(N, d));
+                        *(vec3 *) &state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemies.position_rotations[index], vec3_mul_f32(N, d));
                     }
                 }
 
@@ -537,7 +546,7 @@ void update(GameState* state) {
                         if (sliding_factor > state->sliding_threshold) { N = VEC3_UNIT_Z; }
                         if (vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
 
-                        *(vec3*)&state->enemy_position_rotations[index] = vec3_add_vec3(*(vec3*)&state->enemy_position_rotations[index], vec3_mul_f32(N, d));
+                        *(vec3*)&state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3*)&state->enemies.position_rotations[index], vec3_mul_f32(N, d));
                     }
                 }
 
@@ -633,9 +642,9 @@ void update(GameState* state) {
 
             {
                 // Check if we are colliding with any enemies
-                for(usize index = 0; index < state->enemy_alive_count; index += 1) {
+                for(usize index = 0; index < state->enemies.length; index += 1) {
                     vec3 P = state->player_position;
-                    vec3 p = *(vec3*)&state->enemy_position_rotations[index];
+                    vec3 p = *(vec3*)&state->enemies.position_rotations[index];
                     N = vec3_norm(vec3_sub_vec3(P, p));
                     f32 distsq = vec3_distsq_vec3(P, p);
 
@@ -655,6 +664,21 @@ void update(GameState* state) {
     ubo.view_projection = mat4_mul_mat4(view, projection);
     write_buffer(state->device, state->camera_uniforms[current_image].memory, 0, sizeof(ubo), 0, &ubo);
 
+    // keycard logic
+    {
+        for (usize index = 0; index < state->keycards.length; index += 1) {
+            vec3 P = *(vec3 *) &state->keycards.position_rotations[index];
+            if (vec3_distsq_vec3(P, state->player_position) < 1.0 + (state->player_radius * state->player_radius)) {
+                printf("Picked up keycard %llu\n", index);
+                state->keycards.position_rotations[index] = vec4_new(FLT_MAX, FLT_MAX, FLT_MAX, 0.0);
+                state->player_keycards |= 1 << index;
+            }
+        }
+
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->keycards);
+    }
+
+    // sync audio buffers
     {
         ALenum source_state;
 
@@ -671,39 +695,47 @@ void update(GameState* state) {
         if (play_pistol_sound == true) { alSourcePlay(state->player_gun_sound_source); }
         alSourcefv(state->player_gun_sound_source, AL_POSITION, (f32*)&player_eye);
 
-        for(usize index = 0; index < state->enemy_alive_count; index += 1) {
-            alSourcefv(state->enemy_alert_sound_sources[index], AL_POSITION, (f32*)&state->enemy_position_rotations[index]);
+        for(usize index = 0; index < state->enemies.length; index += 1) {
+            alSourcefv(state->enemy_alert_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->enemy_alive_count; index += 1) {
-            alSourcefv(state->enemy_ambience_sound_sources[index], AL_POSITION, (f32*)&state->enemy_position_rotations[index]);
+        for(usize index = 0; index < state->enemies.length; index += 1) {
+            alSourcefv(state->enemy_ambience_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->enemy_alive_count; index += 1) {
-            alSourcefv(state->enemy_gun_sound_sources[index], AL_POSITION, (f32*)&state->enemy_position_rotations[index]);
+        for(usize index = 0; index < state->enemies.length; index += 1) {
+            alSourcefv(state->enemy_gun_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->enemy_alive_count; index += 1) {
-            alSourcefv(state->enemy_windup_sound_sources[index], AL_POSITION, (f32*)&state->enemy_position_rotations[index]);
+        for(usize index = 0; index < state->enemies.length; index += 1) {
+            alSourcefv(state->enemy_windup_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->door_count; index += 1) {
-            alSourcefv(state->door_sound_sources[index], AL_POSITION, (f32*)&state->door_position_rotations[index]);
+        for(usize index = 0; index < state->doors.capacity; index += 1) {
+            alSourcefv(state->door_sound_sources[index], AL_POSITION, (f32*)&state->doors.position_rotations[index]);
         }
 
         f32 orientation[6] = {-state->look_dir.x, -state->look_dir.y, -state->look_dir.z, 0.0f, 0.0f, 1.0f};
         alListenerfv(AL_ORIENTATION, orientation);
         alListenerfv(AL_POSITION,  (f32*)&player_eye);
     }
+
+    // check player position end thing
+    {
+        if (vec3_distsq_vec3(state->player_position, vec3_new(9.5, -56.5, -12.0)) < 6.0) {
+            if(glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
+                state->load_next_level = true;
+            }
+        }
+    }
 }
 
 void update_and_render(GameState* state) {
     vkWaitForFences(state->device, 1, &state->in_flight_fences[state->current_frame_index], VK_TRUE, UINT64_MAX);
 
-    u32 image_index;
     VkResult result;
 
-    result = vkAcquireNextImageKHR(state->device, state->swapchain, UINT64_MAX, state->image_available_semaphores[state->current_frame_index], 0, &image_index);
+    result = vkAcquireNextImageKHR(state->device, state->swapchain, UINT64_MAX, state->image_available_semaphores[state->current_frame_index], 0, &state->current_image);
 
     if(result == VK_ERROR_OUT_OF_DATE_KHR) {
         update_swapchain(state);
@@ -712,8 +744,9 @@ void update_and_render(GameState* state) {
         panic("Failed to acquire next swapchain image!");
     }
 
-    state->current_image = image_index;
-    update(state);
+    {
+        update(state);
+    }
 
     if(state->image_in_flight_fences[state->current_frame_index] != 0) {
         vkWaitForFences(state->device, 1, &state->image_in_flight_fences[state->current_frame_index], VK_TRUE, UINT64_MAX);
@@ -730,7 +763,7 @@ void update_and_render(GameState* state) {
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &state->command_buffers[image_index];
+    submit_info.pCommandBuffers = &state->command_buffers[state->current_image];
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
@@ -747,7 +780,7 @@ void update_and_render(GameState* state) {
     present_info.pWaitSemaphores = signal_semaphores;
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapchains;
-    present_info.pImageIndices = &image_index;
+    present_info.pImageIndices = &state->current_image;
     present_info.pResults = 0;
 
     result = vkQueuePresentKHR(state->present_queue, &present_info);

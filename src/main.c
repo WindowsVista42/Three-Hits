@@ -60,35 +60,16 @@ int main() {
     create_depth_image(state);
     create_swapchain_framebuffers(state);
     create_generic_sampler(state);
+    create_sync_objects(state);
+    alListenerf(AL_GAIN, 0.0f);
 
+    load_level(state);
     // levels.txt
-    // level0 <-- player ended
+    // 0 <-- player ended index
+    // level0
     // level1
     // level2
 
-    // START SCENE RECREATION HERE
-
-    init_loader(state, &loader);
-    {
-        load_level_texture(state, loader);
-        create_texture_image(state, loader);
-
-        load_level_model(state, loader);
-        create_level_buffers(state, loader);
-        create_enemy_buffers(state, loader);
-        create_door_buffers(state, loader);
-
-        load_level_sounds(state, loader);
-    }
-    free_loader(state, loader);
-
-    create_descriptor_pool(state);
-    create_descriptor_sets(state);
-
-    create_command_buffers(state);
-    create_sync_objects(state);
-
-    alListenerf(AL_GAIN, 0.0f);
     glfwSetTime(0.0);
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
@@ -120,6 +101,11 @@ int main() {
             f11_held = true;
         } else {
             f11_held = false;
+        }
+
+        if(state->load_next_level == true) {
+            unload_level(state);
+            load_level(state);
         }
     }
 

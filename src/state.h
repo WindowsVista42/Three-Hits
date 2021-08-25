@@ -135,8 +135,31 @@ typedef struct UniformBufferObject {
 #define descriptor_count 3
 #define light_count 6
 
+#define KEYCARD_NONE 0x00000000
+#define KEYCARD_RED 0x00000001
+#define KEYCARD_BLUE 0x00000002
+#define KEYCARD_YELLOW 0x00000004
+#define KEYCARD_GREEN 0x00000008
+
 /*  We get a maximum of 4 descriptor sets if we want to run on intel igpus.
 */
+
+typedef struct EntityList {
+    Model model;
+    Texture texture;
+    VkDescriptorSet descriptor_set;
+
+    u32 capacity;
+    u32 length;
+
+    Buffer position_rotation_buffer;
+    Buffer position_rotation_staging_buffer;
+    vec4* position_rotations;
+
+    Buffer color_buffer;
+    Buffer color_staging_buffer;
+    vec4* colors;
+} EntityList;
 
 typedef struct GameState {
     u32 window_width;
@@ -196,37 +219,18 @@ typedef struct GameState {
 
     VkDescriptorPool global_descriptor_pool;
 
-//    VkBuffer* uniform_buffers;
-//    VkDeviceMemory* uniform_buffers_memory;
-//    VkDescriptorSet* descriptor_sets;
-
-    //TODO(sean): figure out if this is *very* specific to pipelines
-    VkDescriptorSetLayout ubo_sampler_descriptor_set_layout;
-
+    VkDescriptorSetLayout global_descriptor_set_layout;
     VkDescriptorSet* global_descriptor_sets; // shared data
     Buffer* camera_uniforms;
     Buffer light_buffer;
 
 //
-    u32 max_enemy_count;
-    u32 enemy_alive_count;
-
     StagedBuffer enemy_buffer;
-
-    Model enemy_model;
-    Texture enemy_texture;
-    VkDescriptorSet enemy_descriptor_set;
-    Buffer enemy_position_rotation_buffer;
-    Buffer enemy_position_rotation_staging_buffer;
-
+    EntityList enemies;
     i32* enemy_healths;
     f32* enemy_hit_times;
     f32* enemy_shoot_times;
     f32 enemy_shoot_delay;
-
-    vec4* enemy_colors;
-    Buffer enemy_color_buffer;
-    Buffer enemy_color_staging_buffer;
 
     f32 mouse_sensitivity;
     vec2 mouse_pos;
@@ -254,27 +258,16 @@ typedef struct GameState {
     f32 max_door_open_time;
     f32 door_move_speed;
 
-    u32 door_count;
-    u32* door_requirements; // 0 = none, 1+ = some programmable event
-    vec4* door_position_rotations;
-    vec4* door_colors;
-    f32* door_timings;
-
+    //u32 door_count;
+    EntityList doors;
     u32 door_physmesh_range_count;
     u32* door_physmesh_ranges;
-
-    Model door_model;
-    Buffer door_color_buffer;
-    Buffer door_color_staging_buffer;
-    Buffer door_position_rotation_buffer;
-    Buffer door_position_rotation_staging_buffer;
+    f32* door_timings;
+    u32* door_requirements;
 
     //
-    u32 max_keycard_count;
-    u32 keycard_count;
-    Buffer keycard_position_rotation_buffer;
-    Buffer keycard_position_rotation_staging_buffer;
-    vec4* keycard_position_rotations;
+    u32 player_keycards;
+    EntityList keycards;
 
     //
     vec3 player_position;
@@ -283,8 +276,6 @@ typedef struct GameState {
     f32 player_jump_speed;
     f32 player_radius;
     f32 player_z_speed;
-
-    vec4* enemy_position_rotations;
 
     // crosshair
     //TODO(sean): move this to a uniform
@@ -334,6 +325,9 @@ typedef struct GameState {
     f32 enemy_simulation_radius;
 
     i32 player_health;
+
+    b32 load_next_level;
+    u32 level_index;
 } GameState;
 
 #include "../lib/stb_image.h"

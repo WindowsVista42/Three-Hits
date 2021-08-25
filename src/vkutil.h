@@ -27,7 +27,6 @@ typedef struct Texture {
 } Texture;
 
 typedef struct Pipeline {
-    // Add Descriptor Set Layout?
     VkPipelineLayout layout;
     VkRenderPass pass;
     VkPipeline pipeline;
@@ -807,6 +806,44 @@ void create_graphics_pipeline(
     }
 }
 
+void create_model(
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    u32 vertex_size,
+    u32 vertex_count,
+    void* vertices,
+    u32 index_count,
+    void* indices,
+    Model* model
+) {
+    model->vertex_count = vertex_count;
+    model->index_count = index_count;
+
+    create_device_local_buffer_2(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        vertex_size * vertex_count,
+        vertices,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &model->vertices
+    );
+
+    create_device_local_buffer_2(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        sizeof(u32) * index_count,
+        indices,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        &model->indices
+    );
+}
+
 void destroy_pipeline(VkDevice device, Pipeline pipeline) {
     vkDestroyPipeline(device, pipeline.pipeline, 0);
     vkDestroyPipelineLayout(device, pipeline.layout, 0);
@@ -817,6 +854,21 @@ void destroy_texture(VkDevice device, Texture texture) {
     vkDestroyImageView(device, texture.view, 0);
     vkDestroyImage(device, texture.image, 0);
     vkFreeMemory(device, texture.memory, 0);
+}
+
+void destroy_buffer(VkDevice device, Buffer buffer) {
+    vkDestroyBuffer(device, buffer.buffer, 0);
+    vkFreeMemory(device, buffer.memory, 0);
+}
+
+void destroy_local_and_staging_buffer(VkDevice device, Buffer local_buffer, Buffer staging_buffer) {
+    destroy_buffer(device, local_buffer);
+    destroy_buffer(device, staging_buffer);
+}
+
+void destroy_model(VkDevice device, Model model) {
+    destroy_buffer(device, model.vertices);
+    destroy_buffer(device, model.indices);
 }
 
 #define UNTITLED_FPS_VKUTIL_H
