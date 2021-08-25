@@ -427,7 +427,7 @@ void update(GameState* state) {
                 }
 
                 u32 vertex_count = 0;
-                vec3 *vertices = sbmalloc(&state->physics_scratch_buffer, 1200 * sizeof(vec3));
+                vec3 *vertices = sbmalloc(&state->level_scratch_buffer, 1200 * sizeof(vec3));
 
                 // cull
                 for (usize phys_index = 0; phys_index < state->physmesh_vertex_count; phys_index += 3) {
@@ -550,7 +550,7 @@ void update(GameState* state) {
                     }
                 }
 
-                sbclear(&state->physics_scratch_buffer);
+                sbclear(&state->level_scratch_buffer);
             }
         }
     }
@@ -562,7 +562,7 @@ void update(GameState* state) {
     // Player physics
     {
         u32 vertex_count = 0;
-        vec3 *vertices = sbmalloc(&state->physics_scratch_buffer, 1200 * sizeof(vec3));
+        vec3 *vertices = sbmalloc(&state->level_scratch_buffer, 1200 * sizeof(vec3));
 
         f32 r = player_radius;
         f32 rr = r * r;
@@ -656,7 +656,7 @@ void update(GameState* state) {
             }
         }
 
-        sbclear(&state->physics_scratch_buffer);
+        sbclear(&state->level_scratch_buffer);
     }
 
     view = mat4_look_dir(player_eye, state->look_dir, VEC3_UNIT_Z);
@@ -726,6 +726,10 @@ void update(GameState* state) {
             if(glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
                 state->load_next_level = true;
             }
+        }
+
+        if(glfwGetKey(state->window, GLFW_KEY_J) == GLFW_PRESS) {
+            state->load_next_level = true;
         }
     }
 }
