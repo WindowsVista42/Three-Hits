@@ -57,17 +57,17 @@ void load_level_sounds(GameState* state, LoaderState* loader) {
 
     generate_sound_source(&state->player_gun_sound_source, 0.9f, AL_FALSE, state->pistol_sound_buffer, state->reverb_slot);
     generate_sound_source(&state->player_movement_sound_source, 0.2f, AL_FALSE, state->player_movement_sound_buffer, state->reverb_slot);
-    generate_sound_sources(&state->audio_buffer, &state->enemy_alert_sound_sources, state->enemies.capacity, 0.8f, AL_FALSE, state->enemy_alert_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->level_buffer, &state->enemy_alert_sound_sources, state->enemies.capacity, 0.8f, AL_FALSE, state->enemy_alert_sound_buffer, state->reverb_slot);
 
-    generate_sound_sources(&state->audio_buffer, &state->enemy_gun_sound_sources, state->enemies.capacity, 1.0f, AL_FALSE, state->enemy_gun_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->level_buffer, &state->enemy_gun_sound_sources, state->enemies.capacity, 1.0f, AL_FALSE, state->enemy_gun_sound_buffer, state->reverb_slot);
     set_sources_f(state->enemy_gun_sound_sources, state->enemies.capacity, AL_ROLLOFF_FACTOR, 0.2);
 
-    generate_sound_sources(&state->audio_buffer, &state->enemy_windup_sound_sources, state->enemies.capacity, 0.5f, AL_FALSE, state->enemy_windup_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->level_buffer, &state->enemy_windup_sound_sources, state->enemies.capacity, 0.5f, AL_FALSE, state->enemy_windup_sound_buffer, state->reverb_slot);
     set_sources_f(state->enemy_windup_sound_sources, state->enemies.capacity, AL_ROLLOFF_FACTOR, 0.8);
 
-    generate_sound_sources(&state->audio_buffer, &state->door_sound_sources, state->doors.capacity, 1.2f, AL_FALSE, state->door_opening_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->level_buffer, &state->door_sound_sources, state->doors.capacity, 1.2f, AL_FALSE, state->door_opening_sound_buffer, state->reverb_slot);
 
-    generate_sound_sources(&state->audio_buffer, &state->enemy_ambience_sound_sources, state->enemies.capacity, 0.8f, AL_TRUE, state->enemy_ambience_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->level_buffer, &state->enemy_ambience_sound_sources, state->enemies.capacity, 0.8f, AL_TRUE, state->enemy_ambience_sound_buffer, state->reverb_slot);
     set_sources_f(state->enemy_ambience_sound_sources, state->enemies.capacity, AL_ROLLOFF_FACTOR, 3.0);
     play_sources(state->enemy_ambience_sound_sources, state->enemies.length);
 }
@@ -112,6 +112,7 @@ void read_indices(StagedBuffer* scratch_buffer, u32* index_count, u32** indices,
     }
 }
 
+//TODO(sean): figure out a way to compress this
 void load_level_model(GameState* state, LoaderState* loader) {
     loader->level_path = "../data/levels/doors0.level";
     if(state->level_index > 0) {
@@ -133,7 +134,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
 
         // load physmesh
         fread(&state->physmesh_vertex_count, sizeof(u32), 1, fp);
-        state->physmesh_vertices = sbmalloc(&state->physics_buffer, state->physmesh_vertex_count * sizeof(vec3));
+        state->physmesh_vertices = sbmalloc(&state->level_buffer, state->physmesh_vertex_count * sizeof(vec3));
         for (usize index = 0; index < state->physmesh_vertex_count; index += 1) {
             fread(&state->physmesh_vertices[index].x, sizeof(f32), 1, fp);
             fread(&state->physmesh_vertices[index].y, sizeof(f32), 1, fp);
@@ -142,7 +143,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
 
         // load door prs
         fread(&state->doors.capacity, sizeof(u32), 1, fp);
-        state->doors.position_rotations = sbmalloc(&state->physics_buffer, state->doors.capacity * sizeof(vec4));
+        state->doors.position_rotations = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(vec4));
         for (usize index = 0; index < state->doors.capacity; index += 1) {
             fread(&state->doors.position_rotations[index].x, sizeof(f32), 1, fp);
             fread(&state->doors.position_rotations[index].y, sizeof(f32), 1, fp);
@@ -152,19 +153,75 @@ void load_level_model(GameState* state, LoaderState* loader) {
 
         // load doors physmesh ranges
         fread(&state->door_physmesh_range_count, sizeof(u32), 1, fp);
-        state->door_physmesh_ranges = sbmalloc(&state->physics_buffer, state->door_physmesh_range_count * sizeof(u32));
+        state->door_physmesh_ranges = sbmalloc(&state->level_buffer, state->door_physmesh_range_count * sizeof(u32));
         for (usize index = 0; index < state->door_physmesh_range_count; index += 1) {
             fread(&state->door_physmesh_ranges[index], sizeof(u32), 1, fp);
         }
 
-        fclose(fp);
-    }
+        // set door defaults
+        state->level_model.index_count = loader->level_index_count;
+        state->door_timings = sbcalloc(&state->level_buffer, 0, state->doors.capacity * sizeof(f32));
+        state->doors.colors = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(vec4));
+        for(usize index = 0; index < state->doors.capacity; index += 1) {
+            state->doors.colors[index] = vec4_new(1.0, 1.0, 0.0, 1.0);
+        }
 
-    state->level_model.index_count = loader->level_index_count;
-    state->door_timings = sbcalloc(&state->physics_buffer, 0, state->doors.capacity * sizeof(f32));
-    state->doors.colors = sbmalloc(&state->physics_buffer, state->doors.capacity * sizeof(vec4));
-    for(usize index = 0; index < state->doors.capacity; index += 1) {
-        state->doors.colors[index] = vec4_new(1.0, 1.0, 0.0, 1.0);
+        /*
+        // load enemies from file
+        fread(&state->enemies.capacity, sizeof(u32), 1, fp);
+        fread(&state->enemies.length, sizeof(u32), 1, fp);
+        state->enemies.position_rotations = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
+        for (usize index = 0; index < state->enemies.length; index += 1) {
+            fread(&state->enemies.position_rotations[index].x, sizeof(f32), 1, fp);
+            fread(&state->enemies.position_rotations[index].y, sizeof(f32), 1, fp);
+            fread(&state->enemies.position_rotations[index].z, sizeof(f32), 1, fp);
+            state->enemies.position_rotations[index].w = 0.0f;
+        }
+
+        for(usize index = state->enemies.length; index < state->enemies.capacity; index += 1) {
+            state->enemies.position_rotations[index].x = FLT_MAX;
+            state->enemies.position_rotations[index].y = FLT_MAX;
+            state->enemies.position_rotations[index].z = FLT_MAX;
+            state->enemies.position_rotations[index].w = 0.0f;
+        }
+
+        // set enemy defaults
+        state->enemies.colors = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
+        for(u32 index = 0; index < state->enemies.capacity; index += 1) {
+            state->enemies.colors[index].x = 1.0;
+            state->enemies.colors[index].y = 0.0;
+            state->enemies.colors[index].z = 0.0;
+            state->enemies.colors[index].w = 1.0;
+        }
+
+        const i32 enemy_default_health = 4;
+        state->enemy_healths = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(i32));
+        for(u32 index = 0; index < state->enemies.capacity; index += 1) {
+            state->enemy_healths[index] = enemy_default_health;
+        }
+
+        state->enemy_hit_times = sbcalloc(&state->level_buffer, 0, state->enemies.capacity * sizeof(f32));
+        state->enemy_shoot_times = sbcalloc(&state->level_buffer, 0, state->enemies.capacity * sizeof(f32));
+        state->enemy_sees_player = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
+        state->windup_needs_reverse = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
+
+        // load lights from file
+        fread(&loader->ulight_count, sizeof(u32), 1, fp);
+        loader->lights = sbmalloc(&loader->read_scratch, loader->ulight_count * sizeof(Light));
+        for(usize index = 0; index < loader->ulight_count; index += 1) {
+            fread(&loader->lights[index].color_alpha.x, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].color_alpha.y, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].color_alpha.z, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].color_alpha.w, sizeof(f32), 1, fp);
+
+            fread(&loader->lights[index].position_falloff.x, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].position_falloff.y, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].position_falloff.z, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].position_falloff.w, sizeof(f32), 1, fp);
+        }
+        */
+
+        fclose(fp);
     }
 
     // load enemies
@@ -173,11 +230,11 @@ void load_level_model(GameState* state, LoaderState* loader) {
         state->enemies.length = 0;//state->enemies.capacity;
         u32 i = 0;
 
-        state->enemies.position_rotations = sbmalloc(&state->physics_buffer, state->enemies.capacity * sizeof(vec4));
-        state->enemy_hit_times = sbmalloc(&state->enemy_buffer, state->enemies.capacity * sizeof(f32));
-        state->enemies.colors = sbmalloc(&state->enemy_buffer, state->enemies.capacity * sizeof(vec4));
-        state->enemy_healths = sbmalloc(&state->enemy_buffer, state->enemies.capacity * sizeof(i32));
-        state->enemy_shoot_times = sbcalloc(&state->enemy_buffer, 0, state->enemies.capacity * sizeof(f32));
+        state->enemies.position_rotations = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
+        state->enemy_hit_times = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(f32));
+        state->enemies.colors = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
+        state->enemy_healths = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(i32));
+        state->enemy_shoot_times = sbcalloc(&state->level_buffer, 0, state->enemies.capacity * sizeof(f32));
 
         // starting room
         state->enemies.position_rotations[i++] = vec4_new(-4.5, -20.0, 1.0, 0.0);
@@ -243,19 +300,19 @@ void load_level_model(GameState* state, LoaderState* loader) {
     }
 
     {
-        state->enemy_sees_player = sbmalloc(&state->audio_buffer, state->enemies.capacity * sizeof(b32));
-        state->windup_needs_reverse = sbmalloc(&state->audio_buffer, state->enemies.capacity * sizeof(b32));
+        state->enemy_sees_player = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
+        state->windup_needs_reverse = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
     }
 
     // load lights
     {
         Light lights[light_count] = {
-            {{{-4.5, -21.5, 0.0, sqrtf(1.0/16.0)}}, {{0.1, 0.1, 2.0, 1.0}}},
-            {{{-33.0, -9.0, 0.0, sqrtf(1.0/2.0)}}, {{2.0, 0.1, 0.1, 1.0}}},
-            {{{-34.5, -64.5, 10.0, sqrtf(1.0/4.0)}}, {{2.0, 1.0, 0.1, 1.0}}},
-            {{{21.5, -77.5, 10.0, sqrtf(1.0/2.0)}}, {{2.0, 1.0, 0.1, 1.0}}},
-            {{{9.5, -48.5, -9.5, sqrtf(1.0/1.0)}}, {{0.1, 2.0, 0.1, 1.0}}},
-            {{{0.5, -56.0, 10.0, sqrtf(1.0/1.0)}}, {{2.0, 2.0, 0.1, 1.0}}},
+            {{{-4.5, -21.5, 0.0, sqrtf(1.0/16.0)}}, {{0.1, 0.1, 4.0, 1.0}}},
+            {{{-33.0, -9.0, 0.0, sqrtf(1.0/2.0)}}, {{4.0, 0.1, 0.1, 1.0}}},
+            {{{-34.5, -64.5, 10.0, sqrtf(1.0/4.0)}}, {{4.0, 1.0, 0.1, 1.0}}},
+            {{{21.5, -77.5, 10.0, sqrtf(1.0/2.0)}}, {{4.0, 2.0, 0.1, 1.0}}},
+            {{{9.5, -48.5, -9.5, sqrtf(1.0/1.0)}}, {{0.1, 4.0, 0.1, 1.0}}},
+            {{{0.5, -56.0, 10.0, sqrtf(1.0/1.0)}}, {{4.0, 4.0, 0.1, 1.0}}},
         };
 
         create_device_local_buffer_2(
@@ -274,17 +331,17 @@ void load_level_model(GameState* state, LoaderState* loader) {
     {
         state->keycards.capacity = 3;
         state->keycards.length = 3;
-        state->keycards.position_rotations = sbmalloc(&state->physics_buffer, state->keycards.capacity * sizeof(vec4));
+        state->keycards.position_rotations = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
         state->keycards.position_rotations[0] = vec4_new(-33.0, -9.0, 0.0, 0.0);
         state->keycards.position_rotations[1] = vec4_new(21.5, -77.5, 10.0, 0.0);
         state->keycards.position_rotations[2] = vec4_new(-34.5, -64.5, 10.0, 0.0);
 
-        state->keycards.colors = sbmalloc(&state->physics_buffer, state->keycards.capacity * sizeof(vec4));
+        state->keycards.colors = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
     }
 
     // set door keycard requirements
     {
-        state->door_requirements = sbmalloc(&state->physics_buffer, state->doors.capacity * sizeof(u32));
+        state->door_requirements = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(u32));
 
         state->door_requirements[0] = KEYCARD_NONE;
         state->door_requirements[6] = KEYCARD_NONE;
@@ -327,7 +384,7 @@ void render_entity_list(
 }
 
 void create_command_buffers(GameState* state) {
-    state->command_buffers = sbmalloc(&state->swapchain_buffer, state->swapchain_image_count * sizeof(VkCommandBuffer));
+    state->command_buffers = sbmalloc(&state->level_buffer, state->swapchain_image_count * sizeof(VkCommandBuffer));
 
     VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -457,7 +514,7 @@ void create_descriptor_pool(GameState* state) {
 }
 
 void create_descriptor_sets(GameState* state) {
-    VkDescriptorSetLayout* layouts = sbmalloc(&state->swapchain_buffer, state->swapchain_image_count * sizeof(VkDescriptorSetLayout));
+    VkDescriptorSetLayout* layouts = sbmalloc(&state->level_buffer, state->swapchain_image_count * sizeof(VkDescriptorSetLayout));
     for(usize index = 0; index < state->swapchain_image_count; index += 1) { layouts[index] = state->global_descriptor_set_layout; }
 
     VkDescriptorSetAllocateInfo allocate_info = {};
@@ -466,7 +523,7 @@ void create_descriptor_sets(GameState* state) {
     allocate_info.descriptorSetCount = state->swapchain_image_count;
     allocate_info.pSetLayouts = layouts;
 
-    state->global_descriptor_sets = sbmalloc(&state->swapchain_buffer, state->swapchain_image_count * sizeof(VkDescriptorSet));
+    state->global_descriptor_sets = sbmalloc(&state->level_buffer, state->swapchain_image_count * sizeof(VkDescriptorSet));
     if (vkAllocateDescriptorSets(state->device, &allocate_info, state->global_descriptor_sets) != VK_SUCCESS) {
         panic("Failed to allocate uniform descriptor sets!");
     }
@@ -555,7 +612,7 @@ void create_level_buffers(GameState* state, LoaderState* loader) {
     );
 }
 
-void create_entity_buffers(
+void create_entity_render_data(
     VkDevice device,
     VkPhysicalDevice physical_device,
     VkQueue queue,
@@ -605,7 +662,7 @@ void create_entity_buffers(
 }
 
 void create_all_entity_buffers(GameState* state, LoaderState* loader) {
-    create_entity_buffers(
+    create_entity_render_data(
         state->device,
         state->physical_device,
         state->queue,
@@ -617,7 +674,7 @@ void create_all_entity_buffers(GameState* state, LoaderState* loader) {
         &state->enemies
     );
 
-    create_entity_buffers(
+    create_entity_render_data(
         state->device,
         state->physical_device,
         state->queue,
@@ -629,7 +686,7 @@ void create_all_entity_buffers(GameState* state, LoaderState* loader) {
         &state->doors
     );
 
-    create_entity_buffers(
+    create_entity_render_data(
         state->device,
         state->physical_device,
         state->queue,
@@ -692,7 +749,7 @@ void load_level(GameState* state) {
         load_level_model(state, loader);
         create_level_buffers(state, loader);
         create_all_entity_buffers(state, loader);
-        //create_enemy_buffers(state, loader);
+        //create_level_buffers(state, loader);
         //create_door_buffers(state, loader);
 
         load_level_sounds(state, loader);
@@ -705,26 +762,28 @@ void load_level(GameState* state) {
     create_command_buffers(state);
 }
 
+void destroy_entity_list(VkDevice device, EntityList* entity_list) {
+    destroy_model(device, entity_list->model);
+    destroy_local_and_staging_buffer(device, entity_list->position_rotation_buffer, entity_list->position_rotation_staging_buffer);
+    destroy_local_and_staging_buffer(device, entity_list->color_buffer, entity_list->color_staging_buffer);
+}
+
 void unload_level(GameState* state) {
     state->load_next_level = false;
     state->level_index += 1;
 
     vkDeviceWaitIdle(state->device);
 
-    sbclear(&state->physics_buffer);
-    sbclear(&state->enemy_buffer);
-    sbclear(&state->audio_buffer);
+    sbclear(&state->level_buffer);
+    //sbclear(&state->level_buffer);
+    //sbclear(&state->level_buffer);
 
     destroy_texture(state->device, state->level_texture);
     destroy_model(state->device, state->level_model);
 
-    destroy_model(state->device, state->enemies.model);
-    destroy_local_and_staging_buffer(state->device, state->enemies.position_rotation_buffer, state->enemies.position_rotation_staging_buffer);
-    destroy_local_and_staging_buffer(state->device, state->enemies.color_buffer, state->enemies.color_staging_buffer);
-
-    destroy_model(state->device, state->doors.model);
-    destroy_local_and_staging_buffer(state->device, state->doors.position_rotation_buffer, state->doors.position_rotation_staging_buffer);
-    destroy_local_and_staging_buffer(state->device, state->doors.color_buffer, state->doors.color_staging_buffer);
+    destroy_entity_list(state->device, &state->enemies);
+    destroy_entity_list(state->device, &state->doors);
+    destroy_entity_list(state->device, &state->keycards);
 
     vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
     vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);

@@ -769,11 +769,8 @@ void init_staged_buffers(GameState* state) {
     sbinit(&state->swapchain_buffer, 4 * 1024); // 4K
     sbinit(&state->semaphore_buffer, 4 * 1024); // 4K
 
-    sbinit(&state->enemy_buffer, 4 * 1024); // 4k
-    sbinit(&state->physics_buffer, 4 * 1024 * 1024); // 512K
-    sbinit(&state->physics_scratch_buffer, 512 * 1024); // 16K
-
-    sbinit(&state->audio_buffer, 16 * 1024); // 16K
+    sbinit(&state->level_buffer, 4 * 1024 * 1024); // 4M
+    sbinit(&state->level_scratch_buffer, 512 * 1024); // 512K
 }
 
 void init_open_al_soft(GameState* state) {
