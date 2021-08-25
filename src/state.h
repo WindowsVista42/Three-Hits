@@ -152,13 +152,13 @@ typedef struct EntityList {
     u32 capacity;
     u32 length;
 
+    vec4* position_rotations;
     Buffer position_rotation_buffer;
     Buffer position_rotation_staging_buffer;
-    vec4* position_rotations;
 
+    vec4* colors;
     Buffer color_buffer;
     Buffer color_staging_buffer;
-    vec4* colors;
 } EntityList;
 
 typedef struct GameState {
@@ -214,6 +214,9 @@ typedef struct GameState {
     // World model
     VkSampler generic_sampler;
 
+    StagedBuffer level_buffer;
+    StagedBuffer level_scratch_buffer;
+
     Model level_model;
     Texture level_texture;
 
@@ -225,7 +228,6 @@ typedef struct GameState {
     Buffer light_buffer;
 
 //
-    StagedBuffer enemy_buffer;
     EntityList enemies;
     i32* enemy_healths;
     f32* enemy_hit_times;
@@ -242,8 +244,6 @@ typedef struct GameState {
     f32 delta_time;
 
     // Physics
-    StagedBuffer physics_buffer;
-    StagedBuffer physics_scratch_buffer;
 
     f32 gravity;
     f32 sliding_threshold;
@@ -286,8 +286,6 @@ typedef struct GameState {
     Buffer crosshair_color_staging_buffer;
 
     // audio
-    StagedBuffer audio_buffer;
-
     AlDevice* al_device;
     AlContext* al_context;
     ReverbProperties reverb;
@@ -356,6 +354,9 @@ typedef struct LoaderState {
     Vertex* door_vertices;
     u32 door_index_count;
     u32* door_indices;
+
+    u32 ulight_count;
+    Light* lights;
 } LoaderState;
 
 #define UNTITLED_FPS_STATE_H
