@@ -206,6 +206,19 @@ void load_level_model(GameState* state, LoaderState* loader) {
         state->enemy_sees_player = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
         state->windup_needs_reverse = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
 
+        // load keycards from file
+        fread(&state->keycards.capacity, sizeof(u32), 1, fp);
+        state->keycards.length = state->keycards.capacity;
+        state->keycards.position_rotations = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
+        for(usize index = 0; index <state->keycards.capacity; index += 1) {
+            fread(&state->keycards.position_rotations[index].x, sizeof(f32), 1, fp);
+            fread(&state->keycards.position_rotations[index].y, sizeof(f32), 1, fp);
+            fread(&state->keycards.position_rotations[index].z, sizeof(f32), 1, fp);
+            state->keycards.position_rotations[index].w = 0.0;
+        }
+
+        state->keycards.colors = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
+
         // load lights from file
         fread(&loader->ulight_count, sizeof(u32), 1, fp);
         loader->lights = sbmalloc(&loader->read_scratch, loader->ulight_count * sizeof(Light));
