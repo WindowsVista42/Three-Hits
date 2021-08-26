@@ -806,6 +806,28 @@ void create_graphics_pipeline(
     }
 }
 
+void write_buffer_copy_buffer(
+    VkDevice device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    Buffer staging_buffer,
+    Buffer local_buffer,
+    void* data,
+    u32 offset,
+    u32 size,
+    VkMemoryMapFlags flags
+) {
+    write_buffer(device, staging_buffer.memory, offset, size, flags, data);
+    copy_buffer_to_buffer(
+        device,
+        queue,
+        command_pool,
+        staging_buffer.buffer,
+        local_buffer.buffer,
+        size
+    );
+}
+
 void create_model(
     VkDevice device,
     VkPhysicalDevice physical_device,
