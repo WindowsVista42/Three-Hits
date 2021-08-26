@@ -722,7 +722,7 @@ void update(GameState* state) {
 
     // check player position end thing
     {
-        if (vec3_distsq_vec3(state->player_position, vec3_new(9.5, -56.5, -12.0)) < 6.0) {
+        if (vec3_distsq_vec3(state->player_position, *(vec3*)&state->end_zone) < state->end_zone.w) {
             if(glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
                 state->load_next_level = true;
             }
