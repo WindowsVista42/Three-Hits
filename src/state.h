@@ -225,6 +225,10 @@ typedef struct GameState {
     VkDescriptorSetLayout global_descriptor_set_layout;
     VkDescriptorSet* global_descriptor_sets; // shared data
     Buffer* camera_uniforms;
+
+    u32 ulight_count;
+    Light* lights;
+    Buffer light_staging_buffer;
     Buffer light_buffer;
 
 //
@@ -357,9 +361,6 @@ typedef struct LoaderState {
     Vertex* door_vertices;
     u32 door_index_count;
     u32* door_indices;
-
-    u32 ulight_count;
-    Light* lights;
 } LoaderState;
 
 #define UNTITLED_FPS_STATE_H

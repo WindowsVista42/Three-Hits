@@ -220,18 +220,18 @@ void load_level_model(GameState* state, LoaderState* loader) {
         state->keycards.colors = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
 
         // load lights from file
-        fread(&loader->ulight_count, sizeof(u32), 1, fp);
-        loader->lights = sbmalloc(&loader->read_scratch, loader->ulight_count * sizeof(Light));
-        for(usize index = 0; index < loader->ulight_count; index += 1) {
-            fread(&loader->lights[index].position_falloff.x, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].position_falloff.y, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].position_falloff.z, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].position_falloff.w, sizeof(f32), 1, fp);
+        fread(&state->ulight_count, sizeof(u32), 1, fp);
+        state->lights = sbmalloc(&state->level_buffer, state->ulight_count * sizeof(Light));
+        for(usize index = 0; index < state->ulight_count; index += 1) {
+            fread(&state->lights[index].position_falloff.x, sizeof(f32), 1, fp);
+            fread(&state->lights[index].position_falloff.y, sizeof(f32), 1, fp);
+            fread(&state->lights[index].position_falloff.z, sizeof(f32), 1, fp);
+            fread(&state->lights[index].position_falloff.w, sizeof(f32), 1, fp);
 
-            fread(&loader->lights[index].color_alpha.x, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].color_alpha.y, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].color_alpha.z, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].color_alpha.w, sizeof(f32), 1, fp);
+            fread(&state->lights[index].color_alpha.x, sizeof(f32), 1, fp);
+            fread(&state->lights[index].color_alpha.y, sizeof(f32), 1, fp);
+            fread(&state->lights[index].color_alpha.z, sizeof(f32), 1, fp);
+            fread(&state->lights[index].color_alpha.w, sizeof(f32), 1, fp);
         }
 
         // load end zone
@@ -250,15 +250,27 @@ void load_level_model(GameState* state, LoaderState* loader) {
     }
 
     //TODO(sean): figure out if i want to load other buffers inline like this
-    create_device_local_buffer_2(
+    //create_device_local_buffer_2(
+    //    state->device,
+    //    state->physical_device,
+    //    state->queue,
+    //    state->command_pool,
+    //    state->ulight_count * sizeof(Light),
+    //    state->lights,
+    //    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+    //    &state->light_buffer
+    //);
+
+    create_device_local_and_staging_buffer(
         state->device,
         state->physical_device,
         state->queue,
         state->command_pool,
-        loader->ulight_count * sizeof(Light),
-        loader->lights,
+        state->ulight_count * sizeof(Light),
+        state->lights,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        &state->light_buffer
+        &state->light_buffer,
+        &state->light_staging_buffer
     );
 }
 
