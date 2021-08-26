@@ -161,6 +161,31 @@ typedef struct EntityList {
     Buffer color_staging_buffer;
 } EntityList;
 
+#define ACTION_PRESSED 0x1
+#define ACTION_HELD 0x2
+
+typedef struct Action {
+    i32 key;
+    b8 held;
+    b8 pressed;
+    b8 _pad0;
+    b8 _pad1;
+} Action;
+
+void update_action(GLFWwindow* window, Action* action) {
+    if(glfwGetKey(window, action->key) == GLFW_PRESS) {
+        if(!action->held) {
+            action->pressed = true;
+        } else {
+            action->pressed = false;
+        }
+        action->held = true;
+    } else {
+        action->held = false;
+        action->pressed = false;
+    }
+}
+
 typedef struct GameState {
     u32 window_width;
     u32 window_height;
