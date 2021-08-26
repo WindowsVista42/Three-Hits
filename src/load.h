@@ -128,6 +128,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
         read_indices(&loader->read_scratch, &loader->level_index_count, &loader->level_indices, fp);
         state->level_model.index_count = loader->level_index_count;
 
+        // load door model
         read_vertices(&loader->read_scratch, &loader->door_vertex_count, &loader->door_vertices, fp);
         read_indices(&loader->read_scratch, &loader->door_index_count, &loader->door_indices, fp);
         state->doors.model.index_count = loader->door_index_count;
@@ -149,6 +150,12 @@ void load_level_model(GameState* state, LoaderState* loader) {
             fread(&state->doors.position_rotations[index].y, sizeof(f32), 1, fp);
             fread(&state->doors.position_rotations[index].z, sizeof(f32), 1, fp);
             fread(&state->doors.position_rotations[index].w, sizeof(f32), 1, fp);
+        }
+
+        // load door requirements
+        state->door_requirements = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(u32));
+        for(usize index = 0; index < state->doors.capacity; index += 1) {
+            fread(&state->door_requirements[index], sizeof(u32), 1, fp);
         }
 
         // load doors physmesh ranges
