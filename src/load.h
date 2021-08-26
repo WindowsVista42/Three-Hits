@@ -637,9 +637,7 @@ void reset_player(GameState* state) {
     state->player_radius = 1.0f;
     state->player_z_speed = 0.0f;
 
-    state->player_position.x = 0.0;
-    state->player_position.y = 0.0;
-    state->player_position.z = 0.0;
+    state->player_position = *(vec3*)&state->start_zone;
 
     state->player_keycards = KEYCARD_NONE;
 }
@@ -655,8 +653,6 @@ void load_level(GameState* state) {
         load_level_model(state, loader);
         create_level_buffers(state, loader);
         create_all_entity_buffers(state, loader);
-        //create_level_buffers(state, loader);
-        //create_door_buffers(state, loader);
 
         load_level_sounds(state, loader);
     }
@@ -666,6 +662,8 @@ void load_level(GameState* state) {
     create_descriptor_sets(state);
 
     create_command_buffers(state);
+
+    reset_player(state);
 }
 
 void destroy_entity_list(VkDevice device, EntityList* entity_list) {
@@ -681,8 +679,7 @@ void unload_level(GameState* state) {
     vkDeviceWaitIdle(state->device);
 
     sbclear(&state->level_buffer);
-    //sbclear(&state->level_buffer);
-    //sbclear(&state->level_buffer);
+    sbclear(&state->level_scratch_buffer);
 
     destroy_texture(state->device, state->level_texture);
     destroy_model(state->device, state->level_model);
@@ -693,8 +690,6 @@ void unload_level(GameState* state) {
 
     vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
     vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);
-
-    reset_player(state);
 }
 
 #define THREE_HITS_LOAD_H
