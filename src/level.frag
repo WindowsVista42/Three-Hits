@@ -42,7 +42,7 @@ void main() {
     }
 
     float luminance = dot(combined_color_alpha, combined_color_alpha);
-    vec4 test = combined_color_alpha + vec4(vec3(0.004), 0.0);
+    vec4 test = combined_color_alpha;
     test.w = 1.0;
     out_color = test * texture(tex_sampler, in_uv);
 }
