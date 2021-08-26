@@ -233,7 +233,18 @@ void load_level_model(GameState* state, LoaderState* loader) {
             fread(&loader->lights[index].color_alpha.z, sizeof(f32), 1, fp);
             fread(&loader->lights[index].color_alpha.w, sizeof(f32), 1, fp);
         }
-        */
+
+        // load end zone
+        fread(&state->end_zone.x, sizeof(f32), 1, fp);
+        fread(&state->end_zone.y, sizeof(f32), 1, fp);
+        fread(&state->end_zone.z, sizeof(f32), 1, fp);
+        fread(&state->end_zone.w, sizeof(f32), 1, fp);
+
+        // load start zone
+        fread(&state->start_zone.x, sizeof(f32), 1, fp);
+        fread(&state->start_zone.y, sizeof(f32), 1, fp);
+        fread(&state->start_zone.z, sizeof(f32), 1, fp);
+        fread(&state->start_zone.w, sizeof(f32), 1, fp);
 
         fclose(fp);
     }
