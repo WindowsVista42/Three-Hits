@@ -249,136 +249,17 @@ void load_level_model(GameState* state, LoaderState* loader) {
         fclose(fp);
     }
 
-    // load enemies
-    {
-        state->enemies.capacity = 30;
-        state->enemies.length = 0;//state->enemies.capacity;
-        u32 i = 0;
-
-        state->enemies.position_rotations = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
-        state->enemy_hit_times = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(f32));
-        state->enemies.colors = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
-        state->enemy_healths = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(i32));
-        state->enemy_shoot_times = sbcalloc(&state->level_buffer, 0, state->enemies.capacity * sizeof(f32));
-
-        // starting room
-        state->enemies.position_rotations[i++] = vec4_new(-4.5, -20.0, 1.0, 0.0);
-
-        // right hallway
-        state->enemies.position_rotations[i++] = vec4_new(-23.5, -31.0, 1.0, 0.0);
-
-        // right room
-        state->enemies.position_rotations[i++] = vec4_new(-26.0, -16.0, 1.0, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-24.0, -8.0 , 1.0, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-32.5,  0.25, 1.0, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-37.0,  0.25, 1.0, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-43.0, -9.5 , 1.0, 0.0);
-
-        // upper hallway
-        state->enemies.position_rotations[i++] = vec4_new(-5.25, -58.5, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new( 5.5,  -58.5, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(18.0,  -64.0, 10.5, 0.0);
-
-        // upper left room
-        state->enemies.position_rotations[i++] = vec4_new(20.5,  -73.0, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(15.5,  -72.5, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(29.0,  -72.0, 10.5, 0.0);
-
-        state->enemies.position_rotations[i++] = vec4_new(25.25, -88.0, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(26.0,  -83.0, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new( 9.0,  -74.5, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new( 9.0,  -78.5, 10.5, 0.0);
-
-        // upper right room
-        state->enemies.position_rotations[i++] = vec4_new(-17.5, -64.5, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-16.5, -75.0, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-25.5, -65.5, 10.5, 0.0);
-        state->enemies.position_rotations[i++] = vec4_new(-30.0, -71.5, 10.5, 0.0);
-
-        // bottom of stairs
-        state->enemies.position_rotations[i++] = vec4_new( 9.5,  -54.5, -10.5, 0.0);
-
-        // rest
-        state->enemies.length = i;
-        for(u32 index = state->enemies.length; index < state->enemies.capacity; index += 1) {
-            state->enemies.position_rotations[index].x = 100.0 + (f32)i;
-            state->enemies.position_rotations[index].y = 100.0 + (f32)i;
-            state->enemies.position_rotations[index].z = 1.0f;
-            state->enemies.position_rotations[index].w = 0.0f;
-        }
-
-        // other init data
-        for(u32 index = 0; index < state->enemies.length; index += 1) {
-            state->enemies.colors[index].x = 1.0;
-            state->enemies.colors[index].y = 0.0;
-            state->enemies.colors[index].z = 0.0;
-        }
-
-        const i32 enemy_default_health = 4;
-        for(u32 index = 0; index < state->enemies.length; index += 1) {
-            state->enemy_healths[index] = enemy_default_health;
-        }
-
-        for(u32 index = 0; index < state->enemies.length; index += 1) {
-            state->enemy_hit_times[index] = 0.0;
-        }
-    }
-
-    {
-        state->enemy_sees_player = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
-        state->windup_needs_reverse = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
-    }
-
-    // load lights
-    {
-        Light lights[light_count] = {
-            {{{-4.5, -21.5, 0.0, sqrtf(1.0/16.0)}}, {{0.1, 0.1, 4.0, 1.0}}},
-            {{{-33.0, -9.0, 0.0, sqrtf(1.0/2.0)}}, {{4.0, 0.1, 0.1, 1.0}}},
-            {{{-34.5, -64.5, 10.0, sqrtf(1.0/4.0)}}, {{4.0, 1.0, 0.1, 1.0}}},
-            {{{21.5, -77.5, 10.0, sqrtf(1.0/2.0)}}, {{4.0, 2.0, 0.1, 1.0}}},
-            {{{9.5, -48.5, -9.5, sqrtf(1.0/1.0)}}, {{0.1, 4.0, 0.1, 1.0}}},
-            {{{0.5, -56.0, 10.0, sqrtf(1.0/1.0)}}, {{4.0, 4.0, 0.1, 1.0}}},
-        };
-
-        create_device_local_buffer_2(
-            state->device,
-            state->physical_device,
-            state->queue,
-            state->command_pool,
-            light_count * sizeof(Light),
-            lights,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            &state->light_buffer
-        );
-    }
-
-    // load keycards
-    {
-        state->keycards.capacity = 3;
-        state->keycards.length = 3;
-        state->keycards.position_rotations = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
-        state->keycards.position_rotations[0] = vec4_new(-33.0, -9.0, 0.0, 0.0);
-        state->keycards.position_rotations[1] = vec4_new(21.5, -77.5, 10.0, 0.0);
-        state->keycards.position_rotations[2] = vec4_new(-34.5, -64.5, 10.0, 0.0);
-
-        state->keycards.colors = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
-    }
-
-    // set door keycard requirements
-    {
-        state->door_requirements = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(u32));
-
-        state->door_requirements[0] = KEYCARD_NONE;
-        state->door_requirements[6] = KEYCARD_NONE;
-        state->door_requirements[2] = KEYCARD_NONE;
-
-        state->door_requirements[3] = KEYCARD_RED;
-        state->door_requirements[5] = KEYCARD_RED;
-
-        state->door_requirements[4] = KEYCARD_BLUE;
-
-        state->door_requirements[1] = KEYCARD_YELLOW;
-    }
+    //TODO(sean): figure out if i want to load other buffers inline like this
+    create_device_local_buffer_2(
+        state->device,
+        state->physical_device,
+        state->queue,
+        state->command_pool,
+        loader->ulight_count * sizeof(Light),
+        loader->lights,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        &state->light_buffer
+    );
 }
 
 typedef struct RenderEntityListInfo {
