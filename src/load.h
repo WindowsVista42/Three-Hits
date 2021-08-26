@@ -173,26 +173,18 @@ void load_level_model(GameState* state, LoaderState* loader) {
             state->doors.colors[index] = vec4_new(1.0, 1.0, 0.0, 1.0);
         }
 
-        /*
         // load enemies from file
         fread(&state->enemies.capacity, sizeof(u32), 1, fp);
-        fread(&state->enemies.length, sizeof(u32), 1, fp);
+        state->enemies.length = state->enemies.capacity;
         state->enemies.position_rotations = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
-        for (usize index = 0; index < state->enemies.length; index += 1) {
+        for (usize index = 0; index < state->enemies.capacity; index += 1) {
             fread(&state->enemies.position_rotations[index].x, sizeof(f32), 1, fp);
             fread(&state->enemies.position_rotations[index].y, sizeof(f32), 1, fp);
             fread(&state->enemies.position_rotations[index].z, sizeof(f32), 1, fp);
             state->enemies.position_rotations[index].w = 0.0f;
         }
 
-        for(usize index = state->enemies.length; index < state->enemies.capacity; index += 1) {
-            state->enemies.position_rotations[index].x = FLT_MAX;
-            state->enemies.position_rotations[index].y = FLT_MAX;
-            state->enemies.position_rotations[index].z = FLT_MAX;
-            state->enemies.position_rotations[index].w = 0.0f;
-        }
-
-        // set enemy defaults
+        // set enemy colors
         state->enemies.colors = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(vec4));
         for(u32 index = 0; index < state->enemies.capacity; index += 1) {
             state->enemies.colors[index].x = 1.0;
@@ -201,12 +193,14 @@ void load_level_model(GameState* state, LoaderState* loader) {
             state->enemies.colors[index].w = 1.0;
         }
 
+        // set enemy healths
         const i32 enemy_default_health = 4;
         state->enemy_healths = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(i32));
         for(u32 index = 0; index < state->enemies.capacity; index += 1) {
             state->enemy_healths[index] = enemy_default_health;
         }
 
+        // init some extra required data
         state->enemy_hit_times = sbcalloc(&state->level_buffer, 0, state->enemies.capacity * sizeof(f32));
         state->enemy_shoot_times = sbcalloc(&state->level_buffer, 0, state->enemies.capacity * sizeof(f32));
         state->enemy_sees_player = sbmalloc(&state->level_buffer, state->enemies.capacity * sizeof(b32));
