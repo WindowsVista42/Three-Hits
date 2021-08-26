@@ -154,16 +154,21 @@ void update(GameState* state) {
             }
         }
 
-        b32 active_action = false;
-        static b32 e_held = true;
-        if (glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
-            if (e_held != true) {
-                active_action = true;
-            }
-            e_held = true;
-        } else {
-            e_held = false;
-        }
+        static Action activate_action = {GLFW_KEY_E, false, false, 0, 0};
+        update_action(state->window, &activate_action);
+        //b32 active_action = false;
+        //static b32 e_held = true;
+        //static b32 e_pressed = false;
+        //if (glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
+        //    e_pressed = true;
+        //    if (e_held != true) {
+        //        active_action = true;
+        //    }
+        //    e_held = true;
+        //} else {
+        //    e_pressed = false;
+        //    e_held = false;
+        //}
 
         // doors
         {
@@ -172,7 +177,7 @@ void update(GameState* state) {
                 u32 upper = state->door_physmesh_ranges[index + 1];
 
                 // door opens
-                if (lower <= state->closest_ray_index && state->closest_ray_index < upper && active_action && wall_distance < state->door_activation_distance) {
+                if (lower <= state->closest_ray_index && state->closest_ray_index < upper && activate_action.pressed && wall_distance < state->door_activation_distance) {
                     if(state->door_requirements[index] == 0 || state->door_requirements[index] & state->player_keycards) {
                         alSourcePlay(state->door_sound_sources[index]);
                         state->door_timings[index] = state->max_door_open_time * 2.0 - state->door_timings[index];
@@ -281,6 +286,19 @@ void update(GameState* state) {
         if(reload_timer > 0.0f) { state->crosshair_color = vec4_new(0.0, 0.0, 1.0, 0.5); }
         else if(shoot_timer > 0.0f) { state->crosshair_color = vec4_new(1.0, 0.0, 0.0, 0.5); }
         else { state->crosshair_color = vec4_new(1.0, 1.0, 1.0, 0.5); }
+
+        write_buffer_copy_buffer(
+            state->device,
+            state->queue,
+            state->command_pool,
+            state->crosshair_color_staging_buffer,
+            state->crosshair_color_buffer,
+            &state->crosshair_color,
+            0,
+            sizeof(vec4),
+            0
+        );
+        /*
         write_buffer(state->device, state->crosshair_color_staging_buffer.memory, 0, sizeof(vec4), 0, &state->crosshair_color);
         copy_buffer_to_buffer(
             state->device,
@@ -290,6 +308,8 @@ void update(GameState* state) {
             state->crosshair_color_buffer.buffer,
             sizeof(vec4)
         );
+        */
+
         shoot_timer -= state->delta_time;
         reload_timer -= state->delta_time;
 
@@ -728,9 +748,141 @@ void update(GameState* state) {
             }
         }
 
+        /*
         if(glfwGetKey(state->window, GLFW_KEY_J) == GLFW_PRESS) {
             state->load_next_level = true;
         }
+        */
+    }
+
+    {
+        b32 changed = false;
+        static Action xp = {GLFW_KEY_Y};
+        static Action xn = {GLFW_KEY_H};
+        static Action yp = {GLFW_KEY_U};
+        static Action yn = {GLFW_KEY_J};
+        static Action zp = {GLFW_KEY_I};
+        static Action zn = {GLFW_KEY_K};
+        static Action wp = {GLFW_KEY_O};
+        static Action wn = {GLFW_KEY_L};
+        static Action next = {GLFW_KEY_SEMICOLON};
+        static Action placement = {GLFW_KEY_P};
+
+        update_action(state->window, &xp);
+        update_action(state->window, &xn);
+        update_action(state->window, &yp);
+        update_action(state->window, &yn);
+        update_action(state->window, &zp);
+        update_action(state->window, &zn);
+        update_action(state->window, &wp);
+        update_action(state->window, &wn);
+        update_action(state->window, &next);
+        update_action(state->window, &placement);
+
+        static u32 mode = 0;
+        static u32 index = 0;
+
+        if(next.pressed) {
+            f32 smallest_distance = 4096.0f;
+            u32 closest_index = 0;
+            for(usize i = 0; i < state->ulight_count; i += 1) {
+                vec3 P = *(vec3*)&state->lights[i].position_falloff;
+                f32 dist = vec3_distsq_vec3(state->player_position, P);
+                if(dist < smallest_distance) {
+                    smallest_distance = dist;
+                    closest_index = i;
+                }
+            }
+            index = closest_index;
+            printf("Changed to light %d\n", index);
+        }
+        if(placement.pressed) {
+            mode += 1;
+            mode %= 2;
+            printf("Changed to placement mode %d\n", mode);
+        }
+
+        if(mode == 0) {
+            if (xp.held) {
+                changed = true;
+                state->lights[index].position_falloff.x += 2.5 * state->delta_time;
+            }
+            if (xn.held) {
+                changed = true;
+                state->lights[index].position_falloff.x -= 2.5 * state->delta_time;
+            }
+            if (yp.held) {
+                changed = true;
+                state->lights[index].position_falloff.y += 2.5 * state->delta_time;
+            }
+            if (yn.held) {
+                changed = true;
+                state->lights[index].position_falloff.y -= 2.5 * state->delta_time;
+            }
+            if (zp.held) {
+                changed = true;
+                state->lights[index].position_falloff.z += 2.5 * state->delta_time;
+            }
+            if (zn.held) {
+                changed = true;
+                state->lights[index].position_falloff.z -= 2.5 * state->delta_time;
+            }
+            if (wp.held) {
+                changed = true;
+                state->lights[index].position_falloff.w += 0.5 * state->delta_time;
+            }
+            if (wn.held) {
+                changed = true;
+                state->lights[index].position_falloff.w -= 0.5 * state->delta_time;
+            }
+
+            if(changed) {
+                vec4_print(state->lights[index].position_falloff);
+            }
+        } else if(mode == 1) {
+            if (xp.held) {
+                changed = true;
+                state->lights[index].color_alpha.x += 1.0 * state->delta_time;
+            }
+            if (xn.held) {
+                changed = true;
+                state->lights[index].color_alpha.x -= 1.0 * state->delta_time;
+            }
+            if (yp.held) {
+                changed = true;
+                state->lights[index].color_alpha.y += 1.0 * state->delta_time;
+            }
+            if (yn.held) {
+                changed = true;
+                state->lights[index].color_alpha.y -= 1.0 * state->delta_time;
+            }
+            if (zp.held) {
+                changed = true;
+                state->lights[index].color_alpha.z += 1.0 * state->delta_time;
+            }
+            if (zn.held) {
+                changed = true;
+                state->lights[index].color_alpha.z -= 1.0 * state->delta_time;
+            }
+
+            if(changed) {
+                vec4_print(state->lights[index].color_alpha);
+            }
+        }
+
+        //if(changed) {
+            write_buffer_copy_buffer(
+                state->device,
+                state->queue,
+                state->command_pool,
+                state->light_staging_buffer,
+                state->light_buffer,
+                state->lights,
+                0,
+                state->ulight_count * sizeof(Light),
+                0
+            );
+        //}
     }
 }
 
