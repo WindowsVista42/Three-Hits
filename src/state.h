@@ -326,6 +326,9 @@ typedef struct GameState {
 
     b32 load_next_level;
     u32 level_index;
+
+    vec4 end_zone;
+    vec4 start_zone;
 } GameState;
 
 #include "../lib/stb_image.h"
