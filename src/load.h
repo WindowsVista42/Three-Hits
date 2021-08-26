@@ -223,15 +223,15 @@ void load_level_model(GameState* state, LoaderState* loader) {
         fread(&loader->ulight_count, sizeof(u32), 1, fp);
         loader->lights = sbmalloc(&loader->read_scratch, loader->ulight_count * sizeof(Light));
         for(usize index = 0; index < loader->ulight_count; index += 1) {
-            fread(&loader->lights[index].color_alpha.x, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].color_alpha.y, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].color_alpha.z, sizeof(f32), 1, fp);
-            fread(&loader->lights[index].color_alpha.w, sizeof(f32), 1, fp);
-
             fread(&loader->lights[index].position_falloff.x, sizeof(f32), 1, fp);
             fread(&loader->lights[index].position_falloff.y, sizeof(f32), 1, fp);
             fread(&loader->lights[index].position_falloff.z, sizeof(f32), 1, fp);
             fread(&loader->lights[index].position_falloff.w, sizeof(f32), 1, fp);
+
+            fread(&loader->lights[index].color_alpha.x, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].color_alpha.y, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].color_alpha.z, sizeof(f32), 1, fp);
+            fread(&loader->lights[index].color_alpha.w, sizeof(f32), 1, fp);
         }
         */
 
