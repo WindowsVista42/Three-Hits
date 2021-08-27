@@ -572,42 +572,6 @@ void create_entity_graphics_pipeline(GameState* state) {
     );
 }
 
-/*
-void create_door_graphics_pipeline(GameState* state) {
-    PipelineOptions pipeline_options;
-    pipeline_options.cull_mode = VK_CULL_MODE_NONE;
-    pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-    pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
-    pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
-    pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    create_graphics_pipeline(
-        state->device,
-        state->enemy_modules.vertex,
-        state->enemy_modules.fragment,
-        door_vertex_attribute_description_count,
-        door_vertex_attribute_descriptions,
-        door_vertex_binding_description_count,
-        door_vertex_binding_descriptions,
-        state->swapchain_extent.width,
-        state->swapchain_extent.height,
-        1,
-        &state->ubo_sampler_descriptor_set_layout,
-        &pipeline_options,
-        &state->door_pipeline,
-        state->swapchain_format,
-        state->depth_image_format
-    );
-}
-*/
-
 void create_crosshair_graphics_pipeline(GameState* state) {
     PipelineOptions pipeline_options;
     pipeline_options.cull_mode = VK_CULL_MODE_FRONT_AND_BACK;
@@ -825,6 +789,26 @@ void init_defaults(GameState* state) {
     state->pistol_magazine_size = 12;
 
     state->enemy_shoot_delay = 2.0f;
+}
+
+//TODO(sean): read this from a config file
+void load_actions(GameState* state, ConfigState* config) {
+    state->move_forward = new_action(GLFW_KEY_W);
+    state->move_backward = new_action(GLFW_KEY_S);
+    state->move_left = new_action(GLFW_KEY_A);
+    state->move_right = new_action(GLFW_KEY_D);
+    state->move_jump = new_action(GLFW_KEY_SPACE);
+
+    state->debug_xp = new_action(GLFW_KEY_Y);
+    state->debug_xn = new_action(GLFW_KEY_H);
+    state->debug_yp = new_action(GLFW_KEY_U);
+    state->debug_yn = new_action(GLFW_KEY_J);
+    state->debug_zp = new_action(GLFW_KEY_I);
+    state->debug_zn = new_action(GLFW_KEY_K);
+    state->debug_wp = new_action(GLFW_KEY_O);
+    state->debug_wn = new_action(GLFW_KEY_L);
+    state->debug_next = new_action(GLFW_KEY_SEMICOLON);
+    state->debug_mode = new_action(GLFW_KEY_P);
 }
 
 #define UNTITLED_FPS_VKINIT_H
