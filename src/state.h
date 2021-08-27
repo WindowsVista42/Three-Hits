@@ -161,16 +161,15 @@ typedef struct EntityList {
     Buffer color_staging_buffer;
 } EntityList;
 
-#define ACTION_PRESSED 0x1
-#define ACTION_HELD 0x2
-
 typedef struct Action {
     i32 key;
-    b8 held;
-    b8 pressed;
-    b8 _pad0;
-    b8 _pad1;
+    b8 held, pressed, _pad0, _pad1;
 } Action;
+
+Action new_action(int key) {
+    Action action = {key};
+    return action;
+}
 
 void update_action(GLFWwindow* window, Action* action) {
     if(glfwGetKey(window, action->key) == GLFW_PRESS) {
@@ -358,6 +357,24 @@ typedef struct GameState {
 
     vec4 end_zone;
     vec4 start_zone;
+
+    // Input keybinds
+    Action move_forward;
+    Action move_backward;
+    Action move_left;
+    Action move_right;
+    Action move_jump;
+
+    Action debug_xp;
+    Action debug_xn;
+    Action debug_yp;
+    Action debug_yn;
+    Action debug_zp;
+    Action debug_zn;
+    Action debug_wp;
+    Action debug_wn;
+    Action debug_next;
+    Action debug_mode;
 } GameState;
 
 #include "../lib/stb_image.h"
@@ -387,6 +404,9 @@ typedef struct LoaderState {
     u32 door_index_count;
     u32* door_indices;
 } LoaderState;
+
+typedef struct ConfigState {
+} ConfigState;
 
 #define UNTITLED_FPS_STATE_H
 
