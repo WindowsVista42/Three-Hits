@@ -114,7 +114,7 @@ void read_indices(StagedBuffer* scratch_buffer, u32* index_count, u32** indices,
 
 //TODO(sean): figure out a way to compress this
 void load_level_model(GameState* state, LoaderState* loader) {
-    loader->level_path = "../data/levels/doors1.level";
+    loader->level_path = "../data/levels/doors0.level";
     if(state->level_index > 0) {
         loader->level_path = "../data/levels/doors1.level";
     }
