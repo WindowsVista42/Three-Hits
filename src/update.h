@@ -5,6 +5,25 @@
 
 #ifndef THREE_HITS_UPDATE_H
 
+void update_actions(GameState* state) {
+    update_action(state->window, &state->move_forward);
+    update_action(state->window, &state->move_backward);
+    update_action(state->window, &state->move_left);
+    update_action(state->window, &state->move_right);
+    update_action(state->window, &state->move_jump);
+
+    update_action(state->window, &state->debug_xp);
+    update_action(state->window, &state->debug_xn);
+    update_action(state->window, &state->debug_yp);
+    update_action(state->window, &state->debug_yn);
+    update_action(state->window, &state->debug_zp);
+    update_action(state->window, &state->debug_zn);
+    update_action(state->window, &state->debug_wp);
+    update_action(state->window, &state->debug_wn);
+    update_action(state->window, &state->debug_next);
+    update_action(state->window, &state->debug_mode);
+}
+
 void cleanup_swapchain_artifacts(GameState* state) {
     destroy_texture(state->device, state->depth_texture);
 
@@ -757,32 +776,10 @@ void update(GameState* state) {
 
     {
         b32 changed = false;
-        static Action xp = {GLFW_KEY_Y};
-        static Action xn = {GLFW_KEY_H};
-        static Action yp = {GLFW_KEY_U};
-        static Action yn = {GLFW_KEY_J};
-        static Action zp = {GLFW_KEY_I};
-        static Action zn = {GLFW_KEY_K};
-        static Action wp = {GLFW_KEY_O};
-        static Action wn = {GLFW_KEY_L};
-        static Action next = {GLFW_KEY_SEMICOLON};
-        static Action placement = {GLFW_KEY_P};
-
-        update_action(state->window, &xp);
-        update_action(state->window, &xn);
-        update_action(state->window, &yp);
-        update_action(state->window, &yn);
-        update_action(state->window, &zp);
-        update_action(state->window, &zn);
-        update_action(state->window, &wp);
-        update_action(state->window, &wn);
-        update_action(state->window, &next);
-        update_action(state->window, &placement);
-
         static u32 mode = 0;
         static u32 index = 0;
 
-        if(next.pressed) {
+        if(state->debug_next.pressed) {
             f32 smallest_distance = 4096.0f;
             u32 closest_index = 0;
             for(usize i = 0; i < state->ulight_count; i += 1) {
@@ -796,42 +793,42 @@ void update(GameState* state) {
             index = closest_index;
             printf("Changed to light %d\n", index);
         }
-        if(placement.pressed) {
+        if(state->debug_mode.pressed) {
             mode += 1;
             mode %= 2;
             printf("Changed to placement mode %d\n", mode);
         }
 
         if(mode == 0) {
-            if (xp.held) {
+            if (state->debug_xp.held) {
                 changed = true;
                 state->lights[index].position_falloff.x += 2.5 * state->delta_time;
             }
-            if (xn.held) {
+            if (state->debug_xn.held) {
                 changed = true;
                 state->lights[index].position_falloff.x -= 2.5 * state->delta_time;
             }
-            if (yp.held) {
+            if (state->debug_yp.held) {
                 changed = true;
                 state->lights[index].position_falloff.y += 2.5 * state->delta_time;
             }
-            if (yn.held) {
+            if (state->debug_yn.held) {
                 changed = true;
                 state->lights[index].position_falloff.y -= 2.5 * state->delta_time;
             }
-            if (zp.held) {
+            if (state->debug_zp.held) {
                 changed = true;
                 state->lights[index].position_falloff.z += 2.5 * state->delta_time;
             }
-            if (zn.held) {
+            if (state->debug_zn.held) {
                 changed = true;
                 state->lights[index].position_falloff.z -= 2.5 * state->delta_time;
             }
-            if (wp.held) {
+            if (state->debug_wp.held) {
                 changed = true;
                 state->lights[index].position_falloff.w += 0.5 * state->delta_time;
             }
-            if (wn.held) {
+            if (state->debug_wn.held) {
                 changed = true;
                 state->lights[index].position_falloff.w -= 0.5 * state->delta_time;
             }
@@ -840,27 +837,27 @@ void update(GameState* state) {
                 vec4_print(state->lights[index].position_falloff);
             }
         } else if(mode == 1) {
-            if (xp.held) {
+            if (state->debug_xp.held) {
                 changed = true;
                 state->lights[index].color_alpha.x += 1.0 * state->delta_time;
             }
-            if (xn.held) {
+            if (state->debug_xn.held) {
                 changed = true;
                 state->lights[index].color_alpha.x -= 1.0 * state->delta_time;
             }
-            if (yp.held) {
+            if (state->debug_yp.held) {
                 changed = true;
                 state->lights[index].color_alpha.y += 1.0 * state->delta_time;
             }
-            if (yn.held) {
+            if (state->debug_yn.held) {
                 changed = true;
                 state->lights[index].color_alpha.y -= 1.0 * state->delta_time;
             }
-            if (zp.held) {
+            if (state->debug_zp.held) {
                 changed = true;
                 state->lights[index].color_alpha.z += 1.0 * state->delta_time;
             }
-            if (zn.held) {
+            if (state->debug_zn.held) {
                 changed = true;
                 state->lights[index].color_alpha.z -= 1.0 * state->delta_time;
             }
@@ -870,7 +867,11 @@ void update(GameState* state) {
             }
         }
 
-        //if(changed) {
+        //*(vec3*)&state->lights[0].position_falloff = state->player_position;
+        //state->lights[0].position_falloff.w = -0.015;
+        //state->lights[0].color_alpha.x = -0.5;
+
+        if(changed) {
             write_buffer_copy_buffer(
                 state->device,
                 state->queue,
@@ -882,7 +883,7 @@ void update(GameState* state) {
                 state->ulight_count * sizeof(Light),
                 0
             );
-        //}
+        }
     }
 }
 
