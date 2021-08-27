@@ -8,6 +8,9 @@ struct Light {
 };
 
 layout(set = 0, binding = 2, std140) buffer Lights {
+    //get this to work
+    //uint count;
+    //Light lights[];
     Light lights[6];
 };
 
