@@ -64,6 +64,7 @@ int main() {
     alListenerf(AL_GAIN, 0.0f);
 
     load_level(state);
+    load_actions(state, 0);
     // levels.txt
     // 0 <-- player ended index
     // level0
@@ -74,6 +75,7 @@ int main() {
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
         glfwPollEvents();
+        update_actions(state);
         update_and_render(state);
         //print_diagnostics();
 
