@@ -75,9 +75,9 @@ int main() {
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
         glfwPollEvents();
-        update_actions(state);
+        update_bind_states(state);
         update_and_render(state);
-        //print_diagnostics();
+        print_performance_statistics(state);
 
         if(glfwGetKey(state->window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(state->window, GLFW_TRUE);
