@@ -372,22 +372,28 @@ typedef struct GameState {
     vec4 start_zone;
 
     // Input keybinds
-    Action move_forward;
-    Action move_backward;
-    Action move_left;
-    Action move_right;
-    Action move_jump;
+    Bind shoot_button;
 
-    Action debug_xp;
-    Action debug_xn;
-    Action debug_yp;
-    Action debug_yn;
-    Action debug_zp;
-    Action debug_zn;
-    Action debug_wp;
-    Action debug_wn;
-    Action debug_next;
-    Action debug_mode;
+    Bind activate_key;
+    Bind reload_key;
+    Bind forward_key;
+    Bind backward_key;
+    Bind left_key;
+    Bind right_key;
+    Bind walk_key;
+    Bind crouch_key;
+    Bind jump_key;
+
+    Bind debug_xp_key;
+    Bind debug_xn_key;
+    Bind debug_yp_key;
+    Bind debug_yn_key;
+    Bind debug_zp_key;
+    Bind debug_zn_key;
+    Bind debug_wp_key;
+    Bind debug_wn_key;
+    Bind debug_next_key;
+    Bind debug_mode_key;
 } GameState;
 
 #include "../lib/stb_image.h"
