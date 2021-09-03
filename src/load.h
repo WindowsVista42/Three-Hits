@@ -9,7 +9,16 @@
 
 #include "alutil.h"
 
-void load_level_sounds(GameState* state, LoaderState* loader) {
+void load_enemy_sounds(StagedBuffer* staged_buffer, char* _prefix, EnemySoundBuffers* sound_buffers) {
+    load_sound(staged_buffer, "../data/sounds/enemy_ambient_sound.wav", &sound_buffers->ambience);
+    load_sound(staged_buffer, "../data/sounds/enemy_alert_sound.wav", &sound_buffers->alert);
+    load_sound(staged_buffer, "../data/sounds/enemy_explosion_sound.wav", &sound_buffers->explosion);
+    load_sound(staged_buffer, "../data/sounds/rifle_sound.wav", &sound_buffers->gun);
+    load_sound(staged_buffer, "../data/sounds/enemy_windup_sound.wav", &sound_buffers->windup);
+    load_sound(staged_buffer, "../data/sounds/enemy_reverse_windup_sound.wav", &sound_buffers->winddown);
+}
+
+void load_sounds(GameState* state) {
     {
         ReverbProperties reverb = EFX_REVERB_PRESET_BATHROOM;
         state->reverb = reverb;
@@ -44,32 +53,35 @@ void load_level_sounds(GameState* state, LoaderState* loader) {
     alGenAuxiliaryEffectSlots(1, &state->reverb_slot);
     alAuxiliaryEffectSloti(state->reverb_slot, AL_EFFECTSLOT_EFFECT, (ALint)state->reverb_effect);
 
-    load_sound(&loader->read_scratch, "../data/sounds/pistol_sound_2.wav", &state->pistol_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/enemy_ambient_sound.wav", &state->enemy_ambience_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/enemy_alert_sound.wav", &state->enemy_alert_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/enemy_explosion_sound.wav", &state->enemy_explosion_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/rifle_sound.wav", &state->enemy_gun_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/enemy_windup_sound.wav", &state->enemy_windup_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/enemy_reverse_windup_sound.wav", &state->enemy_reverse_windup_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/door_opening_sound.wav", &state->door_opening_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/footstep_sound.wav", &state->player_movement_sound_buffer);
-    load_sound(&loader->read_scratch, "../data/sounds/footstep_sound.wav", &state->player_jump_sound_buffer);
+    load_sound(&state->scratch, "../data/sounds/pistol_sound_2.wav", &state->pistol_sound_buffer);
+    load_sound(&state->scratch, "../data/sounds/footstep_sound.wav", &state->player_movement_sound_buffer);
+    load_sound(&state->scratch, "../data/sounds/footstep_sound.wav", &state->player_jump_sound_buffer);
 
+    load_sound(&state->scratch, "../data/sounds/door_opening_sound.wav", &state->door_opening_sound_buffer);
+
+    load_enemy_sounds(&state->scratch, "medium", &state->medium_sounds);
+    load_enemy_sounds(&state->scratch, "medium", &state->rat_sounds);
+    load_enemy_sounds(&state->scratch, "medium", &state->knight_sounds);
+
+    sbclear(&state->scratch);
+}
+
+void load_level_sound_sources(GameState* state, LoaderState* loader) {
     generate_sound_source(&state->player_gun_sound_source, 0.9f, AL_FALSE, state->pistol_sound_buffer, state->reverb_slot);
     generate_sound_source(&state->player_movement_sound_source, 0.2f, AL_FALSE, state->player_movement_sound_buffer, state->reverb_slot);
-    generate_sound_sources(&state->level_buffer, &state->enemy_alert_sound_sources, state->enemies.capacity, 0.8f, AL_FALSE, state->enemy_alert_sound_buffer, state->reverb_slot);
+    generate_sound_sources(&state->level_buffer, &state->mediums.alert_sound_sources, state->mediums.entities.capacity, 0.8f, AL_FALSE, state->medium_sounds.alert, state->reverb_slot);
 
-    generate_sound_sources(&state->level_buffer, &state->enemy_gun_sound_sources, state->enemies.capacity, 1.0f, AL_FALSE, state->enemy_gun_sound_buffer, state->reverb_slot);
-    set_sources_f(state->enemy_gun_sound_sources, state->enemies.capacity, AL_ROLLOFF_FACTOR, 0.2);
+    generate_sound_sources(&state->level_buffer, &state->mediums.gun_sound_sources, state->mediums.entities.capacity, 1.0f, AL_FALSE, state->medium_sounds.gun, state->reverb_slot);
+    set_sources_f(state->mediums.gun_sound_sources, state->mediums.entities.capacity, AL_ROLLOFF_FACTOR, 0.2);
 
-    generate_sound_sources(&state->level_buffer, &state->enemy_windup_sound_sources, state->enemies.capacity, 0.5f, AL_FALSE, state->enemy_windup_sound_buffer, state->reverb_slot);
-    set_sources_f(state->enemy_windup_sound_sources, state->enemies.capacity, AL_ROLLOFF_FACTOR, 0.8);
+    generate_sound_sources(&state->level_buffer, &state->mediums.windup_sound_sources, state->mediums.entities.capacity, 0.5f, AL_FALSE, state->medium_sounds.windup, state->reverb_slot);
+    set_sources_f(state->mediums.windup_sound_sources, state->mediums.entities.capacity, AL_ROLLOFF_FACTOR, 0.8);
 
     generate_sound_sources(&state->level_buffer, &state->door_sound_sources, state->doors.capacity, 1.2f, AL_FALSE, state->door_opening_sound_buffer, state->reverb_slot);
 
-    generate_sound_sources(&state->level_buffer, &state->enemy_ambience_sound_sources, state->enemies.capacity, 0.8f, AL_TRUE, state->enemy_ambience_sound_buffer, state->reverb_slot);
-    set_sources_f(state->enemy_ambience_sound_sources, state->enemies.capacity, AL_ROLLOFF_FACTOR, 3.0);
-    play_sources(state->enemy_ambience_sound_sources, state->enemies.length);
+    generate_sound_sources(&state->level_buffer, &state->mediums.ambience_sound_sources, state->mediums.entities.capacity, 0.8f, AL_TRUE, state->medium_sounds.ambience, state->reverb_slot);
+    set_sources_f(state->mediums.ambience_sound_sources, state->mediums.entities.capacity, AL_ROLLOFF_FACTOR, 3.0);
+    play_sources(state->mediums.ambience_sound_sources, state->mediums.entities.length);
 }
 
 void load_level_texture(GameState* state, LoaderState* loader) {
