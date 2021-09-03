@@ -25,7 +25,6 @@
 int main() {
     GameState* state = malloc(sizeof(GameState));
     memset(state, 0, sizeof(GameState));
-    LoaderState* loader;
 
     init_staged_buffers(state);
     init_defaults(state);
