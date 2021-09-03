@@ -84,25 +84,21 @@ int main() {
         }
 
         //TODO(sean): move this kind of functionality into a struct
-        static b32 f11_held = true;
-        if(glfwGetKey(state->window, GLFW_KEY_F11) == GLFW_PRESS) {
-            if(f11_held != true) {
-                state->window_fullscreen = !state->window_fullscreen;
-                if (state->window_fullscreen) {
-                    state->window_width = 1920;
-                    state->window_height = 1080;
-                    glfwSetWindowSize(state->window, state->window_width, state->window_height);
-                    glfwSetWindowPos(state->window, 0, 0);
-                } else {
-                    state->window_width = 800;
-                    state->window_height = 600;
-                    glfwSetWindowSize(state->window, state->window_width, state->window_height);
-                    glfwSetWindowPos(state->window, 100, 200);
-                }
+        static Bind fullscreen_bind = {GLFW_KEY_F11};
+        update_key_bind_state(state->window, &fullscreen_bind);
+        if(fullscreen_bind.pressed) {
+            state->window_fullscreen = !state->window_fullscreen;
+            if (state->window_fullscreen) {
+                state->window_width = 1920;
+                state->window_height = 1080;
+                glfwSetWindowSize(state->window, state->window_width, state->window_height);
+                glfwSetWindowPos(state->window, 0, 0);
+            } else {
+                state->window_width = 800;
+                state->window_height = 600;
+                glfwSetWindowSize(state->window, state->window_width, state->window_height);
+                glfwSetWindowPos(state->window, 100, 200);
             }
-            f11_held = true;
-        } else {
-            f11_held = false;
         }
 
         if(state->load_next_level == true) {
