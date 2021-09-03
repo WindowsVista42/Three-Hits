@@ -189,9 +189,11 @@ void update(GameState* state) {
     vec3 player_eye = state->player_position;
     player_eye.z += 0.5;
     {
+        /*
         if(glfwGetKey(state->window, GLFW_KEY_Q) == GLFW_PRESS) {
             vec3_print("Player position: ", state->player_position);
         }
+        */
 
         f32 wall_distance = 4096.0;
         vec3 E = vec3_add_vec3(state->player_position, vec3_mul_f32(vec3_mul_f32(state->look_dir, -1.0), 128.0));
@@ -212,22 +214,6 @@ void update(GameState* state) {
                 }
             }
         }
-
-        static Action activate_action = {GLFW_KEY_E, false, false, 0, 0};
-        update_action(state->window, &activate_action);
-        //b32 active_action = false;
-        //static b32 e_held = true;
-        //static b32 e_pressed = false;
-        //if (glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
-        //    e_pressed = true;
-        //    if (e_held != true) {
-        //        active_action = true;
-        //    }
-        //    e_held = true;
-        //} else {
-        //    e_pressed = false;
-        //    e_held = false;
-        //}
 
         // doors
         {
