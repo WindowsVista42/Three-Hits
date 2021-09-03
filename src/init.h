@@ -730,7 +730,7 @@ void create_crosshair_buffers(GameState* state) {
 }
 
 void init_staged_buffers(GameState* state) {
-    sbinit(&state->scratch, 512 * 1024); // 512K
+    sbinit(&state->scratch, 2 * 1024 * 1024); // 2M
     sbinit(&state->swapchain_buffer, 4 * 1024); // 4K
     sbinit(&state->semaphore_buffer, 4 * 1024); // 4K
 
