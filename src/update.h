@@ -512,7 +512,9 @@ void update(GameState* state) {
         }
 
         // player shooting
-        u32 hit_index = UINT32_MAX;
+        u32 medium_hit_index = UINT32_MAX;
+        u32 rat_hit_index = UINT32_MAX;
+        u32 knight_hit_index = UINT32_MAX;
         f32 best_enemy_distance = 4096.0;
         static f32 shoot_timer = 0.0f;
         static f32 reload_timer = 0.0f;
@@ -535,22 +537,9 @@ void update(GameState* state) {
                     state->loaded_pistol_ammo_count = state->pistol_magazine_size;
                 }
 
-                for (usize index = 0; index < state->mediums.entities.length; index += 1) {
-                    vec3 Pe = *(vec3 *) &state->mediums.entities.position_rotations[index].x;
-                    vec3 P = player_eye;
-                    vec3 enemyN;
-                    f32 enemy_distance;
-                    f32 r = 1.8;
-                    f32 rr = r * r;
-
-                    // we know that we intersect the enemy
-                    if (line_intersects_sphere(P, E, Pe, rr, &enemyN, &enemy_distance) == true) {
-                        if (enemy_distance < wall_distance && enemy_distance < best_enemy_distance) {
-                            best_enemy_distance = enemy_distance;
-                            hit_index = index;
-                        }
-                    }
-                }
+                medium_hit_index = player_ray_intersects_enemy_list(&state->mediums, player_eye, E, wall_distance);
+                rat_hit_index = player_ray_intersects_enemy_list(&state->rats, player_eye, E, wall_distance);
+                knight_hit_index = player_ray_intersects_enemy_list(&state->knights, player_eye, E, wall_distance);
             }
         }
         if(reload_timer > 0.0f) { state->crosshair_color = vec4_new(0.0, 0.0, 1.0, 0.5); }
