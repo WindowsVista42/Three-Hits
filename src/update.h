@@ -98,8 +98,41 @@ void update_time(GameState* state) {
     }
 }
 
-void print_diagnostics(GameState* state) {
-    printf("budget: %.2fms, usage: %.2fms / %.2f%%\n", (1.0 / 60.0) * 1000.0, (state->delta_time) * 1000.0, (state->delta_time / (1.0 / 60.0)) * 100.0);
+void print_performance_statistics(GameState* state) {
+    static f32 timer = 0.0f;
+    static u32 frame_count = 0;
+    static f32 low = FLT_MAX;
+    static f32 high = 0.0;
+
+    const u32 target = 60;
+    const f32 threshold = 1.0;
+
+    frame_count += 1;
+    timer += state->delta_time;
+
+    if(state->delta_time > high) { high = state->delta_time; }
+    if(state->delta_time < low) { low = state->delta_time; }
+
+    if(timer > threshold) {
+        //TODO(sean): fix this so that the threshold doesn't have to be 1 for this to work
+        printf(
+            "-----Performance Statistics-----\n"
+            "Target:  %.2fms (%.2f%%)\n"
+            "Average: %.2fms (%.2f%%)\n"
+            "High:    %.2fms (%.2f%%)\n"
+            "Low:     %.2fms (%.2f%%)\n"
+            "\n",
+            (1.0 / (f32)target) * 1000.0, 100.0,
+            (1.0 / (f32)frame_count) * 1000.0, 100.0 / ((f32)frame_count / (f32)target),
+            (f32)high * 1000.0, 100.0 * ((f32)high / (1.0 / (f32)target)),
+            (f32)low * 1000.0, 100.0 * ((f32)low / (1.0 / (f32)target))
+        );
+
+        timer -= threshold;
+        frame_count = 0;
+        low = FLT_MAX;
+        high = 0.0;
+    }
 }
 
 void sync_entity_position_rotations(
