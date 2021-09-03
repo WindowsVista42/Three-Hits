@@ -789,7 +789,7 @@ void update(GameState* state) {
         static u32 mode = 0;
         static u32 index = 0;
 
-        if(state->debug_next.pressed) {
+        if(state->debug_next_key.pressed) {
             f32 smallest_distance = 4096.0f;
             u32 closest_index = 0;
             for(usize i = 0; i < state->ulight_count; i += 1) {
@@ -803,42 +803,42 @@ void update(GameState* state) {
             index = closest_index;
             printf("Changed to light %d\n", index);
         }
-        if(state->debug_mode.pressed) {
+        if(state->debug_mode_key.pressed) {
             mode += 1;
             mode %= 2;
             printf("Changed to placement mode %d\n", mode);
         }
 
         if(mode == 0) {
-            if (state->debug_xp.held) {
+            if (state->debug_xp_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.x += 2.5 * state->delta_time;
             }
-            if (state->debug_xn.held) {
+            if (state->debug_xn_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.x -= 2.5 * state->delta_time;
             }
-            if (state->debug_yp.held) {
+            if (state->debug_yp_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.y += 2.5 * state->delta_time;
             }
-            if (state->debug_yn.held) {
+            if (state->debug_yn_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.y -= 2.5 * state->delta_time;
             }
-            if (state->debug_zp.held) {
+            if (state->debug_zp_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.z += 2.5 * state->delta_time;
             }
-            if (state->debug_zn.held) {
+            if (state->debug_zn_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.z -= 2.5 * state->delta_time;
             }
-            if (state->debug_wp.held) {
+            if (state->debug_wp_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.w += 0.5 * state->delta_time;
             }
-            if (state->debug_wn.held) {
+            if (state->debug_wn_key.held) {
                 changed = true;
                 state->lights[index].position_falloff.w -= 0.5 * state->delta_time;
             }
@@ -847,27 +847,27 @@ void update(GameState* state) {
                 vec4_print(state->lights[index].position_falloff);
             }
         } else if(mode == 1) {
-            if (state->debug_xp.held) {
+            if (state->debug_xp_key.held) {
                 changed = true;
                 state->lights[index].color_alpha.x += 1.0 * state->delta_time;
             }
-            if (state->debug_xn.held) {
+            if (state->debug_xn_key.held) {
                 changed = true;
                 state->lights[index].color_alpha.x -= 1.0 * state->delta_time;
             }
-            if (state->debug_yp.held) {
+            if (state->debug_yp_key.held) {
                 changed = true;
                 state->lights[index].color_alpha.y += 1.0 * state->delta_time;
             }
-            if (state->debug_yn.held) {
+            if (state->debug_yn_key.held) {
                 changed = true;
                 state->lights[index].color_alpha.y -= 1.0 * state->delta_time;
             }
-            if (state->debug_zp.held) {
+            if (state->debug_zp_key.held) {
                 changed = true;
                 state->lights[index].color_alpha.z += 1.0 * state->delta_time;
             }
-            if (state->debug_zn.held) {
+            if (state->debug_zn_key.held) {
                 changed = true;
                 state->lights[index].color_alpha.z -= 1.0 * state->delta_time;
             }
@@ -881,7 +881,10 @@ void update(GameState* state) {
         //state->lights[0].position_falloff.w = -0.015;
         //state->lights[0].color_alpha.x = -0.5;
 
-        if(changed) {
+        static f32 total_time = 0.0f;
+        total_time += state->delta_time;
+
+        //if(changed) {
             write_buffer_copy_buffer(
                 state->device,
                 state->queue,
@@ -893,7 +896,7 @@ void update(GameState* state) {
                 state->ulight_count * sizeof(Light),
                 0
             );
-        }
+        //}
     }
 }
 
