@@ -178,29 +178,36 @@ typedef struct EntityList {
     Buffer color_staging_buffer;
 } EntityList;
 
-typedef struct Action {
-    i32 key;
-    b8 held, pressed, _pad0, _pad1;
-} Action;
+typedef struct EnemyList {
+    EntityList entities;
 
-Action new_action(int key) {
-    Action action = {key};
-    return action;
-}
+    i32* healths;
+    f32* hit_times;
+    f32* shoot_times;
+    b32* sees_player;
+    b32* reverse_windup;
 
-void update_action(GLFWwindow* window, Action* action) {
-    if(glfwGetKey(window, action->key) == GLFW_PRESS) {
-        if(!action->held) {
-            action->pressed = true;
-        } else {
-            action->pressed = false;
-        }
-        action->held = true;
-    } else {
-        action->held = false;
-        action->pressed = false;
-    }
-}
+    f32 activation_range;
+    f32 shoot_range;
+    f32 shoot_delay;
+    f32 radius;
+    f32 speed;
+    f32 hit_reaction_duration;
+
+    SoundSource* alert_sound_sources;
+    SoundSource* ambience_sound_sources;
+    SoundSource* gun_sound_sources;
+    SoundSource* windup_sound_sources;
+} EnemyList;
+
+typedef struct EnemySoundBuffers {
+    SoundBuffer alert;
+    SoundBuffer ambience;
+    SoundBuffer explosion;
+    SoundBuffer gun;
+    SoundBuffer windup;
+    SoundBuffer winddown;
+} EnemySoundBuffers;
 
 typedef struct GameState {
     u32 window_width;
