@@ -615,168 +615,47 @@ void update(GameState* state) {
     }
 
     {
-        static b32 play_enemy_windup[30] = {};
-        f32 delta_time = state->delta_time / 4.0;
-        // enemy physics
-        for(usize i = 0; i < 4; i += 1) {
-            for (usize index = 0; index < state->mediums.entities.length; index += 1) {
-                vec3 P = *(vec3 *) &state->mediums.entities.position_rotations[index];
-                f32 rr = 1.0;
-                vec3 N;
-                f32 d;
+        update_enemy_physics(
+            &state->level_scratch_buffer,
+            &state->mediums,
+            &state->medium_sounds,
+            state->player_position,
+            state->player_radius,
+            state->physmesh_vertex_count,
+            state->physmesh_vertices,
+            &state->player_health,
+            state->sliding_threshold,
+            state->delta_time
+        );
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->mediums.entities);
 
-                f32 sr = state->mediums.activation_range;
-                f32 srsr = sr * sr;
-                if (vec3_distsq_vec3(P, state->player_position) > srsr) { continue; }
+        update_enemy_physics(
+            &state->level_scratch_buffer,
+            &state->rats,
+            &state->rat_sounds,
+            state->player_position,
+            state->player_radius,
+            state->physmesh_vertex_count,
+            state->physmesh_vertices,
+            &state->player_health,
+            state->sliding_threshold,
+            state->delta_time
+        );
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->rats.entities);
 
-                f32 move_speed = 3.0;
-                vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], state->player_position));
-                if (vec3_distsq_vec3(P, state->player_position) > rr + (state->player_radius * state->player_radius) + 4.0) {
-                    *(vec3 *) &state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
-                } else {
-                    *(vec3 *) &state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], vec3_mul_f32(PN, delta_time * move_speed));
-                }
-
-                // Check if we are colliding with any of our kind
-                for (usize phys_index = 0; phys_index < state->mediums.entities.length; phys_index += 1) {
-                    if (phys_index == index) { continue; }
-                    vec3 p = *(vec3 *) &state->mediums.entities.position_rotations[phys_index];
-                    N = vec3_norm(vec3_sub_vec3(P, p));
-                    f32 distsq = vec3_distsq_vec3(P, p);
-
-                    if (distsq < rr + rr) {
-                        d = sqrtf((rr + rr) - distsq);
-                        *(vec3 *) &state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], vec3_mul_f32(N, d));
-                    }
-                }
-
-                u32 vertex_count = 0;
-                vec3 *vertices = sbmalloc(&state->level_scratch_buffer, 1200 * sizeof(vec3));
-
-                // cull
-                for (usize phys_index = 0; phys_index < state->physmesh_vertex_count; phys_index += 3) {
-                    vec3 A = state->physmesh_vertices[phys_index + 0];
-                    vec3 B = state->physmesh_vertices[phys_index + 1];
-                    vec3 C = state->physmesh_vertices[phys_index + 2];
-
-                    // intersection culling
-                    vec3 ABC = vec3_div_f32(vec3_add_vec3(vec3_add_vec3(A, B), C), 3.0);
-                    f32 ABCrr = vec3_distsq_vec3(ABC, A) + 2.0;
-                    f32 ABCBrr = vec3_distsq_vec3(ABC, B) + 2.0;
-                    f32 ABCCrr = vec3_distsq_vec3(ABC, C) + 2.0;
-                    if (ABCBrr > ABCrr) { ABCrr = ABCBrr; }
-                    if (ABCCrr > ABCrr) { ABCrr = ABCCrr; }
-                    if (vec3_distsq_vec3(ABC, P) < ABCrr + rr) {
-                        vertices[vertex_count + 0] = A;
-                        vertices[vertex_count + 1] = B;
-                        vertices[vertex_count + 2] = C;
-                        vertex_count += 3;
-                    }
-                }
-
-                f32 wall_distance = 4096.0;
-                vec3 E = state->player_position;
-                b32 found_wall = false;
-                for (usize phys_index = 0; phys_index < state->physmesh_vertex_count; phys_index += 3) {
-                    vec3 A = state->physmesh_vertices[phys_index + 0];
-                    vec3 B = state->physmesh_vertices[phys_index + 1];
-                    vec3 C = state->physmesh_vertices[phys_index + 2];
-                    vec3 rN;
-                    f32 rd;
-
-                    f32 pd = vec3_distsq_vec3(P, E);
-
-                    // distance for closest intersection from S to E
-                    if (ray_intersects_triangle(A, B, C, P, E, &rN, &rd) == true) {
-                        if(rd < pd) {
-                            found_wall = true;
-                            break;
-                        }
-                    }
-                }
-
-                ALenum source_state;
-                // player shot logic
-                b32 sees_player = false;
-                if(found_wall == false) { // can see the player
-                    sees_player = true;
-                    alGetSourcei(state->mediums.windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
-                    if(source_state == AL_PLAYING && state->mediums.reverse_windup[index] == true) {
-                        // if windup sound already playing, reverse windup sound | so it starts playing forwards again
-                        //alSourceRewind(state->enemy_windup_sound_sources[index]);
-                        // stop old and play rewinded at right spot
-                        ALfloat offset;
-                        alGetSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, &offset);
-                        ALfloat remainder = state->mediums.shoot_delay - offset;
-                        alSourceStop(state->mediums.windup_sound_sources[index]);
-                        alSourcei(state->mediums.windup_sound_sources[index], AL_BUFFER, state->medium_sounds.windup);
-                        alSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, remainder);
-                        alSourcePlay(state->mediums.windup_sound_sources[index]);
-
-                        state->mediums.reverse_windup[index] = false;
-                    } else {
-                        // else play windup sound once
-                        if(source_state != AL_PLAYING) {
-                            alSourcei(state->mediums.windup_sound_sources[index], AL_BUFFER, state->medium_sounds.windup);
-                            alSourcePlay(state->mediums.windup_sound_sources[index]);
-                        }
-                        state->mediums.reverse_windup[index] = false;
-                    }
-
-                    state->mediums.shoot_times[index] += delta_time;
-                    if(state->mediums.shoot_times[index] > state->mediums.shoot_delay) { // can shoot the player
-                        // stop the windup sound
-                        // play shoot sound
-                        state->mediums.shoot_times[index] = 0.0f;
-                        alSourcePlay(state->mediums.gun_sound_sources[index]);
-                        alSourceStop(state->mediums.windup_sound_sources[index]);
-                        state->player_health -= 1;
-                    }
-                } else { // can not see the player
-                    alGetSourcei(state->mediums.windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
-                    if(source_state == AL_PLAYING && state->mediums.reverse_windup[index] == true) {
-                        // if windup sound is playing then reverse the windup sound once | so it starts playing backwards again
-                        ALfloat offset;
-                        alGetSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, &offset);
-                        ALfloat remainder = state->mediums.shoot_delay - offset;
-                        alSourceStop(state->mediums.windup_sound_sources[index]);
-                        alSourcei(state->mediums.windup_sound_sources[index], AL_BUFFER, state->medium_sounds.winddown);
-                        alSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, remainder);
-                        alSourcePlay(state->mediums.windup_sound_sources[index]);
-
-                        state->mediums.reverse_windup[index] = false;
-                    }
-
-                    state->mediums.shoot_times[index] -= delta_time;
-                    if(state->mediums.shoot_times[index] < 0.0f) {
-                        state->mediums.shoot_times[index] = 0.0f;
-                    }
-                }
-
-                if(state->mediums.sees_player[index] != sees_player) {
-                    state->mediums.reverse_windup[index] = true;
-                }
-                state->mediums.sees_player[index] = sees_player;
-
-                // Check if we are colliding with any of the triangles in the physmesh
-                for (usize phys_index = 0; phys_index < vertex_count; phys_index += 3) {
-                    vec3 A = vertices[phys_index + 0];
-                    vec3 B = vertices[phys_index + 1];
-                    vec3 C = vertices[phys_index + 2];
-
-                    if (sphere_collides_with_triangle(A, B, C, P, rr, &N, &d)) {
-                        f32 sliding_factor = vec3_dot(N, VEC3_UNIT_Z);
-
-                        if (sliding_factor > state->sliding_threshold) { N = VEC3_UNIT_Z; }
-                        if (vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
-
-                        *(vec3*)&state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3*)&state->mediums.entities.position_rotations[index], vec3_mul_f32(N, d));
-                    }
-                }
-
-                sbclear(&state->level_scratch_buffer);
-            }
-        }
+        update_enemy_physics(
+            &state->level_scratch_buffer,
+            &state->knights,
+            &state->knight_sounds,
+            state->player_position,
+            state->player_radius,
+            state->physmesh_vertex_count,
+            state->physmesh_vertices,
+            &state->player_health,
+            state->sliding_threshold,
+            state->delta_time
+        );
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->knights.entities);
     }
 
     if(state->player_health <= 0) {
