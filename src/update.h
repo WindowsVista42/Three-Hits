@@ -285,21 +285,14 @@ void update(GameState* state) {
         f32 best_enemy_distance = 4096.0;
         static f32 shoot_timer = 0.0f;
         static f32 reload_timer = 0.0f;
-        static b32 r_held = false;
 
-        if(reload_timer < 0.0f && glfwGetKey(state->window, GLFW_KEY_R) == GLFW_PRESS) {
-            if(r_held == false) {
-                play_reload_sound = true;
-                reload_timer = state->pistol_reload_speed;
-                state->loaded_pistol_ammo_count = state->pistol_magazine_size;
-            } else {
-                r_held = true;
-            }
-        } else {
-            r_held = false;
+        if(reload_timer < 0.0f && state->reload_key.pressed) {
+            play_reload_sound = true;
+            reload_timer = state->pistol_reload_speed;
+            state->loaded_pistol_ammo_count = state->pistol_magazine_size;
         }
 
-        if (glfwGetMouseButton(state->window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if(state->shoot_button.held) {
             if(shoot_timer < 0.0f && reload_timer < 0.0f) {
                 shoot_timer = state->pistol_shoot_delay;
                 play_pistol_sound = true;
@@ -311,8 +304,8 @@ void update(GameState* state) {
                     state->loaded_pistol_ammo_count = state->pistol_magazine_size;
                 }
 
-                for (usize index = 0; index < state->enemies.length; index += 1) {
-                    vec3 Pe = *(vec3 *) &state->enemies.position_rotations[index].x;
+                for (usize index = 0; index < state->mediums.entities.length; index += 1) {
+                    vec3 Pe = *(vec3 *) &state->mediums.entities.position_rotations[index].x;
                     vec3 P = player_eye;
                     vec3 enemyN;
                     f32 enemy_distance;
@@ -344,17 +337,6 @@ void update(GameState* state) {
             sizeof(vec4),
             0
         );
-        /*
-        write_buffer(state->device, state->crosshair_color_staging_buffer.memory, 0, sizeof(vec4), 0, &state->crosshair_color);
-        copy_buffer_to_buffer(
-            state->device,
-            state->queue,
-            state->command_pool,
-            state->crosshair_color_staging_buffer.buffer,
-            state->crosshair_color_buffer.buffer,
-            sizeof(vec4)
-        );
-        */
 
         shoot_timer -= state->delta_time;
         reload_timer -= state->delta_time;
@@ -365,50 +347,52 @@ void update(GameState* state) {
 
         // enemy hit
         if (hit_index != UINT32_MAX) {
-            alSourcePlay(state->enemy_alert_sound_sources[hit_index]);
+            alSourcePlay(state->mediums.alert_sound_sources[hit_index]);
 
-            if(state->enemy_healths[hit_index] > 0) {
-                state->enemy_healths[hit_index] -= 1;
+            if(state->mediums.healths[hit_index] > 0) {
+                state->mediums.healths[hit_index] -= 1;
             }
-            if(state->enemy_healths[hit_index] <= 0) { // we just killed it
+            if(state->mediums.healths[hit_index] <= 0) { // we just killed it
                 // swap with last one
-                usize back_index = state->enemies.length - 1;
-                i32 temp_health = state->enemy_healths[hit_index];
-                vec4 _temp_color = vec4_copy(state->enemies.colors[hit_index]);
-                vec4 temp_position_rotation = vec4_copy(state->enemies.position_rotations[hit_index]);
+                usize back_index = state->mediums.entities.length - 1;
+                i32 temp_health = state->mediums.healths[hit_index];
+                vec4 _temp_color = vec4_copy(state->mediums.entities.colors[hit_index]);
+                vec4 temp_position_rotation = vec4_copy(state->mediums.entities.position_rotations[hit_index]);
 
-                state->enemy_healths[hit_index] = state->enemy_healths[back_index];
-                state->enemies.colors[hit_index] = state->enemies.colors[back_index];
-                state->enemies.position_rotations[hit_index] = state->enemies.position_rotations[back_index];
+                state->mediums.healths[hit_index] = state->mediums.healths[back_index];
+                state->mediums.entities.colors[hit_index] = state->mediums.entities.colors[back_index];
+                state->mediums.entities.position_rotations[hit_index] = state->mediums.entities.position_rotations[back_index];
 
-                state->enemy_healths[back_index] = temp_health;
-                state->enemies.colors[back_index] = death_flash_color;
-                state->enemies.position_rotations[back_index] = temp_position_rotation;
+                state->mediums.healths[back_index] = temp_health;
+                state->mediums.entities.colors[back_index] = death_flash_color;
+                state->mediums.entities.position_rotations[back_index] = temp_position_rotation;
 
-                state->enemies.length -= 1;
+                state->mediums.entities.length -= 1;
 
-                alSourceStop(state->enemy_alert_sound_sources[back_index]);
-                alSourceStop(state->enemy_ambience_sound_sources[back_index]);
-                alSourceStop(state->enemy_windup_sound_sources[hit_index]);
-                alSourcei(state->enemy_alert_sound_sources[back_index], AL_BUFFER, state->enemy_explosion_sound_buffer);
-                alSourcefv(state->enemy_alert_sound_sources[back_index], AL_POSITION, (f32*)&state->enemies.position_rotations[back_index]);
-                alSourcef(state->enemy_alert_sound_sources[back_index], AL_GAIN, 1.0f);
-                alSourcef(state->enemy_alert_sound_sources[back_index], AL_ROLLOFF_FACTOR, 0.8f);
-                alSourcePlay(state->enemy_alert_sound_sources[back_index]);
+                alSourceStop(state->mediums.alert_sound_sources[back_index]);
+                alSourceStop(state->mediums.ambience_sound_sources[back_index]);
+                alSourceStop(state->mediums.windup_sound_sources[hit_index]);
+                alSourcei(state->mediums.alert_sound_sources[back_index], AL_BUFFER, state->medium_sounds.explosion);
+                alSourcefv(state->mediums.alert_sound_sources[back_index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[back_index]);
+                alSourcef(state->mediums.alert_sound_sources[back_index], AL_GAIN, 1.0f);
+                alSourcef(state->mediums.alert_sound_sources[back_index], AL_ROLLOFF_FACTOR, 0.8f);
+                alSourcePlay(state->mediums.alert_sound_sources[back_index]);
             } else {
-                state->enemies.colors[hit_index] = damage_flash_color;
-                state->enemy_hit_times[hit_index] = 0.125;
+                state->mediums.entities.colors[hit_index] = damage_flash_color;
+                state->mediums.hit_times[hit_index] = state->mediums.hit_reaction_duration;
             }
         } else {
-            for(usize index = 0; index < state->enemies.length; index += 1) {
-                if(state->enemy_hit_times[index] < 0.0) {
-                    state->enemies.colors[index] = default_color;
+            for(usize index = 0; index < state->mediums.entities.length; index += 1) {
+                if(state->mediums.hit_times[index] < 0.0) {
+                    state->mediums.entities.colors[index] = default_color;
                 }
-                state->enemy_hit_times[index] -= state->delta_time;
+                state->mediums.hit_times[index] -= state->delta_time;
             }
         }
 
-        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->enemies);
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->mediums.entities);
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->rats.entities);
+        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->knights.entities);
     }
 
     b32 space_pressed = false;
@@ -421,32 +405,31 @@ void update(GameState* state) {
     f32 player_speed = state->player_speed;
     f32 player_radius = state->player_radius;
     {
-        if(glfwGetKey(state->window, GLFW_KEY_W) == GLFW_PRESS) {
+        if(state->forward_key.held) {
             delta_movement = vec3_sub_vec3(delta_movement, xydir);
             play_movement_sound = true;
         }
-        if(glfwGetKey(state->window, GLFW_KEY_A) == GLFW_PRESS) {
+        if(state->left_key.held) {
             delta_movement = vec3_sub_vec3(delta_movement, normal);
             play_movement_sound = true;
         }
-        if(glfwGetKey(state->window, GLFW_KEY_S) == GLFW_PRESS) {
+        if(state->backward_key.held) {
             delta_movement = vec3_add_vec3(delta_movement, xydir);
             play_movement_sound = true;
         }
-        if(glfwGetKey(state->window, GLFW_KEY_D) == GLFW_PRESS) {
+        if(state->right_key.held) {
             delta_movement = vec3_add_vec3(delta_movement, normal);
             play_movement_sound = true;
         }
-        if(glfwGetKey(state->window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        if(state->walk_key.held) {
             player_speed /= 2.0;
-        } else if(glfwGetKey(state->window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        } else if(state->crouch_key.held) {
             player_speed /= 2.0;
             player_radius /= 2.0;
             play_crouch_sound = true;
         }
 
-
-        if(glfwGetKey(state->window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        if(state->jump_key.held) {
             space_pressed = true;
             play_jump_sound = true;
         }
@@ -461,34 +444,34 @@ void update(GameState* state) {
         f32 delta_time = state->delta_time / 4.0;
         // enemy physics
         for(usize i = 0; i < 4; i += 1) {
-            for (usize index = 0; index < state->enemies.length; index += 1) {
-                vec3 P = *(vec3 *) &state->enemies.position_rotations[index];
+            for (usize index = 0; index < state->mediums.entities.length; index += 1) {
+                vec3 P = *(vec3 *) &state->mediums.entities.position_rotations[index];
                 f32 rr = 1.0;
                 vec3 N;
                 f32 d;
 
-                f32 sr = state->enemy_simulation_radius;
+                f32 sr = state->mediums.activation_range;
                 f32 srsr = sr * sr;
                 if (vec3_distsq_vec3(P, state->player_position) > srsr) { continue; }
 
                 f32 move_speed = 3.0;
-                vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &state->enemies.position_rotations[index], state->player_position));
+                vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], state->player_position));
                 if (vec3_distsq_vec3(P, state->player_position) > rr + (state->player_radius * state->player_radius) + 4.0) {
-                    *(vec3 *) &state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemies.position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
+                    *(vec3 *) &state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
                 } else {
-                    *(vec3 *) &state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemies.position_rotations[index], vec3_mul_f32(PN, delta_time * move_speed));
+                    *(vec3 *) &state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], vec3_mul_f32(PN, delta_time * move_speed));
                 }
 
                 // Check if we are colliding with any of our kind
-                for (usize phys_index = 0; phys_index < state->enemies.length; phys_index += 1) {
+                for (usize phys_index = 0; phys_index < state->mediums.entities.length; phys_index += 1) {
                     if (phys_index == index) { continue; }
-                    vec3 p = *(vec3 *) &state->enemies.position_rotations[phys_index];
+                    vec3 p = *(vec3 *) &state->mediums.entities.position_rotations[phys_index];
                     N = vec3_norm(vec3_sub_vec3(P, p));
                     f32 distsq = vec3_distsq_vec3(P, p);
 
                     if (distsq < rr + rr) {
                         d = sqrtf((rr + rr) - distsq);
-                        *(vec3 *) &state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->enemies.position_rotations[index], vec3_mul_f32(N, d));
+                        *(vec3 *) &state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &state->mediums.entities.position_rotations[index], vec3_mul_f32(N, d));
                     }
                 }
 
@@ -542,63 +525,63 @@ void update(GameState* state) {
                 b32 sees_player = false;
                 if(found_wall == false) { // can see the player
                     sees_player = true;
-                    alGetSourcei(state->enemy_windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
-                    if(source_state == AL_PLAYING && state->windup_needs_reverse[index] == true) {
+                    alGetSourcei(state->mediums.windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
+                    if(source_state == AL_PLAYING && state->mediums.reverse_windup[index] == true) {
                         // if windup sound already playing, reverse windup sound | so it starts playing forwards again
                         //alSourceRewind(state->enemy_windup_sound_sources[index]);
                         // stop old and play rewinded at right spot
                         ALfloat offset;
-                        alGetSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, &offset);
-                        ALfloat remainder = state->enemy_shoot_delay - offset;
-                        alSourceStop(state->enemy_windup_sound_sources[index]);
-                        alSourcei(state->enemy_windup_sound_sources[index], AL_BUFFER, state->enemy_windup_sound_buffer);
-                        alSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, remainder);
-                        alSourcePlay(state->enemy_windup_sound_sources[index]);
+                        alGetSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, &offset);
+                        ALfloat remainder = state->mediums.shoot_delay - offset;
+                        alSourceStop(state->mediums.windup_sound_sources[index]);
+                        alSourcei(state->mediums.windup_sound_sources[index], AL_BUFFER, state->medium_sounds.windup);
+                        alSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, remainder);
+                        alSourcePlay(state->mediums.windup_sound_sources[index]);
 
-                        state->windup_needs_reverse[index] = false;
+                        state->mediums.reverse_windup[index] = false;
                     } else {
                         // else play windup sound once
                         if(source_state != AL_PLAYING) {
-                            alSourcei(state->enemy_windup_sound_sources[index], AL_BUFFER, state->enemy_windup_sound_buffer);
-                            alSourcePlay(state->enemy_windup_sound_sources[index]);
+                            alSourcei(state->mediums.windup_sound_sources[index], AL_BUFFER, state->medium_sounds.windup);
+                            alSourcePlay(state->mediums.windup_sound_sources[index]);
                         }
-                        state->windup_needs_reverse[index] = false;
+                        state->mediums.reverse_windup[index] = false;
                     }
 
-                    state->enemy_shoot_times[index] += delta_time;
-                    if(state->enemy_shoot_times[index] > state->enemy_shoot_delay) { // can shoot the player
+                    state->mediums.shoot_times[index] += delta_time;
+                    if(state->mediums.shoot_times[index] > state->mediums.shoot_delay) { // can shoot the player
                         // stop the windup sound
                         // play shoot sound
-                        state->enemy_shoot_times[index] = 0.0f;
-                        alSourcePlay(state->enemy_gun_sound_sources[index]);
-                        alSourceStop(state->enemy_windup_sound_sources[index]);
+                        state->mediums.shoot_times[index] = 0.0f;
+                        alSourcePlay(state->mediums.gun_sound_sources[index]);
+                        alSourceStop(state->mediums.windup_sound_sources[index]);
                         state->player_health -= 1;
                     }
                 } else { // can not see the player
-                    alGetSourcei(state->enemy_windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
-                    if(source_state == AL_PLAYING && state->windup_needs_reverse[index] == true) {
+                    alGetSourcei(state->mediums.windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
+                    if(source_state == AL_PLAYING && state->mediums.reverse_windup[index] == true) {
                         // if windup sound is playing then reverse the windup sound once | so it starts playing backwards again
                         ALfloat offset;
-                        alGetSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, &offset);
-                        ALfloat remainder = state->enemy_shoot_delay - offset;
-                        alSourceStop(state->enemy_windup_sound_sources[index]);
-                        alSourcei(state->enemy_windup_sound_sources[index], AL_BUFFER, state->enemy_reverse_windup_sound_buffer);
-                        alSourcef(state->enemy_windup_sound_sources[index], AL_SEC_OFFSET, remainder);
-                        alSourcePlay(state->enemy_windup_sound_sources[index]);
+                        alGetSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, &offset);
+                        ALfloat remainder = state->mediums.shoot_delay - offset;
+                        alSourceStop(state->mediums.windup_sound_sources[index]);
+                        alSourcei(state->mediums.windup_sound_sources[index], AL_BUFFER, state->medium_sounds.winddown);
+                        alSourcef(state->mediums.windup_sound_sources[index], AL_SEC_OFFSET, remainder);
+                        alSourcePlay(state->mediums.windup_sound_sources[index]);
 
-                        state->windup_needs_reverse[index] = false;
+                        state->mediums.reverse_windup[index] = false;
                     }
 
-                    state->enemy_shoot_times[index] -= delta_time;
-                    if(state->enemy_shoot_times[index] < 0.0f) {
-                        state->enemy_shoot_times[index] = 0.0f;
+                    state->mediums.shoot_times[index] -= delta_time;
+                    if(state->mediums.shoot_times[index] < 0.0f) {
+                        state->mediums.shoot_times[index] = 0.0f;
                     }
                 }
 
-                if(state->enemy_sees_player[index] != sees_player) {
-                    state->windup_needs_reverse[index] = true;
+                if(state->mediums.sees_player[index] != sees_player) {
+                    state->mediums.reverse_windup[index] = true;
                 }
-                state->enemy_sees_player[index] = sees_player;
+                state->mediums.sees_player[index] = sees_player;
 
                 // Check if we are colliding with any of the triangles in the physmesh
                 for (usize phys_index = 0; phys_index < vertex_count; phys_index += 3) {
@@ -612,7 +595,7 @@ void update(GameState* state) {
                         if (sliding_factor > state->sliding_threshold) { N = VEC3_UNIT_Z; }
                         if (vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
 
-                        *(vec3*)&state->enemies.position_rotations[index] = vec3_add_vec3(*(vec3*)&state->enemies.position_rotations[index], vec3_mul_f32(N, d));
+                        *(vec3*)&state->mediums.entities.position_rotations[index] = vec3_add_vec3(*(vec3*)&state->mediums.entities.position_rotations[index], vec3_mul_f32(N, d));
                     }
                 }
 
@@ -708,9 +691,9 @@ void update(GameState* state) {
 
             {
                 // Check if we are colliding with any enemies
-                for(usize index = 0; index < state->enemies.length; index += 1) {
+                for(usize index = 0; index < state->mediums.entities.length; index += 1) {
                     vec3 P = state->player_position;
-                    vec3 p = *(vec3*)&state->enemies.position_rotations[index];
+                    vec3 p = *(vec3*)&state->mediums.entities.position_rotations[index];
                     N = vec3_norm(vec3_sub_vec3(P, p));
                     f32 distsq = vec3_distsq_vec3(P, p);
 
@@ -761,20 +744,20 @@ void update(GameState* state) {
         if (play_pistol_sound == true) { alSourcePlay(state->player_gun_sound_source); }
         alSourcefv(state->player_gun_sound_source, AL_POSITION, (f32*)&player_eye);
 
-        for(usize index = 0; index < state->enemies.length; index += 1) {
-            alSourcefv(state->enemy_alert_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
+        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
+            alSourcefv(state->mediums.alert_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->enemies.length; index += 1) {
-            alSourcefv(state->enemy_ambience_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
+        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
+            alSourcefv(state->mediums.ambience_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->enemies.length; index += 1) {
-            alSourcefv(state->enemy_gun_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
+        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
+            alSourcefv(state->mediums.gun_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
         }
 
-        for(usize index = 0; index < state->enemies.length; index += 1) {
-            alSourcefv(state->enemy_windup_sound_sources[index], AL_POSITION, (f32*)&state->enemies.position_rotations[index]);
+        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
+            alSourcefv(state->mediums.windup_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
         }
 
         for(usize index = 0; index < state->doors.capacity; index += 1) {
@@ -788,8 +771,8 @@ void update(GameState* state) {
 
     // check player position end thing
     {
-        if (vec3_distsq_vec3(state->player_position, *(vec3*)&state->end_zone) < state->end_zone.w) {
-            if(glfwGetKey(state->window, GLFW_KEY_E) == GLFW_PRESS) {
+        if(vec3_distsq_vec3(state->player_position, *(vec3*)&state->end_zone) < state->end_zone.w) {
+            if(state->activate_key.pressed) {
                 state->load_next_level = true;
             }
         }
