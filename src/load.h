@@ -742,7 +742,7 @@ void destroy_entity_list(VkDevice device, EntityList* entity_list) {
     destroy_local_and_staging_buffer(device, entity_list->color_buffer, entity_list->color_staging_buffer);
 }
 
-void free_enemy_sound_source(EnemyList* enemies) {
+void free_enemy_sound_sources(EnemyList* enemies) {
     alDeleteSources(enemies->entities.capacity, enemies->ambience_sound_sources);
     alDeleteSources(enemies->entities.capacity, enemies->alert_sound_sources);
     alDeleteSources(enemies->entities.capacity, enemies->windup_sound_sources);
@@ -768,9 +768,9 @@ void unload_level(GameState* state) {
     vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
     vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);
 
-    free_enemy_sound_source(&state->mediums);
-    free_enemy_sound_source(&state->rats);
-    free_enemy_sound_source(&state->knights);
+    free_enemy_sound_sources(&state->mediums);
+    free_enemy_sound_sources(&state->rats);
+    free_enemy_sound_sources(&state->knights);
 }
 
 #define THREE_HITS_LOAD_H
