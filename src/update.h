@@ -2,26 +2,33 @@
 // Created by Windows Vista on 8/18/2021.
 //
 #include "init.h"
+#include "input.h"
 
 #ifndef THREE_HITS_UPDATE_H
 
-void update_actions(GameState* state) {
-    update_action(state->window, &state->move_forward);
-    update_action(state->window, &state->move_backward);
-    update_action(state->window, &state->move_left);
-    update_action(state->window, &state->move_right);
-    update_action(state->window, &state->move_jump);
+void update_bind_states(GameState* state) {
+    update_mouse_bind_state(state->window, &state->shoot_button);
 
-    update_action(state->window, &state->debug_xp);
-    update_action(state->window, &state->debug_xn);
-    update_action(state->window, &state->debug_yp);
-    update_action(state->window, &state->debug_yn);
-    update_action(state->window, &state->debug_zp);
-    update_action(state->window, &state->debug_zn);
-    update_action(state->window, &state->debug_wp);
-    update_action(state->window, &state->debug_wn);
-    update_action(state->window, &state->debug_next);
-    update_action(state->window, &state->debug_mode);
+    update_key_bind_state(state->window, &state->activate_key);
+    update_key_bind_state(state->window, &state->reload_key);
+    update_key_bind_state(state->window, &state->forward_key);
+    update_key_bind_state(state->window, &state->backward_key);
+    update_key_bind_state(state->window, &state->left_key);
+    update_key_bind_state(state->window, &state->right_key);
+    update_key_bind_state(state->window, &state->walk_key);
+    update_key_bind_state(state->window, &state->crouch_key);
+    update_key_bind_state(state->window, &state->jump_key);
+
+    update_key_bind_state(state->window, &state->debug_xp_key);
+    update_key_bind_state(state->window, &state->debug_xn_key);
+    update_key_bind_state(state->window, &state->debug_yp_key);
+    update_key_bind_state(state->window, &state->debug_yn_key);
+    update_key_bind_state(state->window, &state->debug_zp_key);
+    update_key_bind_state(state->window, &state->debug_zn_key);
+    update_key_bind_state(state->window, &state->debug_wp_key);
+    update_key_bind_state(state->window, &state->debug_wn_key);
+    update_key_bind_state(state->window, &state->debug_next_key);
+    update_key_bind_state(state->window, &state->debug_mode_key);
 }
 
 void cleanup_swapchain_artifacts(GameState* state) {
