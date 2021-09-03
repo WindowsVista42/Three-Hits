@@ -256,6 +256,8 @@ void load_level_model(GameState* state, LoaderState* loader) {
             fread(&state->lights[index].color_alpha.z, sizeof(f32), 1, fp);
             fread(&state->lights[index].color_alpha.w, sizeof(f32), 1, fp);
         }
+        state->initial_lights = sbmalloc(&state->level_buffer, state->ulight_count * sizeof(Light));
+        memcpy(state->initial_lights, state->lights, state->ulight_count * sizeof(Light));
 
         // load end zone
         fread(&state->end_zone.x, sizeof(f32), 1, fp);
