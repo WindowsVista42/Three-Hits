@@ -160,6 +160,30 @@ b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* r
     }
 }
 
+u32 player_ray_intersects_enemy_list(EnemyList* enemies, vec3 P, vec3 E, f32 wall_distance) {
+    f32 best_enemy_distance = FLT_MAX;
+    u32 hit_index = UINT_MAX;
+
+    for (usize index = 0; index < enemies->entities.length; index += 1) {
+        vec3 Pe = *(vec3 *) &enemies->entities.position_rotations[index].x;
+        vec3 enemyN;
+        f32 enemy_distance;
+        f32 r = 1.8;
+        f32 rr = r * r;
+
+        // we know that we intersect the enemy
+        if (line_intersects_sphere(P, E, Pe, rr, &enemyN, &enemy_distance) == true) {
+            if (enemy_distance < wall_distance && enemy_distance < best_enemy_distance) {
+                best_enemy_distance = enemy_distance;
+                hit_index = index;
+            }
+        }
+    }
+
+    return hit_index;
+}
+
+
 #define UNTITLED_FPS_PHYSICS_H
 
 #endif //UNTITLED_FPS_PHYSICS_H
