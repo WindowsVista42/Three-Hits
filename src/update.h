@@ -659,7 +659,8 @@ void update(GameState* state) {
     }
 
     if(state->player_health <= 0) {
-        panic("Died!");
+        state->load_next_level = true;
+        return;
     }
 
     // Player physics
