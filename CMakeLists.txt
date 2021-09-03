@@ -16,7 +16,7 @@ add_executable(
     three_hits
     src/main.c src/util.h src/vkutil.h src/vmmath.h src/state.h src/physics.h src/alutil.h src/init.h
     lib/stb_image.h
-        src/update.h src/load.h)
+        src/update.h src/load.h src/input.h)
 
 add_subdirectory(level_compactor)
 
