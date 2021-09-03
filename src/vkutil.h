@@ -429,8 +429,8 @@ void create_device_local_and_staging_buffer(
     VkDeviceSize size,
     void* data,
     VkBufferUsageFlags usage,
-    Buffer* local_buffer,
-    Buffer* staging_buffer
+    Buffer* restrict local_buffer,
+    Buffer* restrict staging_buffer
 ) {
     create_buffer(
         device,
@@ -674,11 +674,7 @@ void create_graphics_pipeline(
     multisample_state_create_info.alphaToOneEnable = VK_FALSE;
 
     VkPipelineColorBlendAttachmentState color_blend_attachment_state = {};
-    color_blend_attachment_state.colorWriteMask =
-        VK_COLOR_COMPONENT_R_BIT
-        | VK_COLOR_COMPONENT_G_BIT
-        | VK_COLOR_COMPONENT_B_BIT
-        | VK_COLOR_COMPONENT_A_BIT;
+    color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     color_blend_attachment_state.blendEnable = VK_TRUE;
     color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
