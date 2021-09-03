@@ -2,6 +2,7 @@
 // Created by Windows Vista on 8/18/2021.
 //
 #include "GLFW/glfw3.h"
+#include "input.h"
 
 #ifndef UNTITLED_FPS_VKINIT_H
 
@@ -20,7 +21,7 @@ global const u32 MAX_FRAMES_IN_FLIGHT = 2;
 #ifdef NDEBUG
 global b32 validation_enabled = 1;
 #else
-global b32 validation_enabled = 1;
+global b32 validation_enabled = 0;
 #endif
 
 global u32 supports_validation;
