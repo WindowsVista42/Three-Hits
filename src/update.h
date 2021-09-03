@@ -222,7 +222,7 @@ void update(GameState* state) {
                 u32 upper = state->door_physmesh_ranges[index + 1];
 
                 // door opens
-                if (lower <= state->closest_ray_index && state->closest_ray_index < upper && activate_action.pressed && wall_distance < state->door_activation_distance) {
+                if (lower <= state->closest_ray_index && state->closest_ray_index < upper && state->activate_key.pressed && wall_distance < state->door_activation_distance) {
                     if(state->door_requirements[index] == 0 || state->door_requirements[index] & state->player_keycards) {
                         alSourcePlay(state->door_sound_sources[index]);
                         state->door_timings[index] = state->max_door_open_time * 2.0 - state->door_timings[index];
@@ -237,7 +237,8 @@ void update(GameState* state) {
 
             // door logic
             //TODO(sean): I dont really like this, but it gets the job done
-            for (usize index = 0; index < state->doors.capacity; index += 1) {
+            for each(usize, index, 0, state->doors.capacity) {
+            //for (usize index = 0; index < state->doors.capacity; index += 1) {
                 if (state->door_timings[index] > state->max_door_open_time) {
                     state->doors.position_rotations[index].z += state->delta_time * state->door_move_speed;
 
