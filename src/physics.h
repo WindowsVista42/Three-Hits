@@ -5,7 +5,7 @@
 #ifndef UNTITLED_FPS_PHYSICS_H
 #include "vmmath.h"
 
-b32 triangle_normal_intersects_bottom_of_sphere(vec3 A, vec3 B, vec3 C, vec3 P, f32 rr, vec3* N, f32* d) {
+b32 triangle_normal_intersects_bottom_of_sphere(vec3 A, vec3 B, vec3 C, vec3 P, f32 rr, vec3* restrict N, f32* restrict d) {
     *N = vec3_norm(vec3_cross(vec3_sub_vec3(B, A), vec3_sub_vec3(C, A)));
 
     const f32 EPSILON = 0.000001;
@@ -32,7 +32,7 @@ b32 triangle_normal_intersects_bottom_of_sphere(vec3 A, vec3 B, vec3 C, vec3 P, 
     else { return false; }
 }
 
-b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 S, vec3 E, vec3* N, f32* d) {
+b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 S, vec3 E, vec3* restrict N, f32* restrict d) {
     *N = vec3_norm(vec3_cross(vec3_sub_vec3(B, A), vec3_sub_vec3(C, A)));
     vec3 R = vec3_norm(vec3_sub_vec3(E, S));
 
@@ -60,13 +60,13 @@ b32 ray_intersects_triangle(vec3 A, vec3 B, vec3 C, vec3 S, vec3 E, vec3* N, f32
     else { return false; }
 }
 
-b32 sphere_intersects_point(vec3 p, vec3 P, f32 rr, vec3* N, f32* d) {
+b32 sphere_intersects_point(vec3 p, vec3 P, f32 rr, vec3* restrict N, f32* restrict d) {
     *N = vec3_norm(vec3_sub_vec3(P, p));
     *d = rr - vec3_distsq_vec3(P, p);
     return rr > vec3_distsq_vec3(P, p);
 }
 
-b32 line_intersects_sphere(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
+b32 line_intersects_sphere(vec3 A, vec3 B, vec3 P, f32 rr, vec3* restrict N, f32* restrict d) {
     f32 up0, up1, u;
     vec3 j, k;
     j = vec3_sub_vec3(P, A);
@@ -82,7 +82,7 @@ b32 line_intersects_sphere(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
     return intersects;
 }
 
-b32 line_intersects_sphere_incorrect(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f32* d) {
+b32 line_intersects_sphere_incorrect(vec3 A, vec3 B, vec3 P, f32 rr, vec3* restrict N, f32* restrict d) {
     f32 up0, up1, u;
     vec3 j, k;
     j = vec3_sub_vec3(P, A);
@@ -100,7 +100,7 @@ b32 line_intersects_sphere_incorrect(vec3 A, vec3 B, vec3 P, f32 rr, vec3* N, f3
 //TODO(sean): move this to just use re-duped vertex data
 //TODO(sean): line intersection
 //TODO(sean): properly optimize this in the future
-b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* N, f32* d) {
+b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* restrict N, f32* restrict d) {
     f32 rr = r * r;
     vec3 Rn, ABn, BCn, CAn, An, Bn, Cn;
     f32 Rd, ABd, BCd, CAd, Ad, Bd, Cd;
