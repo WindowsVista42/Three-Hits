@@ -124,9 +124,44 @@ void read_indices(StagedBuffer* scratch_buffer, u32* index_count, u32** indices,
     }
 }
 
+void load_enemy_list(StagedBuffer* scratch_buffer, EnemyList* enemies, FILE* fp) {
+    // load enemies from file
+    fread(&enemies->entities.capacity, sizeof(u32), 1, fp);
+    enemies->entities.length = enemies->entities.capacity;
+    enemies->entities.position_rotations = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(vec4));
+    for (usize index = 0; index < enemies->entities.capacity; index += 1) {
+        fread(&enemies->entities.position_rotations[index].x, sizeof(f32), 1, fp);
+        fread(&enemies->entities.position_rotations[index].y, sizeof(f32), 1, fp);
+        fread(&enemies->entities.position_rotations[index].z, sizeof(f32), 1, fp);
+        enemies->entities.position_rotations[index].w = 0.0f;
+    }
+
+    // set enemy colors
+    enemies->entities.colors = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(vec4));
+    for(u32 index = 0; index < enemies->entities.capacity; index += 1) {
+        enemies->entities.colors[index].x = 1.0;
+        enemies->entities.colors[index].y = 0.0;
+        enemies->entities.colors[index].z = 0.0;
+        enemies->entities.colors[index].w = 1.0;
+    }
+
+    // set enemy healths
+    const i32 enemy_default_health = 4;
+    enemies->healths = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(i32));
+    for(u32 index = 0; index < enemies->entities.capacity; index += 1) {
+        enemies->healths[index] = enemy_default_health;
+    }
+
+    // init some extra required data
+    enemies->hit_times = sbcalloc(scratch_buffer, 0, enemies->entities.capacity * sizeof(f32));
+    enemies->shoot_times = sbcalloc(scratch_buffer, 0, enemies->entities.capacity * sizeof(f32));
+    enemies->sees_player = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(b32));
+    enemies->reverse_windup = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(b32));
+}
+
 //TODO(sean): figure out a way to compress this
 void load_level_model(GameState* state, LoaderState* loader) {
-    loader->level_path = "../data/levels/doors0.level";
+    loader->level_path = "../data/levels/doors1.level";
     if(state->level_index > 0) {
         loader->level_path = "../data/levels/doors1.level";
     }
