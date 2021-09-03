@@ -575,7 +575,7 @@ void create_entity_graphics_pipeline(GameState* state) {
 
 void create_crosshair_graphics_pipeline(GameState* state) {
     PipelineOptions pipeline_options;
-    pipeline_options.cull_mode = VK_CULL_MODE_FRONT_AND_BACK;
+    pipeline_options.cull_mode = VK_CULL_MODE_NONE;
     pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
