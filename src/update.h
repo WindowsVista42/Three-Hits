@@ -562,57 +562,12 @@ void update(GameState* state) {
         reload_timer -= state->delta_time;
 
         const vec4 death_flash_color = vec4_new(0.0, 0.0, 1.0, 0.0);
-        const vec4 damage_flash_color = vec4_new(1.0, 0.0, 0.0, 1.0);
         const vec4 default_color = vec4_new(0.0, 1.0, 0.0, 1.0);
+        const vec4 damage_flash_color = vec4_new(1.0, 0.0, 0.0, 1.0);
 
-        // enemy hit
-        if (hit_index != UINT32_MAX) {
-            alSourcePlay(state->mediums.alert_sound_sources[hit_index]);
-
-            if(state->mediums.healths[hit_index] > 0) {
-                state->mediums.healths[hit_index] -= 1;
-            }
-            if(state->mediums.healths[hit_index] <= 0) { // we just killed it
-                // swap with last one
-                usize back_index = state->mediums.entities.length - 1;
-                i32 temp_health = state->mediums.healths[hit_index];
-                vec4 _temp_color = vec4_copy(state->mediums.entities.colors[hit_index]);
-                vec4 temp_position_rotation = vec4_copy(state->mediums.entities.position_rotations[hit_index]);
-
-                state->mediums.healths[hit_index] = state->mediums.healths[back_index];
-                state->mediums.entities.colors[hit_index] = state->mediums.entities.colors[back_index];
-                state->mediums.entities.position_rotations[hit_index] = state->mediums.entities.position_rotations[back_index];
-
-                state->mediums.healths[back_index] = temp_health;
-                state->mediums.entities.colors[back_index] = death_flash_color;
-                state->mediums.entities.position_rotations[back_index] = temp_position_rotation;
-
-                state->mediums.entities.length -= 1;
-
-                alSourceStop(state->mediums.alert_sound_sources[back_index]);
-                alSourceStop(state->mediums.ambience_sound_sources[back_index]);
-                alSourceStop(state->mediums.windup_sound_sources[hit_index]);
-                alSourcei(state->mediums.alert_sound_sources[back_index], AL_BUFFER, state->medium_sounds.explosion);
-                alSourcefv(state->mediums.alert_sound_sources[back_index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[back_index]);
-                alSourcef(state->mediums.alert_sound_sources[back_index], AL_GAIN, 1.0f);
-                alSourcef(state->mediums.alert_sound_sources[back_index], AL_ROLLOFF_FACTOR, 0.8f);
-                alSourcePlay(state->mediums.alert_sound_sources[back_index]);
-            } else {
-                state->mediums.entities.colors[hit_index] = damage_flash_color;
-                state->mediums.hit_times[hit_index] = state->mediums.hit_reaction_duration;
-            }
-        } else {
-            for(usize index = 0; index < state->mediums.entities.length; index += 1) {
-                if(state->mediums.hit_times[index] < 0.0) {
-                    state->mediums.entities.colors[index] = default_color;
-                }
-                state->mediums.hit_times[index] -= state->delta_time;
-            }
-        }
-
-        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->mediums.entities);
-        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->rats.entities);
-        sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->knights.entities);
+        process_enemy_list_hit(&state->mediums, &state->medium_sounds, medium_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
+        process_enemy_list_hit(&state->rats, &state->rat_sounds, rat_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
+        process_enemy_list_hit(&state->knights, &state->knight_sounds, knight_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
     }
 
     b32 space_pressed = false;
