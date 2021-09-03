@@ -767,7 +767,7 @@ void init_defaults(GameState* state) {
     state->player_position.y = 0.0;
     state->player_position.z = 0.0;
     state->max_door_open_time = 2.0f;
-    state->enemy_simulation_radius = 20.0f;
+    state->mediums.activation_range = 20.0f;
 
     // engine constants
     state->sliding_threshold = 0.7;
@@ -789,27 +789,32 @@ void init_defaults(GameState* state) {
     state->loaded_pistol_ammo_count = 12;
     state->pistol_magazine_size = 12;
 
-    state->enemy_shoot_delay = 2.0f;
+    state->mediums.shoot_delay = 2.0f;
+    state->mediums.hit_reaction_duration = 0.125f;
 }
 
 //TODO(sean): read this from a config file
 void load_actions(GameState* state, ConfigState* config) {
-    state->move_forward = new_action(GLFW_KEY_W);
-    state->move_backward = new_action(GLFW_KEY_S);
-    state->move_left = new_action(GLFW_KEY_A);
-    state->move_right = new_action(GLFW_KEY_D);
-    state->move_jump = new_action(GLFW_KEY_SPACE);
+    state->activate_key = new_bind(GLFW_KEY_E);
+    state->reload_key = new_bind(GLFW_KEY_R);
+    state->forward_key = new_bind(GLFW_KEY_W);
+    state->backward_key = new_bind(GLFW_KEY_S);
+    state->left_key = new_bind(GLFW_KEY_A);
+    state->right_key = new_bind(GLFW_KEY_D);
+    state->walk_key = new_bind(GLFW_KEY_LEFT_SHIFT);
+    state->crouch_key = new_bind(GLFW_KEY_LEFT_CONTROL);
+    state->jump_key = new_bind(GLFW_KEY_SPACE);
 
-    state->debug_xp = new_action(GLFW_KEY_Y);
-    state->debug_xn = new_action(GLFW_KEY_H);
-    state->debug_yp = new_action(GLFW_KEY_U);
-    state->debug_yn = new_action(GLFW_KEY_J);
-    state->debug_zp = new_action(GLFW_KEY_I);
-    state->debug_zn = new_action(GLFW_KEY_K);
-    state->debug_wp = new_action(GLFW_KEY_O);
-    state->debug_wn = new_action(GLFW_KEY_L);
-    state->debug_next = new_action(GLFW_KEY_SEMICOLON);
-    state->debug_mode = new_action(GLFW_KEY_P);
+    state->debug_xp_key = new_bind(GLFW_KEY_Y);
+    state->debug_xn_key = new_bind(GLFW_KEY_H);
+    state->debug_yp_key = new_bind(GLFW_KEY_U);
+    state->debug_yn_key = new_bind(GLFW_KEY_J);
+    state->debug_zp_key = new_bind(GLFW_KEY_I);
+    state->debug_zn_key = new_bind(GLFW_KEY_K);
+    state->debug_wp_key = new_bind(GLFW_KEY_O);
+    state->debug_wn_key = new_bind(GLFW_KEY_L);
+    state->debug_next_key = new_bind(GLFW_KEY_SEMICOLON);
+    state->debug_mode_key = new_bind(GLFW_KEY_P);
 }
 
 #define UNTITLED_FPS_VKINIT_H
