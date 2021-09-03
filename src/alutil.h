@@ -90,11 +90,6 @@ void load_wav(
     StagedBuffer* staged_buffer,
     char* file_name,
     RawSound* sound
-    //uint8_t* channels,
-    //int32_t* sample_rate,
-    //uint8_t* bits_per_sample,
-    //ALsizei* sound_data_size,
-    //uint8_t** sound_data
 ) {
     char buffer[4];
 
@@ -173,15 +168,15 @@ void generate_sound_source(SoundSource* source, f32 gain, ALboolean looping, Sou
     if(alIsAuxiliaryEffectSlot(slot) == AL_TRUE) { alSource3i(*source, AL_AUXILIARY_SEND_FILTER, (ALint)slot, 0, AL_FILTER_NULL); }
 }
 
-void load_sound_buffer_and_data(SoundBuffer* buffer, const RawSound raw_sound){
+void load_sound_buffer_and_data(SoundBuffer* buffer, RawSound* raw_sound){
     alGenBuffers(1, buffer);
-    alBufferData(*buffer, raw_sound.format, raw_sound.data, raw_sound.size, raw_sound.sample_rate);
+    alBufferData(*buffer, raw_sound->format, raw_sound->data, raw_sound->size, raw_sound->sample_rate);
 }
 
 void load_sound(StagedBuffer* staged_buffer, char* file_path, SoundBuffer* buffer) {
     RawSound raw_sound;
     load_wav(staged_buffer, file_path, &raw_sound);
-    load_sound_buffer_and_data(buffer, raw_sound);
+    load_sound_buffer_and_data(buffer, &raw_sound);
 }
 
 void set_sources_f(SoundSource* sources, usize count, ALenum param, ALfloat value) {
