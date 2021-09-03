@@ -399,7 +399,9 @@ void create_command_buffers(GameState* state) {
             render_entity_list_info.descriptor_set = &state->global_descriptor_sets[index];
 
             render_entity_list(&render_entity_list_info, &state->doors);
-            render_entity_list(&render_entity_list_info, &state->enemies);
+            render_entity_list(&render_entity_list_info, &state->mediums.entities);
+            render_entity_list(&render_entity_list_info, &state->rats.entities);
+            render_entity_list(&render_entity_list_info, &state->knights.entities);
             render_entity_list(&render_entity_list_info, &state->keycards);
 
             VkRenderPassBeginInfo crosshair_render_pass_begin_info = {};
@@ -610,11 +612,35 @@ void create_all_entity_buffers(GameState* state, LoaderState* loader) {
         state->physical_device,
         state->queue,
         state->command_pool,
-        enemy_vertex_count,
-        enemy_vertices,
-        enemy_index_count,
+        medium_vertex_count,
+        medium_vertices,
+        entity_index_count,
         enemy_indices,
-        &state->enemies
+        &state->mediums.entities
+    );
+
+    create_entity_render_data(
+        state->device,
+        state->physical_device,
+        state->queue,
+        state->command_pool,
+        small_vertex_count,
+        small_vertices,
+        entity_index_count,
+        enemy_indices,
+        &state->rats.entities
+    );
+
+    create_entity_render_data(
+        state->device,
+        state->physical_device,
+        state->queue,
+        state->command_pool,
+        large_vertex_count,
+        large_vertices,
+        entity_index_count,
+        enemy_indices,
+        &state->knights.entities
     );
 
     create_entity_render_data(
@@ -634,9 +660,9 @@ void create_all_entity_buffers(GameState* state, LoaderState* loader) {
         state->physical_device,
         state->queue,
         state->command_pool,
-        enemy_vertex_count,
-        enemy_vertices,
-        enemy_index_count,
+        medium_vertex_count,
+        medium_vertices,
+        entity_index_count,
         enemy_indices,
         &state->keycards
     );
@@ -691,7 +717,7 @@ void load_level(GameState* state) {
         create_level_buffers(state, loader);
         create_all_entity_buffers(state, loader);
 
-        load_level_sounds(state, loader);
+        load_level_sound_sources(state, loader);
     }
     free_loader(state, loader);
 
@@ -709,6 +735,13 @@ void destroy_entity_list(VkDevice device, EntityList* entity_list) {
     destroy_local_and_staging_buffer(device, entity_list->color_buffer, entity_list->color_staging_buffer);
 }
 
+void free_enemy_sound_source(EnemyList* enemies) {
+    alDeleteSources(enemies->entities.capacity, enemies->ambience_sound_sources);
+    alDeleteSources(enemies->entities.capacity, enemies->alert_sound_sources);
+    alDeleteSources(enemies->entities.capacity, enemies->windup_sound_sources);
+    alDeleteSources(enemies->entities.capacity, enemies->gun_sound_sources);
+}
+
 void unload_level(GameState* state) {
     state->load_next_level = false;
     state->level_index += 1;
@@ -721,12 +754,16 @@ void unload_level(GameState* state) {
     destroy_texture(state->device, state->level_texture);
     destroy_model(state->device, state->level_model);
 
-    destroy_entity_list(state->device, &state->enemies);
+    destroy_entity_list(state->device, &state->mediums.entities);
     destroy_entity_list(state->device, &state->doors);
     destroy_entity_list(state->device, &state->keycards);
 
     vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
     vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);
+
+    free_enemy_sound_source(&state->mediums);
+    free_enemy_sound_source(&state->rats);
+    free_enemy_sound_source(&state->knights);
 }
 
 #define THREE_HITS_LOAD_H
