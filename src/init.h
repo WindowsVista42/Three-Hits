@@ -767,7 +767,6 @@ void init_defaults(GameState* state) {
     state->player_position.y = 0.0;
     state->player_position.z = 0.0;
     state->max_door_open_time = 2.0f;
-    state->mediums.activation_range = 20.0f;
 
     // engine constants
     state->sliding_threshold = 0.7;
@@ -791,6 +790,15 @@ void init_defaults(GameState* state) {
 
     state->mediums.shoot_delay = 2.0f;
     state->mediums.hit_reaction_duration = 0.125f;
+    state->mediums.activation_range = 20.0f;
+
+    state->rats.shoot_delay = 2.0f;
+    state->rats.hit_reaction_duration = 0.125f;
+    state->rats.activation_range = 10.0f;
+
+    state->knights.shoot_delay = 2.0f;
+    state->knights.hit_reaction_duration = 0.125f;
+    state->knights.activation_range = 20.0f;
 }
 
 //TODO(sean): read this from a config file
