@@ -3,8 +3,239 @@
 //
 #include "init.h"
 #include "input.h"
+#include "physics.h"
 
 #ifndef THREE_HITS_UPDATE_H
+
+void update_enemy_physics(
+    StagedBuffer* scratch_buffer,
+    EnemyList* enemies,
+    EnemySoundBuffers* sounds,
+    vec3 player_position,
+    f32 player_radius,
+    u32 physmesh_vertex_count,
+    vec3* physmesh_vertices,
+    i32* player_health,
+    f32 sliding_threshold,
+    f32 delta_time_unadj
+) {
+    f32 delta_time = delta_time_unadj / 4.0;
+    // enemy physics
+    for(usize i = 0; i < 4; i += 1) {
+        for (usize index = 0; index < enemies->entities.length; index += 1) {
+            vec3 P = *(vec3 *) &enemies->entities.position_rotations[index];
+            f32 rr = 1.0;
+            vec3 N;
+            f32 d;
+
+            f32 sr = enemies->activation_range;
+            f32 srsr = sr * sr;
+            if (vec3_distsq_vec3(P, player_position) > srsr) { continue; }
+
+            f32 move_speed = 3.0;
+            vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &enemies->entities.position_rotations[index], player_position));
+            if (vec3_distsq_vec3(P, player_position) > rr + (player_radius * player_radius) + 4.0) {
+                *(vec3 *) &enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &enemies->entities.position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
+            } else {
+                *(vec3 *) &enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &enemies->entities.position_rotations[index], vec3_mul_f32(PN, delta_time * move_speed));
+            }
+
+            // Check if we are colliding with any of our kind
+            for (usize phys_index = 0; phys_index < enemies->entities.length; phys_index += 1) {
+                if (phys_index == index) { continue; }
+                vec3 p = *(vec3 *) &enemies->entities.position_rotations[phys_index];
+                N = vec3_norm(vec3_sub_vec3(P, p));
+                f32 distsq = vec3_distsq_vec3(P, p);
+
+                if (distsq < rr + rr) {
+                    d = sqrtf((rr + rr) - distsq);
+                    *(vec3 *) &enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &enemies->entities.position_rotations[index], vec3_mul_f32(N, d));
+                }
+            }
+
+            u32 vertex_count = 0;
+            vec3 *vertices = sbmalloc(scratch_buffer, 1200 * sizeof(vec3));
+
+            // cull
+            for (usize phys_index = 0; phys_index < physmesh_vertex_count; phys_index += 3) {
+                vec3 A = physmesh_vertices[phys_index + 0];
+                vec3 B = physmesh_vertices[phys_index + 1];
+                vec3 C = physmesh_vertices[phys_index + 2];
+
+                // intersection culling
+                vec3 ABC = vec3_div_f32(vec3_add_vec3(vec3_add_vec3(A, B), C), 3.0);
+                f32 ABCrr = vec3_distsq_vec3(ABC, A) + 2.0;
+                f32 ABCBrr = vec3_distsq_vec3(ABC, B) + 2.0;
+                f32 ABCCrr = vec3_distsq_vec3(ABC, C) + 2.0;
+                if (ABCBrr > ABCrr) { ABCrr = ABCBrr; }
+                if (ABCCrr > ABCrr) { ABCrr = ABCCrr; }
+                if (vec3_distsq_vec3(ABC, P) < ABCrr + rr) {
+                    vertices[vertex_count + 0] = A;
+                    vertices[vertex_count + 1] = B;
+                    vertices[vertex_count + 2] = C;
+                    vertex_count += 3;
+                }
+            }
+
+            f32 wall_distance = 4096.0;
+            vec3 E = player_position;
+            b32 found_wall = false;
+            for (usize phys_index = 0; phys_index < physmesh_vertex_count; phys_index += 3) {
+                vec3 A = physmesh_vertices[phys_index + 0];
+                vec3 B = physmesh_vertices[phys_index + 1];
+                vec3 C = physmesh_vertices[phys_index + 2];
+                vec3 rN;
+                f32 rd;
+
+                f32 pd = vec3_distsq_vec3(P, E);
+
+                // distance for closest intersection from S to E
+                if (ray_intersects_triangle(A, B, C, P, E, &rN, &rd) == true) {
+                    if(rd < pd) {
+                        found_wall = true;
+                        break;
+                    }
+                }
+            }
+
+            ALenum source_state;
+            // player shot logic
+            b32 sees_player = false;
+            if(found_wall == false) { // can see the player
+                sees_player = true;
+                alGetSourcei(enemies->windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
+                if(source_state == AL_PLAYING && enemies->reverse_windup[index] == true) {
+                    // if windup sound already playing, reverse windup sound | so it starts playing forwards again
+                    //alSourceRewind(state->enemy_windup_sound_sources[index]);
+                    // stop old and play rewinded at right spot
+                    ALfloat offset;
+                    alGetSourcef(enemies->windup_sound_sources[index], AL_SEC_OFFSET, &offset);
+                    ALfloat remainder = enemies->shoot_delay - offset;
+                    alSourceStop(enemies->windup_sound_sources[index]);
+                    alSourcei(enemies->windup_sound_sources[index], AL_BUFFER, sounds->windup);
+                    alSourcef(enemies->windup_sound_sources[index], AL_SEC_OFFSET, remainder);
+                    alSourcePlay(enemies->windup_sound_sources[index]);
+
+                    enemies->reverse_windup[index] = false;
+                } else {
+                    // else play windup sound once
+                    if(source_state != AL_PLAYING) {
+                        alSourcei(enemies->windup_sound_sources[index], AL_BUFFER, sounds->windup);
+                        alSourcePlay(enemies->windup_sound_sources[index]);
+                    }
+                    enemies->reverse_windup[index] = false;
+                }
+
+                enemies->shoot_times[index] += delta_time;
+                if(enemies->shoot_times[index] > enemies->shoot_delay) { // can shoot the player
+                    // stop the windup sound
+                    // play shoot sound
+                    enemies->shoot_times[index] = 0.0f;
+                    alSourcePlay(enemies->gun_sound_sources[index]);
+                    alSourceStop(enemies->windup_sound_sources[index]);
+                    *player_health -= 1;
+                }
+            } else { // can not see the player
+                alGetSourcei(enemies->windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
+                if(source_state == AL_PLAYING && enemies->reverse_windup[index] == true) {
+                    // if windup sound is playing then reverse the windup sound once | so it starts playing backwards again
+                    ALfloat offset;
+                    alGetSourcef(enemies->windup_sound_sources[index], AL_SEC_OFFSET, &offset);
+                    ALfloat remainder = enemies->shoot_delay - offset;
+                    alSourceStop(enemies->windup_sound_sources[index]);
+                    alSourcei(enemies->windup_sound_sources[index], AL_BUFFER, sounds->winddown);
+                    alSourcef(enemies->windup_sound_sources[index], AL_SEC_OFFSET, remainder);
+                    alSourcePlay(enemies->windup_sound_sources[index]);
+
+                    enemies->reverse_windup[index] = false;
+                }
+
+                enemies->shoot_times[index] -= delta_time;
+                if(enemies->shoot_times[index] < 0.0f) {
+                    enemies->shoot_times[index] = 0.0f;
+                }
+            }
+
+            if(enemies->sees_player[index] != sees_player) {
+                enemies->reverse_windup[index] = true;
+            }
+            enemies->sees_player[index] = sees_player;
+
+            // Check if we are colliding with any of the triangles in the physmesh
+            for (usize phys_index = 0; phys_index < vertex_count; phys_index += 3) {
+                vec3 A = vertices[phys_index + 0];
+                vec3 B = vertices[phys_index + 1];
+                vec3 C = vertices[phys_index + 2];
+
+                if (sphere_collides_with_triangle(A, B, C, P, rr, &N, &d)) {
+                    f32 sliding_factor = vec3_dot(N, VEC3_UNIT_Z);
+
+                    if (sliding_factor > sliding_threshold) { N = VEC3_UNIT_Z; }
+                    if (vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
+
+                    *(vec3*)&enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3*)&enemies->entities.position_rotations[index], vec3_mul_f32(N, d));
+                }
+            }
+
+            sbclear(scratch_buffer);
+        }
+    }
+}
+
+void process_enemy_list_hit(
+    EnemyList* enemies,
+    EnemySoundBuffers* sounds,
+    u32 hit_index,
+    vec4 death_flash_color,
+    vec4 default_color,
+    vec4 damage_flash_color,
+    f32 delta_time
+) {
+    // enemy hit
+    if (hit_index != UINT32_MAX) {
+        alSourcePlay(enemies->alert_sound_sources[hit_index]);
+
+        if(enemies->healths[hit_index] > 0) {
+            enemies->healths[hit_index] -= 1;
+        }
+        if(enemies->healths[hit_index] <= 0) { // we just killed it
+            // swap with last one
+            usize back_index = enemies->entities.length - 1;
+            i32 temp_health = enemies->healths[hit_index];
+            vec4 _temp_color = vec4_copy(enemies->entities.colors[hit_index]);
+            vec4 temp_position_rotation = vec4_copy(enemies->entities.position_rotations[hit_index]);
+
+            enemies->healths[hit_index] = enemies->healths[back_index];
+            enemies->entities.colors[hit_index] = enemies->entities.colors[back_index];
+            enemies->entities.position_rotations[hit_index] = enemies->entities.position_rotations[back_index];
+
+            enemies->healths[back_index] = temp_health;
+            enemies->entities.colors[back_index] = death_flash_color;
+            enemies->entities.position_rotations[back_index] = temp_position_rotation;
+
+            enemies->entities.length -= 1;
+
+            alSourceStop(enemies->alert_sound_sources[back_index]);
+            alSourceStop(enemies->ambience_sound_sources[back_index]);
+            alSourceStop(enemies->windup_sound_sources[hit_index]);
+            alSourcei(enemies->alert_sound_sources[back_index], AL_BUFFER, sounds->explosion);
+            alSourcefv(enemies->alert_sound_sources[back_index], AL_POSITION, (f32*)&enemies->entities.position_rotations[back_index]);
+            alSourcef(enemies->alert_sound_sources[back_index], AL_GAIN, 1.0f);
+            alSourcef(enemies->alert_sound_sources[back_index], AL_ROLLOFF_FACTOR, 0.8f);
+            alSourcePlay(enemies->alert_sound_sources[back_index]);
+        } else {
+            enemies->entities.colors[hit_index] = damage_flash_color;
+            enemies->hit_times[hit_index] = enemies->hit_reaction_duration;
+        }
+    } else {
+        for(usize index = 0; index < enemies->entities.length; index += 1) {
+            if(enemies->hit_times[index] < 0.0) {
+                enemies->entities.colors[index] = default_color;
+            }
+            enemies->hit_times[index] -= delta_time;
+        }
+    }
+}
 
 void update_bind_states(GameState* state) {
     update_mouse_bind_state(state->window, &state->shoot_button);
