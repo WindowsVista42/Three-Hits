@@ -62,6 +62,7 @@ int main() {
     create_sync_objects(state);
     alListenerf(AL_GAIN, 0.0f);
 
+    load_sounds(state);
     load_level(state);
     load_actions(state, 0);
     // levels.txt
