@@ -25,6 +25,15 @@ float distance_step(float a, float x_2) {
     return 1.0/((a * x_2) + 1.0);
 }
 
+vec3 aces(vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
 void main() {
     vec4 combined_color_alpha = vec4(0.0);
     for(uint index = 0; index < 6; index += 1) {
@@ -47,5 +56,6 @@ void main() {
     float luminance = dot(combined_color_alpha, combined_color_alpha);
     vec4 test = combined_color_alpha;
     test.w = 1.0;
-    out_color = test * texture(tex_sampler, in_uv);
+    vec4 c = test * texture(tex_sampler, in_uv);
+    out_color = vec4(aces(c.xyz), 1.0);
 }

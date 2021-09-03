@@ -29,6 +29,15 @@ float distance_step_smooth(float inv_midpoint_2, float position_2, float midpoin
     return 1.0 / (pow(inv_midpoint_2 * position_2, 2.0 * inv_midpoint_2 * midpoint_slope) + 1.0);
 }
 
+vec3 aces(vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
 void main() {
     vec4 mixed_color = vec4(mix(in_model_color.rgb, texture(tex_sampler, in_uv).rgb, 0.5), in_model_color.a);
 
@@ -52,7 +61,8 @@ void main() {
     }
 
     float luminance = dot(combined_color_alpha, combined_color_alpha);
-    vec4 test = combined_color_alpha + vec4(vec3(0.004), 0.0);
+    vec4 test = combined_color_alpha;
     test.w = 1.0;
-    out_color = test * texture(tex_sampler, in_uv);
+    vec4 c = test * texture(tex_sampler, in_uv);
+    out_color = vec4(aces(c.xyz), 1.0);
 }
