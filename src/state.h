@@ -7,6 +7,7 @@
 #include "util.h"
 #include "vmmath.h"
 #include "alutil.h"
+#include "input.h"
 
 typedef struct Vertex {
     vec3 position;
@@ -114,16 +115,32 @@ global VkVertexInputAttributeDescription crosshair_vertex_attribute_descriptions
     },
 };
 
-#define enemy_vertex_count 4
-global Vertex enemy_vertices[enemy_vertex_count] = {
+#define medium_vertex_count 4
+global Vertex medium_vertices[medium_vertex_count] = {
     {{{-1.0, 0.0, -1.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 0.0}}},
     {{{-1.0, 0.0,  1.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 1.0}}},
     {{{ 1.0, 0.0, -1.0}}, {{0.0, 1.0, 0.0}}, {{1.0, 0.0}}},
     {{{ 1.0, 0.0,  1.0}}, {{0.0, 1.0, 0.0}}, {{1.0, 1.0}}},
 };
 
-#define enemy_index_count 6
-global u32 enemy_indices[enemy_index_count] = {
+#define small_vertex_count 4
+global Vertex small_vertices[small_vertex_count] = {
+    {{{-0.5, 0.0, -0.5}}, {{0.0, 1.0, 0.0}}, {{0.0, 0.0}}},
+    {{{-0.5, 0.0,  0.5}}, {{0.0, 1.0, 0.0}}, {{0.0, 1.0}}},
+    {{{ 0.5, 0.0, -0.5}}, {{0.0, 1.0, 0.0}}, {{1.0, 0.0}}},
+    {{{ 0.5, 0.0,  0.5}}, {{0.0, 1.0, 0.0}}, {{1.0, 1.0}}},
+};
+
+#define large_vertex_count 4
+global Vertex large_vertices[large_vertex_count] = {
+    {{{-2.0, 0.0, -2.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 0.0}}},
+    {{{-2.0, 0.0,  2.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 1.0}}},
+    {{{ 2.0, 0.0, -2.0}}, {{0.0, 1.0, 0.0}}, {{1.0, 0.0}}},
+    {{{ 2.0, 0.0,  2.0}}, {{0.0, 1.0, 0.0}}, {{1.0, 1.0}}},
+};
+
+#define entity_index_count 6
+global u32 enemy_indices[entity_index_count] = {
     0, 1, 2,
     2, 1, 3
 };
