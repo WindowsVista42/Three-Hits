@@ -349,34 +349,19 @@ typedef struct GameState {
     SoundSlot reverb_slot;
 
     SoundBuffer pistol_sound_buffer;
-    SoundBuffer enemy_alert_sound_buffer;
-    SoundBuffer enemy_ambience_sound_buffer;
-    SoundBuffer enemy_explosion_sound_buffer;
-    SoundBuffer enemy_gun_sound_buffer;
-    SoundBuffer door_opening_sound_buffer;
-    SoundBuffer player_movement_sound_buffer;
-    SoundBuffer player_jump_sound_buffer;
-    SoundBuffer enemy_windup_sound_buffer;
-    SoundBuffer enemy_reverse_windup_sound_buffer;
-
     SoundSource player_gun_sound_source;
     SoundSource player_movement_sound_source;
+    SoundBuffer player_movement_sound_buffer;
+    SoundBuffer player_jump_sound_buffer;
 
-    SoundSource* enemy_alert_sound_sources;
-    SoundSource* enemy_ambience_sound_sources;
-    SoundSource* enemy_gun_sound_sources;
+    SoundBuffer door_opening_sound_buffer;
     SoundSource* door_sound_sources;
-    SoundSource* enemy_windup_sound_sources;
-    b32* windup_needs_reverse;
-    b32* enemy_sees_player;
 
     // guns
     f32 pistol_shoot_delay;
     f32 pistol_reload_speed;
     u32 loaded_pistol_ammo_count;
     u32 pistol_magazine_size;
-
-    f32 enemy_simulation_radius;
 
     i32 player_health;
 
