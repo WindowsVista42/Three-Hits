@@ -62,8 +62,6 @@ void load_sounds(GameState* state) {
     load_enemy_sounds(&state->scratch, "medium", &state->medium_sounds);
     load_enemy_sounds(&state->scratch, "medium", &state->rat_sounds);
     load_enemy_sounds(&state->scratch, "medium", &state->knight_sounds);
-
-    sbclear(&state->scratch);
 }
 
 void generate_enemy_sound_sources(StagedBuffer* staged_buffer, EnemyList* enemies, EnemySoundBuffers* sounds, SoundSlot slot) {
