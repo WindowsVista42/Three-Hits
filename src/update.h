@@ -964,6 +964,17 @@ void update(GameState* state) {
                     vec4_print(state->lights[index].color_alpha);
                 }
             }
+
+            static Bind print_lights = {GLFW_KEY_COMMA};
+            update_key_bind_state(state->window, &print_lights);
+            if(print_lights.pressed) {
+                for each(usize, i, 0, 6) {
+                    printf("Light %llu:\n", i);
+                    vec4_print(state->lights[i].position_falloff);
+                    vec4_print(state->lights[i].color_alpha);
+                    printf("\n");
+                }
+            }
         }
 
         //*(vec3*)&state->lights[0].position_falloff = state->player_position;
