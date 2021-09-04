@@ -246,6 +246,9 @@ void load_level_model(GameState* state, LoaderState* loader) {
         }
 
         state->keycards.colors = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
+        for each(usize, index, 0, state->keycards.capacity) {
+            state->keycards.colors[index].w = 1.0;
+        }
 
         // load lights from file
         fread(&state->ulight_count, sizeof(u32), 1, fp);
