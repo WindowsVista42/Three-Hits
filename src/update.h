@@ -7,6 +7,24 @@
 
 #ifndef THREE_HITS_UPDATE_H
 
+void sync_enemy_sound_sources(EnemyList* enemies) {
+    for(usize index = 0; index < enemies->entities.length; index += 1) {
+        alSourcefv(enemies->alert_sound_sources[index], AL_POSITION, (f32*)&enemies->entities.position_rotations[index]);
+    }
+
+    for(usize index = 0; index < enemies->entities.length; index += 1) {
+        alSourcefv(enemies->ambience_sound_sources[index], AL_POSITION, (f32*)&enemies->entities.position_rotations[index]);
+    }
+
+    for(usize index = 0; index < enemies->entities.length; index += 1) {
+        alSourcefv(enemies->gun_sound_sources[index], AL_POSITION, (f32*)&enemies->entities.position_rotations[index]);
+    }
+
+    for(usize index = 0; index < enemies->entities.length; index += 1) {
+        alSourcefv(enemies->windup_sound_sources[index], AL_POSITION, (f32*)&enemies->entities.position_rotations[index]);
+    }
+}
+
 void update_enemy_physics(
     StagedBuffer* scratch_buffer,
     EnemyList* enemies,
