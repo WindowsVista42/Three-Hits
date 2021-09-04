@@ -1,4 +1,4 @@
-# untitled_fps
+# Three Hits
 ## Dependencies that I can think of
 - vulkan sdk (kinda, only really needed so you can compile shaders and get validation layers)
 - glfw (Add it to lib/)
