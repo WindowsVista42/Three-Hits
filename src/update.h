@@ -202,7 +202,7 @@ void update_enemy_physics(
     }
 }
 
-void process_enemy_list_hit(
+void process_enemy_hit(
     EnemyList* enemies,
     EnemySoundBuffers* sounds,
     u32 hit_index,
@@ -557,9 +557,9 @@ void update(GameState* state) {
                     state->loaded_pistol_ammo_count = state->pistol_magazine_size;
                 }
 
-                medium_hit_index = player_ray_intersects_enemy_list(&state->mediums, player_eye, E, wall_distance);
-                rat_hit_index = player_ray_intersects_enemy_list(&state->rats, player_eye, E, wall_distance);
-                knight_hit_index = player_ray_intersects_enemy_list(&state->knights, player_eye, E, wall_distance);
+                medium_hit_index = player_ray_intersects_enemy(&state->mediums, player_eye, E, wall_distance);
+                rat_hit_index = player_ray_intersects_enemy(&state->rats, player_eye, E, wall_distance);
+                knight_hit_index = player_ray_intersects_enemy(&state->knights, player_eye, E, wall_distance);
             }
         }
         if(reload_timer > 0.0f) { state->crosshair_color = vec4_new(0.0, 0.0, 1.0, 0.5); }
@@ -585,9 +585,9 @@ void update(GameState* state) {
         const vec4 default_color = vec4_new(0.0, 1.0, 0.0, 1.0);
         const vec4 damage_flash_color = vec4_new(1.0, 0.0, 0.0, 1.0);
 
-        process_enemy_list_hit(&state->mediums, &state->medium_sounds, medium_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
-        process_enemy_list_hit(&state->rats, &state->rat_sounds, rat_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
-        process_enemy_list_hit(&state->knights, &state->knight_sounds, knight_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
+        process_enemy_hit(&state->mediums, &state->medium_sounds, medium_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
+        process_enemy_hit(&state->rats, &state->rat_sounds, rat_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
+        process_enemy_hit(&state->knights, &state->knight_sounds, knight_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
     }
 
     b32 space_pressed = false;
