@@ -398,6 +398,29 @@ typedef struct GameState {
     Bind debug_mode_key;
 } GameState;
 
+// This data gets generated at level-load time
+// In the future it can be done at level-compile time
+//
+// For each vertex, find if it intersects the bucket, add it to the bin
+// Repeat until all bins have been filled out
+//
+// For querying the bucket, we fit the player to an AABB
+// Do the fancy bucket math
+// And copy out some vertices that the player can check
+// Maybe in the future we won't make an explicit copy
+// But for now it should be fast enough
+typedef struct PhysmeshBuckets {
+    f32 tile_width;
+    u32 xcount;
+    u32 ycount;
+
+    u32 vertex_count;
+    vec3* vertices;
+    u32* offsets;
+} PhysmeshBuckets;
+
+void query_physmesh_buckets(StagedBuffer* scratch, PhysmeshBuckets* buckets, u32* bp_vertex_count, vec3* bp_vertices, vec3 player_position, f32 player_radius) {}
+
 #include "../lib/stb_image.h"
 
 // We only want to load this temporarily into memory
