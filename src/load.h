@@ -151,7 +151,7 @@ void load_enemy_list(StagedBuffer* scratch_buffer, EnemyList* enemies, FILE* fp)
     }
 
     // set enemy healths
-    const i32 enemy_default_health = 4;
+    const i32 enemy_default_health = enemies->default_health;
     enemies->healths = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(i32));
     for(u32 index = 0; index < enemies->entities.capacity; index += 1) {
         enemies->healths[index] = enemy_default_health;
