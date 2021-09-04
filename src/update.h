@@ -563,7 +563,7 @@ void update(GameState* state) {
             }
         }
         if(reload_timer > 0.0f) { state->crosshair_color = vec4_new(0.0, 0.0, 1.0, 0.5); }
-        else if(shoot_timer > 0.0f) { state->crosshair_color = vec4_new(1.0, 0.0, 0.0, 0.5); }
+        else if(shoot_timer > 0.05f) { state->crosshair_color = vec4_new(1.0, 0.0, 0.0, 0.5); }
         else { state->crosshair_color = vec4_new(1.0, 1.0, 1.0, 0.5); }
 
         write_buffer_copy_buffer(
