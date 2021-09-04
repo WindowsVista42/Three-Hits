@@ -158,6 +158,8 @@ void load_wav(
     }
 
     fclose(file);
+
+    sbclear(staged_buffer);
 }
 
 void generate_sound_source(SoundSource* source, f32 gain, ALboolean looping, SoundBuffer buffer, SoundSlot slot) {
