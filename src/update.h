@@ -42,7 +42,7 @@ void update_enemy_physics(
     for(usize i = 0; i < 4; i += 1) {
         for (usize index = 0; index < enemies->entities.length; index += 1) {
             vec3 P = *(vec3 *) &enemies->entities.position_rotations[index];
-            f32 rr = 1.0;
+            f32 rr = enemies->radius * enemies->radius;
             vec3 N;
             f32 d;
 
@@ -50,9 +50,11 @@ void update_enemy_physics(
             f32 srsr = sr * sr;
             if (vec3_distsq_vec3(P, player_position) > srsr) { continue; }
 
-            f32 move_speed = 3.0;
+            f32 dtp = vec3_distsq_vec3(P, player_position);
+
+            const f32 move_speed = enemies->move_speed;
             vec3 PN = vec3_norm(vec3_sub_vec3(*(vec3 *) &enemies->entities.position_rotations[index], player_position));
-            if (vec3_distsq_vec3(P, player_position) > rr + (player_radius * player_radius) + 4.0) {
+            if (dtp > rr + (player_radius * player_radius) + 4.0) {
                 *(vec3 *) &enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &enemies->entities.position_rotations[index], vec3_mul_f32(PN, delta_time * -move_speed));
             } else {
                 *(vec3 *) &enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3 *) &enemies->entities.position_rotations[index], vec3_mul_f32(PN, delta_time * move_speed));
@@ -119,7 +121,7 @@ void update_enemy_physics(
             ALenum source_state;
             // player shot logic
             b32 sees_player = false;
-            if(found_wall == false) { // can see the player
+            if(found_wall == false && dtp < enemies->shoot_range * enemies->shoot_range) { // can see the player
                 sees_player = true;
                 alGetSourcei(enemies->windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
                 if(source_state == AL_PLAYING && enemies->reverse_windup[index] == true) {
@@ -128,7 +130,7 @@ void update_enemy_physics(
                     // stop old and play rewinded at right spot
                     ALfloat offset;
                     alGetSourcef(enemies->windup_sound_sources[index], AL_SEC_OFFSET, &offset);
-                    ALfloat remainder = enemies->shoot_delay - offset;
+                    ALfloat remainder = 2.0 - offset;
                     alSourceStop(enemies->windup_sound_sources[index]);
                     alSourcei(enemies->windup_sound_sources[index], AL_BUFFER, sounds->windup);
                     alSourcef(enemies->windup_sound_sources[index], AL_SEC_OFFSET, remainder);
