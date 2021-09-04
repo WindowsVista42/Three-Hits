@@ -772,7 +772,7 @@ void init_defaults(GameState* state) {
     state->sliding_threshold = 0.7;
     state->slide_gravity_factor = 0.8;
 
-    state->player_health = 9000;
+    state->player_health = 3;
     state->player_speed = 10.0;
     state->player_jump_speed = 20.0;
     state->player_radius = 1.0;
@@ -788,17 +788,29 @@ void init_defaults(GameState* state) {
     state->loaded_pistol_ammo_count = 12;
     state->pistol_magazine_size = 12;
 
-    state->mediums.shoot_delay = 2.0f;
+    state->mediums.radius = 1.0;
+    state->mediums.move_speed = 5.0;
+    state->mediums.shoot_range = FLT_MAX;
+    state->mediums.shoot_delay = 1.5f;
     state->mediums.hit_reaction_duration = 0.125f;
     state->mediums.activation_range = 20.0f;
+    state->mediums.default_health = 4;
 
-    state->rats.shoot_delay = 2.0f;
+    state->rats.radius = 0.6;
+    state->rats.move_speed = 10.0;
+    state->rats.shoot_range = 3.0;
+    state->rats.shoot_delay = 1.0f;
     state->rats.hit_reaction_duration = 0.125f;
-    state->rats.activation_range = 10.0f;
+    state->rats.activation_range = 20.0f;
+    state->rats.default_health = 1;
 
-    state->knights.shoot_delay = 2.0f;
+    state->knights.radius = 1.3;
+    state->knights.move_speed = 4.0;
+    state->knights.shoot_range = FLT_MAX;
+    state->knights.shoot_delay = 1.5f;
     state->knights.hit_reaction_duration = 0.125f;
     state->knights.activation_range = 20.0f;
+    state->knights.default_health = 12;
 }
 
 //TODO(sean): read this from a config file
