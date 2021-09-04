@@ -819,25 +819,13 @@ void update(GameState* state) {
         if (play_pistol_sound == true) { alSourcePlay(state->player_gun_sound_source); }
         alSourcefv(state->player_gun_sound_source, AL_POSITION, (f32*)&player_eye);
 
-        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
-            alSourcefv(state->mediums.alert_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
-        }
-
-        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
-            alSourcefv(state->mediums.ambience_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
-        }
-
-        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
-            alSourcefv(state->mediums.gun_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
-        }
-
-        for(usize index = 0; index < state->mediums.entities.length; index += 1) {
-            alSourcefv(state->mediums.windup_sound_sources[index], AL_POSITION, (f32*)&state->mediums.entities.position_rotations[index]);
-        }
-
         for(usize index = 0; index < state->doors.capacity; index += 1) {
             alSourcefv(state->door_sound_sources[index], AL_POSITION, (f32*)&state->doors.position_rotations[index]);
         }
+
+        sync_enemy_sound_sources(&state->mediums);
+        sync_enemy_sound_sources(&state->rats);
+        sync_enemy_sound_sources(&state->knights);
 
         f32 orientation[6] = {-state->look_dir.x, -state->look_dir.y, -state->look_dir.z, 0.0f, 0.0f, 1.0f};
         alListenerfv(AL_ORIENTATION, orientation);
@@ -851,12 +839,6 @@ void update(GameState* state) {
                 state->load_next_level = true;
             }
         }
-
-        /*
-        if(glfwGetKey(state->window, GLFW_KEY_J) == GLFW_PRESS) {
-            state->load_next_level = true;
-        }
-        */
     }
 
     {
