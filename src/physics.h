@@ -160,7 +160,7 @@ b32 sphere_collides_with_triangle(vec3 A, vec3 B, vec3 C, vec3 P, f32 r, vec3* r
     }
 }
 
-u32 player_ray_intersects_enemy_list(EnemyList* enemies, vec3 P, vec3 E, f32 wall_distance) {
+u32 player_ray_intersects_enemy(EnemyList* enemies, vec3 P, vec3 E, f32 wall_distance) {
     f32 best_enemy_distance = FLT_MAX;
     u32 hit_index = UINT_MAX;
 
