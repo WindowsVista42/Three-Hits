@@ -764,6 +764,8 @@ void unload_level(GameState* state) {
     destroy_model(state->device, state->level_model);
 
     destroy_entity_list(state->device, &state->mediums.entities);
+    destroy_entity_list(state->device, &state->rats.entities);
+    destroy_entity_list(state->device, &state->knights.entities);
     destroy_entity_list(state->device, &state->doors);
     destroy_entity_list(state->device, &state->keycards);
 
