@@ -1,15 +1,4 @@
 cmake-build-debug
 cmake-build-release
-
-zip
-*.spv
-/glfw-3.3.4/
-/build/
-/build/bin/
-/build/build.zip
-/build/enemy.frag.spv
-/build/enemy.vert.spv
-/build/level.frag.spv
-/build/level.vert.spv
-/build/test_0.level
-/build/viking_room.png
+build/**
+lib/**
