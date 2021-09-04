@@ -866,71 +866,103 @@ void update(GameState* state) {
             printf("Changed to placement mode %d\n", mode);
         }
 
-        if(mode == 0) {
-            if (state->debug_xp_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.x += 2.5 * state->delta_time;
+        static Bind mute = {GLFW_KEY_M};
+        static b32 muted = false;
+        update_key_bind_state(state->window, &mute);
+        if(mute.pressed) {
+            if(muted) {
+                printf("Unmuted audio\n");
+                alListenerf(AL_GAIN, 1.0f);
+                muted = false;
+            } else {
+                printf("Muted audio\n");
+                alListenerf(AL_GAIN, 0.0f);
+                muted = true;
             }
-            if (state->debug_xn_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.x -= 2.5 * state->delta_time;
-            }
-            if (state->debug_yp_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.y += 2.5 * state->delta_time;
-            }
-            if (state->debug_yn_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.y -= 2.5 * state->delta_time;
-            }
-            if (state->debug_zp_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.z += 2.5 * state->delta_time;
-            }
-            if (state->debug_zn_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.z -= 2.5 * state->delta_time;
-            }
-            if (state->debug_wp_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.w += 0.5 * state->delta_time;
-            }
-            if (state->debug_wn_key.held) {
-                changed = true;
-                state->lights[index].position_falloff.w -= 0.5 * state->delta_time;
-            }
+        }
 
-            if(changed) {
-                vec4_print(state->lights[index].position_falloff);
-            }
-        } else if(mode == 1) {
-            if (state->debug_xp_key.held) {
-                changed = true;
-                state->lights[index].color_alpha.x += 1.0 * state->delta_time;
-            }
-            if (state->debug_xn_key.held) {
-                changed = true;
-                state->lights[index].color_alpha.x -= 1.0 * state->delta_time;
-            }
-            if (state->debug_yp_key.held) {
-                changed = true;
-                state->lights[index].color_alpha.y += 1.0 * state->delta_time;
-            }
-            if (state->debug_yn_key.held) {
-                changed = true;
-                state->lights[index].color_alpha.y -= 1.0 * state->delta_time;
-            }
-            if (state->debug_zp_key.held) {
-                changed = true;
-                state->lights[index].color_alpha.z += 1.0 * state->delta_time;
-            }
-            if (state->debug_zn_key.held) {
-                changed = true;
-                state->lights[index].color_alpha.z -= 1.0 * state->delta_time;
-            }
+        static Bind debug_enabler = {GLFW_KEY_DELETE};
+        update_key_bind_state(state->window, &debug_enabler);
+        static u32 debug_count = 0;
+        static b32 debug_enabled = false;
+        if(debug_enabler.pressed) {
+            debug_count += 1;
+        }
 
-            if(changed) {
-                vec4_print(state->lights[index].color_alpha);
+        if(debug_count == 3) {
+            debug_enabled = true;
+            debug_count += 1;
+            state->player_health = INT32_MAX;
+            printf("Debug Mode Enabled\n");
+        }
+
+        if(debug_enabled) {
+            if (mode == 0) {
+                if (state->debug_xp_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.x += 2.5 * state->delta_time;
+                }
+                if (state->debug_xn_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.x -= 2.5 * state->delta_time;
+                }
+                if (state->debug_yp_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.y += 2.5 * state->delta_time;
+                }
+                if (state->debug_yn_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.y -= 2.5 * state->delta_time;
+                }
+                if (state->debug_zp_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.z += 2.5 * state->delta_time;
+                }
+                if (state->debug_zn_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.z -= 2.5 * state->delta_time;
+                }
+                if (state->debug_wp_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.w += 0.5 * state->delta_time;
+                }
+                if (state->debug_wn_key.held) {
+                    changed = true;
+                    state->lights[index].position_falloff.w -= 0.5 * state->delta_time;
+                }
+
+                if (changed) {
+                    vec4_print(state->lights[index].position_falloff);
+                }
+            } else if (mode == 1) {
+                if (state->debug_xp_key.held) {
+                    changed = true;
+                    state->lights[index].color_alpha.x += 1.0 * state->delta_time;
+                }
+                if (state->debug_xn_key.held) {
+                    changed = true;
+                    state->lights[index].color_alpha.x -= 1.0 * state->delta_time;
+                }
+                if (state->debug_yp_key.held) {
+                    changed = true;
+                    state->lights[index].color_alpha.y += 1.0 * state->delta_time;
+                }
+                if (state->debug_yn_key.held) {
+                    changed = true;
+                    state->lights[index].color_alpha.y -= 1.0 * state->delta_time;
+                }
+                if (state->debug_zp_key.held) {
+                    changed = true;
+                    state->lights[index].color_alpha.z += 1.0 * state->delta_time;
+                }
+                if (state->debug_zn_key.held) {
+                    changed = true;
+                    state->lights[index].color_alpha.z -= 1.0 * state->delta_time;
+                }
+
+                if (changed) {
+                    vec4_print(state->lights[index].color_alpha);
+                }
             }
         }
 
