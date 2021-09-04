@@ -39,6 +39,10 @@ vec3 aces(vec3 x) {
 }
 
 void main() {
+    if(in_model_color.w == 0.0) {
+        discard;
+    }
+
     vec4 mixed_color = vec4(mix(in_model_color.rgb, texture(tex_sampler, in_uv).rgb, 0.5), in_model_color.a);
 
     vec4 combined_color_alpha = vec4(0.0);
