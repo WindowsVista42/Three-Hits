@@ -9,13 +9,13 @@
 
 #include "alutil.h"
 
-void load_enemy_sounds(StagedBuffer* staged_buffer, char* _prefix, EnemySoundBuffers* sound_buffers) {
-    load_sound(staged_buffer, "../data/sounds/enemy_ambient_sound.wav", &sound_buffers->ambience);
-    load_sound(staged_buffer, "../data/sounds/enemy_alert_sound.wav", &sound_buffers->alert);
-    load_sound(staged_buffer, "../data/sounds/enemy_explosion_sound.wav", &sound_buffers->explosion);
-    load_sound(staged_buffer, "../data/sounds/rifle_sound.wav", &sound_buffers->gun);
-    load_sound(staged_buffer, "../data/sounds/enemy_windup_sound.wav", &sound_buffers->windup);
-    load_sound(staged_buffer, "../data/sounds/enemy_reverse_windup_sound.wav", &sound_buffers->winddown);
+void load_enemy_sounds(StagedBuffer* scratch_buffer, char* _prefix, EnemySoundBuffers* sound_buffers) {
+    load_sound(scratch_buffer, "../data/sounds/enemy_ambient_sound.wav", &sound_buffers->ambience);
+    load_sound(scratch_buffer, "../data/sounds/enemy_alert_sound.wav", &sound_buffers->alert);
+    load_sound(scratch_buffer, "../data/sounds/enemy_explosion_sound.wav", &sound_buffers->explosion);
+    load_sound(scratch_buffer, "../data/sounds/rifle_sound.wav", &sound_buffers->gun);
+    load_sound(scratch_buffer, "../data/sounds/enemy_windup_sound.wav", &sound_buffers->windup);
+    load_sound(scratch_buffer, "../data/sounds/enemy_reverse_windup_sound.wav", &sound_buffers->winddown);
 }
 
 void load_sounds(GameState* state) {
