@@ -193,6 +193,8 @@ typedef struct EnemyList {
     f32 radius;
     f32 speed;
     f32 hit_reaction_duration;
+    i32 default_health;
+    f32 move_speed;
 
     SoundSource* alert_sound_sources;
     SoundSource* ambience_sound_sources;
