@@ -709,6 +709,7 @@ void reset_player(GameState* state) {
     state->player_z_speed = 0.0f;
 
     state->player_position = *(vec3*)&state->start_zone;
+    state->player_health = 3;
 
     state->player_keycards = KEYCARD_NONE;
 }
