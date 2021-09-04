@@ -60,11 +60,11 @@ int main() {
     create_swapchain_framebuffers(state);
     create_generic_sampler(state);
     create_sync_objects(state);
-    alListenerf(AL_GAIN, 0.0f);
 
     load_sounds(state);
     load_level(state);
     load_actions(state, 0);
+    // planned levels format
     // levels.txt
     // 0 <-- player ended index
     // level0
@@ -72,18 +72,18 @@ int main() {
     // level2
 
     glfwSetTime(0.0);
+    reset_player(state);
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
         glfwPollEvents();
         update_bind_states(state);
         update_and_render(state);
-        print_performance_statistics(state);
+        //print_performance_statistics(state);
 
         if(glfwGetKey(state->window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(state->window, GLFW_TRUE);
         }
 
-        //TODO(sean): move this kind of functionality into a struct
         static Bind fullscreen_bind = {GLFW_KEY_F11};
         update_key_bind_state(state->window, &fullscreen_bind);
         if(fullscreen_bind.pressed) {
