@@ -71,8 +71,8 @@ int main() {
     // level1
     // level2
 
-    glfwSetTime(0.0);
     reset_player(state);
+    glfwSetTime(0.0);
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
         glfwPollEvents();

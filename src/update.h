@@ -512,7 +512,7 @@ void update(GameState* state) {
 
             // door logic
             //TODO(sean): I dont really like this, but it gets the job done
-            for each(usize, index, 0, state->doors.capacity) {
+            for range(index, 0, state->doors.capacity, 1) {
             //for (usize index = 0; index < state->doors.capacity; index += 1) {
                 if (state->door_timings[index] > state->max_door_open_time) {
                     state->doors.position_rotations[index].z += state->delta_time * state->door_move_speed;
@@ -717,7 +717,7 @@ void update(GameState* state) {
         vec3 N;
         f32 d;
 
-        for (usize index = 0; index < state->physmesh_vertex_count; index += 3) {
+        for range(index, 0, state->physmesh_vertex_count, 3) {
             vec3 A = state->physmesh_vertices[index + 0];
             vec3 B = state->physmesh_vertices[index + 1];
             vec3 C = state->physmesh_vertices[index + 2];
@@ -740,7 +740,7 @@ void update(GameState* state) {
 
         //TODO(sean): more optimizations can technically be made here, such as only running the required number of steps given our framerate/deltatime
         f32 delta_time = state->delta_time / 12.0;
-        for (usize i = 0; i < 12; i += 1) {
+        for range(i, 0, 12, 1) {
             if (space_pressed && !space_held && airborne) {
                 state->player_z_speed = -state->player_jump_speed;
                 state->player_position.z -= state->player_z_speed * delta_time;
