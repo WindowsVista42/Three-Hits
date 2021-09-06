@@ -370,7 +370,7 @@ void load_model(const char* file_path, LevelData* level_data) {//u32* out_vertex
 
 int main() {
     std::ifstream fs;
-    fs.open("../../levels_list.txt");
+    fs.open("../levels_list.txt");
     if(!fs.is_open()) {
         throw std::runtime_error("Failed to open \"levels_list.txt\" \n");
     }
@@ -382,7 +382,7 @@ int main() {
     }
 
     for(auto name: file_names) {
-        std::string level_path = "../../data/levels/", model_path = "../../data/models/";
+        std::string level_path = "../data/levels/", model_path = "../data/models/";
         level_path.append(name);
         level_path.append(".level");
         model_path.append(name);
