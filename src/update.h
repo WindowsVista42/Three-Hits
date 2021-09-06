@@ -869,8 +869,8 @@ void update(GameState* state) {
         static Bind mute = {GLFW_KEY_M};
         static b32 muted = false;
         update_key_bind_state(state->window, &mute);
-        if(mute.pressed) {
-            if(muted) {
+        if (mute.pressed) {
+            if (muted) {
                 printf("Unmuted audio\n");
                 alListenerf(AL_GAIN, 1.0f);
                 muted = false;
@@ -880,20 +880,22 @@ void update(GameState* state) {
                 muted = true;
             }
         }
+    }
 
+    {
         static Bind debug_enabler = {GLFW_KEY_DELETE};
         update_key_bind_state(state->window, &debug_enabler);
         static u32 debug_count = 0;
         static b32 debug_enabled = false;
-        if(debug_enabler.pressed) {
-            debug_count += 1;
-        }
-
         if(debug_count == 3) {
             debug_enabled = true;
             debug_count += 1;
             state->player_health = INT32_MAX;
             printf("Debug Mode Enabled\n");
+        }
+
+        if(debug_enabler.pressed) {
+            debug_count += 1;
         }
 
         if(debug_enabled) {
