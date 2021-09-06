@@ -128,30 +128,6 @@ void update_enemy_physics(
                 }
             }
 
-            u32 vertex_count = 0;
-            vec3 *vertices = sbmalloc(scratch_buffer, 1200 * sizeof(vec3));
-
-            // cull
-            for (usize phys_index = 0; phys_index < physmesh_vertex_count; phys_index += 3) {
-                vec3 A = physmesh_vertices[phys_index + 0];
-                vec3 B = physmesh_vertices[phys_index + 1];
-                vec3 C = physmesh_vertices[phys_index + 2];
-
-                // intersection culling
-                vec3 ABC = vec3_div_f32(vec3_add_vec3(vec3_add_vec3(A, B), C), 3.0);
-                f32 ABCrr = vec3_distsq_vec3(ABC, A) + 2.0;
-                f32 ABCBrr = vec3_distsq_vec3(ABC, B) + 2.0;
-                f32 ABCCrr = vec3_distsq_vec3(ABC, C) + 2.0;
-                if (ABCBrr > ABCrr) { ABCrr = ABCBrr; }
-                if (ABCCrr > ABCrr) { ABCrr = ABCCrr; }
-                if (vec3_distsq_vec3(ABC, P) < ABCrr + rr) {
-                    vertices[vertex_count + 0] = A;
-                    vertices[vertex_count + 1] = B;
-                    vertices[vertex_count + 2] = C;
-                    vertex_count += 3;
-                }
-            }
-
             f32 wall_distance = 4096.0;
             vec3 E = player_position;
             b32 found_wall = false;
@@ -236,21 +212,14 @@ void update_enemy_physics(
             }
             enemies->sees_player[index] = sees_player;
 
-            // Check if we are colliding with any of the triangles in the physmesh
-            for (usize phys_index = 0; phys_index < vertex_count; phys_index += 3) {
-                vec3 A = vertices[phys_index + 0];
-                vec3 B = vertices[phys_index + 1];
-                vec3 C = vertices[phys_index + 2];
-
-                if (sphere_collides_with_triangle(A, B, C, P, rr, &N, &d)) {
-                    f32 sliding_factor = vec3_dot(N, VEC3_UNIT_Z);
-
-                    if (sliding_factor > sliding_threshold) { N = VEC3_UNIT_Z; }
-                    if (vec3_eq_vec3(N, VEC3_ZERO)) { N = VEC3_UNIT_Z; }
-
-                    *(vec3*)&enemies->entities.position_rotations[index] = vec3_add_vec3(*(vec3*)&enemies->entities.position_rotations[index], vec3_mul_f32(N, d));
-                }
-            }
+            update_entity_physics(
+                scratch_buffer,
+                &enemies->entities.position_rotations[index],
+                physmesh_vertex_count,
+                physmesh_vertices,
+                rr,
+                sliding_threshold
+            );
 
             sbclear(scratch_buffer);
         }
