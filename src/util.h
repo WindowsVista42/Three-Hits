@@ -33,7 +33,8 @@ typedef double f64;
 
 typedef struct DebugCallbackData {} DebugCallbackData;
 
-#define each(type, name, first, last) (type name = first; (name) != ((first) + (last)); (name) += 1)
+#define range(name, first, count, increment) (usize name = first; (name) < ((first) + (count)); (name) += (increment))
+#define every(name, count) (usize name = 0; (name) < (count); (name) += 1)
 
 typedef struct StagedBuffer {
     void* pointer;
