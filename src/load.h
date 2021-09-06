@@ -107,7 +107,7 @@ void load_level_texture(GameState* state, LoaderState* loader) {
 void read_vertices(StagedBuffer* scratch_buffer, u32* vertex_count, Vertex** vertices, FILE* fp) {
     fread(vertex_count, sizeof(u32), 1, fp);
     *vertices = sbmalloc(scratch_buffer, *vertex_count * sizeof(Vertex));
-    for (usize index = 0; index < *vertex_count; index += 1) {
+    for range(index, 0, *vertex_count, 1) {
         fread(&(*vertices)[index].position.x, sizeof(f32), 1, fp);
         fread(&(*vertices)[index].position.y, sizeof(f32), 1, fp);
         fread(&(*vertices)[index].position.z, sizeof(f32), 1, fp);
@@ -124,7 +124,7 @@ void read_vertices(StagedBuffer* scratch_buffer, u32* vertex_count, Vertex** ver
 void read_indices(StagedBuffer* scratch_buffer, u32* index_count, u32** indices, FILE* fp) {
     fread(index_count, sizeof(u32), 1, fp);
     *indices = sbmalloc(scratch_buffer, *index_count * sizeof(u32));
-    for (usize index = 0; index < *index_count; index += 1) {
+    for range(index, 0, *index_count, 1) {
         fread(&(*indices)[index], sizeof(u32), 1, fp);
     }
 }
@@ -134,7 +134,7 @@ void load_enemy_list(StagedBuffer* scratch_buffer, EnemyList* enemies, FILE* fp)
     fread(&enemies->entities.capacity, sizeof(u32), 1, fp);
     enemies->entities.length = enemies->entities.capacity;
     enemies->entities.position_rotations = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(vec4));
-    for (usize index = 0; index < enemies->entities.capacity; index += 1) {
+    for range(index, 0, enemies->entities.capacity, 1) {
         fread(&enemies->entities.position_rotations[index].x, sizeof(f32), 1, fp);
         fread(&enemies->entities.position_rotations[index].y, sizeof(f32), 1, fp);
         fread(&enemies->entities.position_rotations[index].z, sizeof(f32), 1, fp);
@@ -143,7 +143,7 @@ void load_enemy_list(StagedBuffer* scratch_buffer, EnemyList* enemies, FILE* fp)
 
     // set enemy colors
     enemies->entities.colors = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(vec4));
-    for(u32 index = 0; index < enemies->entities.capacity; index += 1) {
+    for range(index, 0, enemies->entities.capacity, 1) {
         enemies->entities.colors[index].x = 1.0;
         enemies->entities.colors[index].y = 0.0;
         enemies->entities.colors[index].z = 0.0;
@@ -153,7 +153,7 @@ void load_enemy_list(StagedBuffer* scratch_buffer, EnemyList* enemies, FILE* fp)
     // set enemy healths
     const i32 enemy_default_health = enemies->default_health;
     enemies->healths = sbmalloc(scratch_buffer, enemies->entities.capacity * sizeof(i32));
-    for(u32 index = 0; index < enemies->entities.capacity; index += 1) {
+    for range(index, 0, enemies->entities.capacity, 1) {
         enemies->healths[index] = enemy_default_health;
     }
 
@@ -188,7 +188,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
         // load physmesh
         fread(&state->physmesh_vertex_count, sizeof(u32), 1, fp);
         state->physmesh_vertices = sbmalloc(&state->level_buffer, state->physmesh_vertex_count * sizeof(vec3));
-        for (usize index = 0; index < state->physmesh_vertex_count; index += 1) {
+        for range(index, 0, state->physmesh_vertex_count, 1) {
             fread(&state->physmesh_vertices[index].x, sizeof(f32), 1, fp);
             fread(&state->physmesh_vertices[index].y, sizeof(f32), 1, fp);
             fread(&state->physmesh_vertices[index].z, sizeof(f32), 1, fp);
@@ -197,7 +197,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
         // load door prs
         fread(&state->doors.capacity, sizeof(u32), 1, fp);
         state->doors.position_rotations = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(vec4));
-        for (usize index = 0; index < state->doors.capacity; index += 1) {
+        for range(index, 0, state->doors.capacity, 1) {
             fread(&state->doors.position_rotations[index].x, sizeof(f32), 1, fp);
             fread(&state->doors.position_rotations[index].y, sizeof(f32), 1, fp);
             fread(&state->doors.position_rotations[index].z, sizeof(f32), 1, fp);
@@ -206,14 +206,14 @@ void load_level_model(GameState* state, LoaderState* loader) {
 
         // load door requirements
         state->door_requirements = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(u32));
-        for(usize index = 0; index < state->doors.capacity; index += 1) {
+        for range(index, 0, state->doors.capacity, 1) {
             fread(&state->door_requirements[index], sizeof(u32), 1, fp);
         }
 
         // load doors physmesh ranges
         fread(&state->door_physmesh_range_count, sizeof(u32), 1, fp);
         state->door_physmesh_ranges = sbmalloc(&state->level_buffer, state->door_physmesh_range_count * sizeof(u32));
-        for (usize index = 0; index < state->door_physmesh_range_count; index += 1) {
+        for range(index, 0, state->door_physmesh_range_count, 1) {
             fread(&state->door_physmesh_ranges[index], sizeof(u32), 1, fp);
         }
 
@@ -221,7 +221,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
         state->level_model.index_count = loader->level_index_count;
         state->door_timings = sbcalloc(&state->level_buffer, 0, state->doors.capacity * sizeof(f32));
         state->doors.colors = sbmalloc(&state->level_buffer, state->doors.capacity * sizeof(vec4));
-        for(usize index = 0; index < state->doors.capacity; index += 1) {
+        for range(index, 0, state->doors.capacity, 1) {
             state->doors.colors[index] = vec4_new(1.0, 1.0, 0.0, 1.0);
         }
 
@@ -238,7 +238,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
         fread(&state->keycards.capacity, sizeof(u32), 1, fp);
         state->keycards.length = state->keycards.capacity;
         state->keycards.position_rotations = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
-        for(usize index = 0; index <state->keycards.capacity; index += 1) {
+        for range(index, 0, state->keycards.capacity, 1) {
             fread(&state->keycards.position_rotations[index].x, sizeof(f32), 1, fp);
             fread(&state->keycards.position_rotations[index].y, sizeof(f32), 1, fp);
             fread(&state->keycards.position_rotations[index].z, sizeof(f32), 1, fp);
@@ -246,7 +246,7 @@ void load_level_model(GameState* state, LoaderState* loader) {
         }
 
         state->keycards.colors = sbmalloc(&state->level_buffer, state->keycards.capacity * sizeof(vec4));
-        for each(usize, index, 0, state->keycards.capacity) {
+        for range(index, 0, state->keycards.capacity, 1) {
             state->keycards.colors[index].w = 1.0;
         }
 
