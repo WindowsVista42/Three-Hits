@@ -763,7 +763,7 @@ void update(GameState* state) {
                 static b32 hit_head = false;
 
                 // Check if we are colliding with any of the triangles in the physmesh
-                for (usize index = 0; index < vertex_count; index += 3) {
+                for range(index, 0, vertex_count, 3) {
                     vec3 A = vertices[index + 0];
                     vec3 B = vertices[index + 1];
                     vec3 C = vertices[index + 2];
@@ -790,7 +790,7 @@ void update(GameState* state) {
 
             {
                 // Check if we are colliding with any enemies
-                for(usize index = 0; index < state->mediums.entities.length; index += 1) {
+                for range(index, 0, state->mediums.entities.length, 1) {
                     vec3 P = state->player_position;
                     vec3 p = *(vec3*)&state->mediums.entities.position_rotations[index];
                     N = vec3_norm(vec3_sub_vec3(P, p));
@@ -814,7 +814,7 @@ void update(GameState* state) {
 
     // keycard logic
     {
-        for (usize index = 0; index < state->keycards.length; index += 1) {
+        for range(index, 0, state->keycards.length, 1) {
             vec3 P = *(vec3 *) &state->keycards.position_rotations[index];
             if (vec3_distsq_vec3(P, state->player_position) < 1.0 + (state->player_radius * state->player_radius)) {
                 printf("Picked up keycard %llu\n", index);
@@ -992,7 +992,7 @@ void update(GameState* state) {
             static Bind print_lights = {GLFW_KEY_COMMA};
             update_key_bind_state(state->window, &print_lights);
             if(print_lights.pressed) {
-                for each(usize, i, 0, 6) {
+                for range(i, 0, 6, 1) {
                     printf("Light %llu:\n", i);
                     vec4_print(state->lights[i].position_falloff);
                     vec4_print(state->lights[i].color_alpha);
