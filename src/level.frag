@@ -7,11 +7,9 @@ struct Light {
     vec4 color_alpha;
 };
 
-layout(set = 0, binding = 2, std140) buffer Lights {
-    //get this to work
-    //uint count;
-    //Light lights[];
-    Light lights[6];
+layout(set = 0, binding = 2, std140) readonly buffer Lights {
+    uint light_count;
+    Light lights[];
 };
 
 layout(location = 0) in vec3 in_position;
@@ -36,7 +34,7 @@ vec3 aces(vec3 x) {
 
 void main() {
     vec4 combined_color_alpha = vec4(0.0);
-    for(uint index = 0; index < 6; index += 1) {
+    for(uint index = 0; index < light_count; index += 1) {
         vec3 light_position = lights[index].position_falloff.xyz;
         float light_falloff = lights[index].position_falloff.w;
         vec4 light_color_alpha = lights[index].color_alpha;

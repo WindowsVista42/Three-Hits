@@ -7,8 +7,9 @@ struct Light {
     vec4 color_alpha;
 };
 
-layout(set = 0, binding = 2, std140) buffer Lights {
-    Light lights[6];
+layout(set = 0, binding = 2, std140) readonly buffer Lights {
+    uint light_count;
+    Light lights[];
 };
 
 layout(location = 0) in vec3 in_position;
@@ -22,7 +23,6 @@ layout(location = 0) out vec4 out_color;
 float distance_step(float a, float x_2) {
     //return 1.0/(((light_falloff * light_distance) * (light_falloff * light_distance)) + 1.0);
     return 1.0/((a * x_2) + 1.0);
-
 }
 
 float distance_step_smooth(float inv_midpoint_2, float position_2, float midpoint_slope) {
@@ -46,7 +46,7 @@ void main() {
     vec4 mixed_color = vec4(mix(in_model_color.rgb, texture(tex_sampler, in_uv).rgb, 0.5), in_model_color.a);
 
     vec4 combined_color_alpha = vec4(0.0);
-    for(uint index = 0; index < 6; index += 1) {
+    for(uint index = 0; index < light_count; index += 1) {
         vec3 light_position = lights[index].position_falloff.xyz;
         float light_falloff = lights[index].position_falloff.w;
         vec4 light_color_alpha = lights[index].color_alpha;
