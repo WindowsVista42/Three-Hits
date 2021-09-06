@@ -648,7 +648,7 @@ void update(GameState* state) {
             play_crouch_sound = true;
         }
 
-        if(state->jump_key.held) {
+        if(state->jump_key.pressed) {
             space_pressed = true;
             play_jump_sound = true;
         }
