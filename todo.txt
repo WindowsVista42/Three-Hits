@@ -1,0 +1,15 @@
+- UI
+    - Hit Reaction
+    - HUD
+        - Health Status (player arm?)
+        - Ammo Status (player gun?)
+    - Main Menu
+        - Play
+        - Quit
+    - In-Game Menu
+        - Return to Main Menu
+        - Quit
+
+- Textured entities
+- Levels
+- Physics performance
