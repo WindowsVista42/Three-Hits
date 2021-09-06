@@ -252,8 +252,12 @@ void load_level_model(GameState* state, LoaderState* loader) {
 
         // load lights from file
         fread(&state->ulight_count, sizeof(u32), 1, fp);
-        state->lights = sbmalloc(&state->level_buffer, state->ulight_count * sizeof(Light));
-        for(usize index = 0; index < state->ulight_count; index += 1) {
+        // we do this because we want to include the light count into the shader
+        state->light_data_size = sizeof(vec4) + state->ulight_count * sizeof(Light);
+        state->light_data = sbmalloc(&state->level_buffer, state->light_data_size);
+        ((u32*)state->light_data)[0] = state->ulight_count;
+        state->lights = state->light_data + sizeof(vec4);
+        for range(index, 0, state->ulight_count, 1) {
             fread(&state->lights[index].position_falloff.x, sizeof(f32), 1, fp);
             fread(&state->lights[index].position_falloff.y, sizeof(f32), 1, fp);
             fread(&state->lights[index].position_falloff.z, sizeof(f32), 1, fp);
@@ -299,8 +303,9 @@ void load_level_model(GameState* state, LoaderState* loader) {
         state->physical_device,
         state->queue,
         state->command_pool,
-        state->ulight_count * sizeof(Light),
-        state->lights,
+        state->light_data_size,
+        //sizeof(Light) + state->ulight_count * sizeof(Light),
+        state->light_data,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         &state->light_buffer,
         &state->light_staging_buffer
@@ -497,7 +502,7 @@ void create_descriptor_sets(GameState* state) {
         VkDescriptorBufferInfo lights_buffer_info = {};
         lights_buffer_info.buffer = state->light_buffer.buffer;
         lights_buffer_info.offset = 0;
-        lights_buffer_info.range = light_count * sizeof(Light);
+        lights_buffer_info.range = state->light_data_size;
 
         VkWriteDescriptorSet descriptor_writes[descriptor_count] = {
             {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
