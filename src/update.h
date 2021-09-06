@@ -866,30 +866,6 @@ void update(GameState* state) {
     }
 
     {
-        b32 changed = false;
-        static u32 mode = 0;
-        static u32 index = 0;
-
-        if(state->debug_next_key.pressed) {
-            f32 smallest_distance = 4096.0f;
-            u32 closest_index = 0;
-            for(usize i = 0; i < state->ulight_count; i += 1) {
-                vec3 P = *(vec3*)&state->lights[i].position_falloff;
-                f32 dist = vec3_distsq_vec3(state->player_position, P);
-                if(dist < smallest_distance) {
-                    smallest_distance = dist;
-                    closest_index = i;
-                }
-            }
-            index = closest_index;
-            printf("Changed to light %d\n", index);
-        }
-        if(state->debug_mode_key.pressed) {
-            mode += 1;
-            mode %= 2;
-            printf("Changed to placement mode %d\n", mode);
-        }
-
         static Bind mute = {GLFW_KEY_M};
         static b32 muted = false;
         update_key_bind_state(state->window, &mute);
@@ -921,6 +897,30 @@ void update(GameState* state) {
         }
 
         if(debug_enabled) {
+            b32 changed = false;
+            static u32 mode = 0;
+            static u32 index = 0;
+
+            if(state->debug_next_key.pressed) {
+                f32 smallest_distance = 4096.0f;
+                u32 closest_index = 0;
+                for(usize i = 0; i < state->ulight_count; i += 1) {
+                    vec3 P = *(vec3*)&state->lights[i].position_falloff;
+                    f32 dist = vec3_distsq_vec3(state->player_position, P);
+                    if(dist < smallest_distance) {
+                        smallest_distance = dist;
+                        closest_index = i;
+                    }
+                }
+                index = closest_index;
+                printf("Changed to light %d\n", index);
+            }
+            if(state->debug_mode_key.pressed) {
+                mode += 1;
+                mode %= 2;
+                printf("Changed to placement mode %d\n", mode);
+            }
+
             if (mode == 0) {
                 if (state->debug_xp_key.held) {
                     changed = true;
