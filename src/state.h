@@ -277,6 +277,8 @@ typedef struct GameState {
     Buffer* camera_uniforms;
 
     u32 ulight_count;
+    u32 light_data_size;
+    void* light_data;
     Light* initial_lights;
     Light* lights;
     Buffer light_staging_buffer;
