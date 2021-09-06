@@ -362,7 +362,7 @@ void pre_init_swapchain(GameState* state) {
 
     // select from available surface formats and present modes
     adequate = false;
-    for(usize index = 0; index < surface_format_count; index += 1) {
+    for every(index, surface_format_count) {
         if( surface_formats[index].format == VK_FORMAT_B8G8R8A8_SRGB
             && surface_formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
             ) {
@@ -376,7 +376,7 @@ void pre_init_swapchain(GameState* state) {
     }
 
     adequate = false;
-    for(usize index = 0; index < present_mode_count; index += 1) {
+    for every(index, present_mode_count) {
         if(present_modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) {
             state->present_mode = present_modes[index];
             adequate = true;
