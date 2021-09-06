@@ -1017,9 +1017,9 @@ void update(GameState* state) {
                 state->command_pool,
                 state->light_staging_buffer,
                 state->light_buffer,
-                state->lights,
+                state->light_data,
                 0,
-                state->ulight_count * sizeof(Light),
+                state->light_data_size,
                 0
             );
         //}
