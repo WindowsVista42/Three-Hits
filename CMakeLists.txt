@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 project(three_hits C)
+project(level_compactor CXX)
 
 # three_hits
 set(CMAKE_C_STANDARD 11)
@@ -26,16 +27,14 @@ target_link_libraries(three_hits OpenAL)
 target_link_libraries(three_hits glfw)
 target_link_libraries(three_hits Vulkan::Vulkan)
 
-
 # level_compactor
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-# set(CMAKE_CXX_STANDARD 20)
-# set(CMAKE_CXX_COMPILE_OBJECT ADD_SUBDIRECTORY)
-#
-# add_executable(level_compactor level_compactor/main.cpp)
-#
-# add_subdirectory(lib/tinyobjloader)
-# add_subdirectory(lib/glm)
-#
-# target_link_libraries(level_compactor tinyobjloader)
-# target_link_libraries(level_compactor glm)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_STANDARD 20)
+
+add_executable(level_compactor level_compactor/main.cpp)
+
+add_subdirectory(lib/tinyobjloader)
+add_subdirectory(lib/glm)
+
+target_link_libraries(level_compactor tinyobjloader)
+target_link_libraries(level_compactor glm)
