@@ -376,6 +376,11 @@ global inline vec4 vec4_copy(vec4 input) {
     return output;
 }
 
+global inline vec2 vec2_new(f32 x, f32 y) {
+    vec2 output = {{x, y}};
+    return output;
+}
+
 global inline vec3 vec3_new(f32 x, f32 y, f32 z) {
     vec3 output = {{x, y, z}};
     return output;
