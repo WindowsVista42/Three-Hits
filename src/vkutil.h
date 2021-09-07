@@ -50,6 +50,9 @@ typedef struct PipelineOptions {
     VkAttachmentStoreOp depth_store_op;
     VkImageLayout depth_initial_layout;
     VkImageLayout depth_final_layout;
+
+    u32 push_constant_range_count;
+    VkPushConstantRange* push_constant_ranges;
 } PipelineOptions;
 
 global VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
@@ -698,8 +701,8 @@ void create_graphics_pipeline(
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.setLayoutCount = descriptor_set_layout_count;
     pipeline_layout_create_info.pSetLayouts = descriptor_set_layout;
-    pipeline_layout_create_info.pushConstantRangeCount = 0;
-    pipeline_layout_create_info.pPushConstantRanges = 0;
+    pipeline_layout_create_info.pushConstantRangeCount = pipeline_options->push_constant_range_count;
+    pipeline_layout_create_info.pPushConstantRanges = pipeline_options->push_constant_ranges;
 
     if(vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline->layout) != VK_SUCCESS) {
         panic("Failed to create pipeline layout!");
