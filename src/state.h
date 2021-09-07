@@ -156,11 +156,14 @@ global u32 enemy_indices[entity_index_count] = {
     2, 1, 3
 };
 
+const f32 crosshair_width = 0.02;
+const f32 crosshair_scale = 0.33333333;
+
 #define crosshair_vertex_count 3
 global vec2 crosshair_vertices[crosshair_vertex_count] = {
-    {{ 0.00,-0.01}},
-    {{ 0.01, 0.016667}},
-    {{-0.01, 0.016667}},
+    {{ 0.0            , -0.5 * 1.732051 * crosshair_width * crosshair_scale}},
+    {{ crosshair_width * crosshair_scale,  0.5 * 1.732051 * crosshair_width * crosshair_scale}},
+    {{-crosshair_width * crosshair_scale,  0.5 * 1.732051 * crosshair_width * crosshair_scale}},
 };
 
 typedef struct UniformBufferObject {
