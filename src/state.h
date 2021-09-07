@@ -378,13 +378,18 @@ typedef struct GameState {
     f32 player_radius;
     f32 player_z_speed;
 
-    // crosshair
-    //TODO(sean): move this to a uniform
-    Modules crosshair_modules;
-    Pipeline crosshair_pipeline;
-    vec4 crosshair_color;
-    Buffer crosshair_color_buffer;
-    Buffer crosshair_color_staging_buffer;
+    // const info
+//    VkDescriptorSetLayout ui_descriptor_set_layout;
+//    VkDescriptorSet ui_descriptor_set;
+//    Buffer ui_uniform;
+
+    Modules hud_modules;
+    Pipeline hud_pipeline;
+    VkDescriptorSetLayout hud_descriptor_set_layout;
+
+    HudElement crosshair;
+    HudElement healthbar;
+    HudElement ammobar;
 
     // audio
     AlDevice* al_device;
