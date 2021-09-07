@@ -229,6 +229,31 @@ typedef struct EnemySoundBuffers {
     SoundBuffer winddown;
 } EnemySoundBuffers;
 
+typedef struct HudGlobalData {
+    float aspect;
+} HudGlobalData;
+
+typedef struct HudLocalData {
+    u32 count;
+} HudLocalData;
+
+typedef struct HudElement {
+    Buffer vertices;
+
+    vec2* offsets;
+    Buffer offsets_buffer;
+    Buffer offsets_staging_buffer;
+
+    vec4* colors;
+    Buffer colors_buffer;
+    Buffer colors_staging_buffer;
+
+    HudLocalData data;
+    VkDescriptorPool pool;
+    VkDescriptorSet* sets;
+    Buffer* uniforms;
+} HudElement;
+
 typedef struct GameState {
     u32 window_width;
     u32 window_height;
