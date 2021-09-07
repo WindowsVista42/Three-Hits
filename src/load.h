@@ -768,12 +768,7 @@ void unload_level(GameState* state) {
     destroy_entity_list(state->device, &state->doors);
     destroy_entity_list(state->device, &state->keycards);
 
-    destroy_buffer(state->device, state->crosshair.vertices);
-
-    //vkFreeDescriptorSets(state->device, state->global_descriptor_pool, state->swapchain_image_count, state->global_descriptor_sets);
-    //vkFreeDescriptorSets(state->device, state->ui_descriptor_pool, state->swapchain_image_count, state->crosshair_descriptor_sets);
     vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
-    //vkDestroyDescriptorPool(state->device, state->crosshair.pool, 0);
     vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);
 
     free_enemy_sound_sources(&state->mediums);
