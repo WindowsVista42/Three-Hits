@@ -465,8 +465,8 @@ void create_shader_modules(GameState* state) {
         "../data/shaders/level.frag.spv",
         "../data/shaders/entity.vert.spv",
         "../data/shaders/entity.frag.spv",
-        "../data/shaders/crosshair.vert.spv",
-        "../data/shaders/crosshair.frag.spv"
+        "../data/shaders/hudelement.vert.spv",
+        "../data/shaders/hudelement.frag.spv"
     };
     char** buffers = sbmalloc(&state->scratch, file_count * sizeof(char*));
     usize* buffer_sizes = sbmalloc(&state->scratch, file_count * sizeof(usize));
@@ -498,8 +498,8 @@ void create_shader_modules(GameState* state) {
     create_shader_module(state->device, buffers[2], buffer_sizes[2], &state->entity_modules.vertex);
     create_shader_module(state->device, buffers[3], buffer_sizes[3], &state->entity_modules.fragment);
 
-    create_shader_module(state->device, buffers[4], buffer_sizes[4], &state->crosshair_modules.vertex);
-    create_shader_module(state->device, buffers[5], buffer_sizes[5], &state->crosshair_modules.fragment);
+    create_shader_module(state->device, buffers[4], buffer_sizes[4], &state->hud_modules.vertex);
+    create_shader_module(state->device, buffers[5], buffer_sizes[5], &state->hud_modules.fragment);
 
     sbclear(&state->scratch);
 }
@@ -519,6 +519,9 @@ void create_level_graphics_pipeline(GameState* state) {
     pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
     pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    pipeline_options.push_constant_range_count = 0;
+    pipeline_options.push_constant_ranges = 0;
 
     create_graphics_pipeline(
         state->device,
@@ -554,6 +557,9 @@ void create_entity_graphics_pipeline(GameState* state) {
     pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+    pipeline_options.push_constant_range_count = 0;
+    pipeline_options.push_constant_ranges = 0;
+
     create_graphics_pipeline(
         state->device,
         state->entity_modules.vertex,
@@ -573,7 +579,7 @@ void create_entity_graphics_pipeline(GameState* state) {
     );
 }
 
-void create_crosshair_graphics_pipeline(GameState* state) {
+void create_hud_graphics_pipeline(GameState* state) {
     PipelineOptions pipeline_options;
     pipeline_options.cull_mode = VK_CULL_MODE_NONE;
     pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -588,20 +594,28 @@ void create_crosshair_graphics_pipeline(GameState* state) {
     pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+    VkPushConstantRange push_constant_range = {};
+    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    push_constant_range.size = sizeof(f32);
+    push_constant_range.offset = 0;
+
+    pipeline_options.push_constant_range_count = 1;
+    pipeline_options.push_constant_ranges = &push_constant_range;
+
     create_graphics_pipeline(
         state->device,
-        state->crosshair_modules.vertex,
-        state->crosshair_modules.fragment,
-        crosshair_vertex_attribute_description_count,
-        crosshair_vertex_attribute_descriptions,
-        crosshair_vertex_binding_description_count,
-        crosshair_vertex_binding_descriptions,
+        state->hud_modules.vertex,
+        state->hud_modules.fragment,
+        hud_vertex_attribute_description_count,
+        hud_vertex_attribute_descriptions,
+        hud_vertex_binding_description_count,
+        hud_vertex_binding_descriptions,
         state->swapchain_extent.width,
         state->swapchain_extent.height,
-        0,
-        0,
+        1,
+        &state->hud_descriptor_set_layout,
         &pipeline_options,
-        &state->crosshair_pipeline,
+        &state->hud_pipeline,
         state->swapchain_format,
         state->depth_image_format
     );
@@ -665,67 +679,171 @@ void create_sync_objects(GameState* state) {
 }
 
 void create_descriptor_set_layout(GameState* state) {
-    VkDescriptorSetLayoutBinding ubo_layout_binding = {};
-    ubo_layout_binding.binding = 0;
-    ubo_layout_binding.descriptorCount = 1;
-    ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    ubo_layout_binding.pImmutableSamplers = 0;
+    {
+        VkDescriptorSetLayoutBinding bindings[] = {
+            {   .binding = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                .pImmutableSamplers = 0,
+            },
+            {   .binding = 1,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = 0,
+            },
+            {   .binding = 2,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = 0,
+            },
+        };
 
-    VkDescriptorSetLayoutBinding sampler_layout_binding = {};
-    sampler_layout_binding.binding = 1;
-    sampler_layout_binding.descriptorCount = 1;
-    sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    sampler_layout_binding.pImmutableSamplers = 0;
+        VkDescriptorSetLayoutCreateInfo layout_create_info = {};
+        layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_create_info.bindingCount = descriptor_count;
+        layout_create_info.pBindings = bindings;
 
-    VkDescriptorSetLayoutBinding lights_layout_binding = {};
-    lights_layout_binding.binding = 2;
-    lights_layout_binding.descriptorCount = 1;
-    lights_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    lights_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    lights_layout_binding.pImmutableSamplers = 0;
-
-    VkDescriptorSetLayoutBinding bindings[descriptor_count] = {ubo_layout_binding, sampler_layout_binding, lights_layout_binding};
-    VkDescriptorSetLayoutCreateInfo layout_create_info = {};
-    layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layout_create_info.bindingCount = descriptor_count;
-    layout_create_info.pBindings = bindings;
-
-    if(vkCreateDescriptorSetLayout(state->device, &layout_create_info, 0, &state->global_descriptor_set_layout) != VK_SUCCESS) {
-        panic("Failed to create descriptor set layout!");
+        if (vkCreateDescriptorSetLayout(state->device, &layout_create_info, 0, &state->global_descriptor_set_layout) != VK_SUCCESS) {
+            panic("Failed to create descriptor set layout!");
+        }
     }
+
 }
 
 void create_uniform_buffers(GameState* state) {
-    VkDeviceSize buffer_size = sizeof(UniformBufferObject);
-
-    state->camera_uniforms = sbmalloc(&state->semaphore_buffer, state->swapchain_image_count * sizeof(Buffer));
-
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) {
-        create_buffer(
-            state->device,
-            state->physical_device,
-            buffer_size,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &state->camera_uniforms[index].buffer,
-            &state->camera_uniforms[index].memory
-        );
-    }
+    create_buffer_array(
+        &state->swapchain_buffer,
+        state->device,
+        state->physical_device,
+        sizeof(UniformBufferObject),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        state->swapchain_image_count,
+        &state->camera_uniforms
+    );
 }
 
-void create_crosshair_buffers(GameState* state) {
+void create_hud_data(GameState* state) {
+    state->crosshair.offsets = sbmalloc(&state->semaphore_buffer, sizeof(vec2));
+    state->crosshair.colors = sbmalloc(&state->semaphore_buffer, sizeof(vec4));
+
+    state->crosshair.offsets[0] = vec2_new(0.0, 0.0);
+    state->crosshair.colors[0] = vec4_new(1.0, 1.0, 1.0, 1.0);
+    state->crosshair.data.count = 1;
+
+    {
+        VkDescriptorSetLayoutBinding bindings[] = {
+            {   .binding = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = 0,
+            },
+        };
+
+        VkDescriptorSetLayoutCreateInfo layout_create_info = {};
+        layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_create_info.bindingCount = 1;
+        layout_create_info.pBindings = bindings;
+
+        if(vkCreateDescriptorSetLayout(state->device, &layout_create_info, 0, &state->hud_descriptor_set_layout) != VK_SUCCESS) {
+            panic("Failed to create descriptor set layout!");
+        }
+    }
+
+    {
+        VkDescriptorPoolSize pool_sizes[] = {
+            {   .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount = state->swapchain_image_count,
+            },
+        };
+
+        create_descriptor_pool(state->device, state->swapchain_image_count, 1, pool_sizes, &state->crosshair.pool);
+    }
+
+    create_buffer_array(
+        &state->semaphore_buffer,
+        state->device,
+        state->physical_device,
+        sizeof(u32),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        state->swapchain_image_count,
+        &state->crosshair.uniforms
+    );
+
+    create_descriptor_sets(
+        &state->semaphore_buffer,
+        state->device,
+        state->crosshair.pool,
+        state->swapchain_image_count,
+        &state->hud_descriptor_set_layout,
+        &state->crosshair.sets
+    );
+
+    for every(index, state->swapchain_image_count) {
+        {
+            VkDescriptorSet descriptor_set = state->crosshair.sets[index];
+
+            VkDescriptorBufferInfo count_buffer_info = {};
+            count_buffer_info.buffer = state->crosshair.uniforms[index].buffer;
+            count_buffer_info.offset = 0;
+            count_buffer_info.range = sizeof(u32);
+
+            VkWriteDescriptorSet descriptor_writes[] = {
+                {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = descriptor_set,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .pBufferInfo = &count_buffer_info,
+                    .pImageInfo = 0,
+                    .pTexelBufferView = 0,
+                },
+            };
+
+            vkUpdateDescriptorSets(state->device, 1, descriptor_writes, 0, 0);
+        }
+    }
+
+
+    create_device_local_buffer_2(
+        state->device,
+        state->physical_device,
+        state->queue,
+        state->command_pool,
+        crosshair_vertex_count * sizeof(vec2),
+        crosshair_vertices,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &state->crosshair.vertices
+    );
+
     create_device_local_and_staging_buffer(
         state->device,
         state->physical_device,
         state->queue,
         state->command_pool,
-        sizeof(vec4) * 1,
-        &state->crosshair_color,
+        sizeof(vec2),
+        state->crosshair.offsets,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->crosshair_color_buffer,
-        &state->crosshair_color_staging_buffer
+        &state->crosshair.offsets_buffer,
+        &state->crosshair.offsets_staging_buffer
+    );
+
+    create_device_local_and_staging_buffer(
+        state->device,
+        state->physical_device,
+        state->queue,
+        state->command_pool,
+        sizeof(vec4),
+        state->crosshair.colors,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &state->crosshair.colors_buffer,
+        &state->crosshair.colors_staging_buffer
     );
 }
 
@@ -747,6 +865,7 @@ void init_open_al_soft(GameState* state) {
 
 void init_open_al_defaults(GameState* state) {
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+    alListenerf(AL_GAIN, 0.0f);
 }
 
 void init_defaults(GameState* state) {
@@ -777,8 +896,6 @@ void init_defaults(GameState* state) {
     state->player_jump_speed = 20.0;
     state->player_radius = 1.0;
     state->player_z_speed = 0.0f;
-
-    state->crosshair_color = vec4_new(1.0, 1.0, 1.0, 1.0);
 
     state->door_activation_distance = 16.0f;
     state->door_move_speed = 4.0f;
@@ -836,7 +953,6 @@ void load_actions(GameState* state, ConfigState* config) {
     state->debug_next_key = new_bind(GLFW_KEY_SEMICOLON);
     state->debug_mode_key = new_bind(GLFW_KEY_P);
 }
-
 #define UNTITLED_FPS_VKINIT_H
 
 #endif //UNTITLED_FPS_VKINIT_H
