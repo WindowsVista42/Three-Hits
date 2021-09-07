@@ -587,17 +587,18 @@ void update(GameState* state) {
                 knight_hit_index = player_ray_intersects_enemy(&state->knights, player_eye, E, wall_distance);
             }
         }
-        if(reload_timer > 0.0f) { state->crosshair_color = vec4_new(0.0, 0.0, 1.0, 0.5); }
-        else if(shoot_timer > 0.05f) { state->crosshair_color = vec4_new(1.0, 0.0, 0.0, 0.5); }
-        else { state->crosshair_color = vec4_new(1.0, 1.0, 1.0, 0.5); }
+        if(reload_timer > 0.0f) { state->crosshair.colors[0] = vec4_new(0.0, 0.0, 1.0, 0.5); }
+        else if(shoot_timer > 0.05f) { state->crosshair.colors[0] = vec4_new(1.0, 0.0, 0.0, 0.5); }
+        else { state->crosshair.colors[0] = vec4_new(1.0, 1.0, 1.0, 0.5); }
 
+        write_buffer(state->device, state->crosshair.uniforms[current_image].memory, 0, sizeof(u32), 0, &state->crosshair.data);
         write_buffer_copy_buffer(
             state->device,
             state->queue,
             state->command_pool,
-            state->crosshair_color_staging_buffer,
-            state->crosshair_color_buffer,
-            &state->crosshair_color,
+            state->crosshair.colors_staging_buffer,
+            state->crosshair.colors_buffer,
+            state->crosshair.colors,
             0,
             sizeof(vec4),
             0
