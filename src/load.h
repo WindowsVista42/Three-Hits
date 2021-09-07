@@ -419,7 +419,7 @@ void create_command_buffers(GameState* state) {
 
             VkRenderPassBeginInfo crosshair_render_pass_begin_info = {};
             crosshair_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            crosshair_render_pass_begin_info.renderPass = state->crosshair_pipeline.pass;
+            crosshair_render_pass_begin_info.renderPass = state->hud_pipeline.pass;
             crosshair_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
             crosshair_render_pass_begin_info.renderArea.offset.x = 0;
             crosshair_render_pass_begin_info.renderArea.offset.y = 0;
@@ -430,10 +430,15 @@ void create_command_buffers(GameState* state) {
 
             vkCmdBeginRenderPass(command_buffer, &crosshair_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
-                VkBuffer vertex_buffers[] = {state->crosshair_color_buffer.buffer};
-                VkDeviceSize offsets[] = {0};
-                vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->crosshair_pipeline.pipeline);
+                VkBuffer vertex_buffers[] = {state->crosshair.vertices.buffer, state->crosshair.offsets_buffer.buffer, state->crosshair.colors_buffer.buffer};
+                VkDeviceSize offsets[] = {0, 0, 0};
+                f32 aspect = (f32)state->swapchain_extent.width / (f32)state->swapchain_extent.height;
+                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->hud_pipeline.pipeline);
+                {
+                    vkCmdBindVertexBuffers(command_buffer, 0, 3, vertex_buffers, offsets);
+                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->hud_pipeline.layout, 0, 1, &state->crosshair.sets[index], 0, 0);
+                    vkCmdPushConstants(command_buffer, state->hud_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(f32), &aspect);
+                }
                 vkCmdDraw(command_buffer, 3, 1, 0, 0);
             }
             vkCmdEndRenderPass(command_buffer);
@@ -445,99 +450,70 @@ void create_command_buffers(GameState* state) {
     }
 }
 
-void create_descriptor_pool(GameState* state) {
-    VkDescriptorPoolSize ubo_pool_size = {};
-    ubo_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubo_pool_size.descriptorCount = state->swapchain_image_count;
+void create_all_descriptor_sets(GameState* state) {
+    create_descriptor_sets(
+        &state->swapchain_buffer,
+        state->device,
+        state->global_descriptor_pool,
+        state->swapchain_image_count,
+        &state->global_descriptor_set_layout,
+        &state->global_descriptor_sets
+    );
 
-    VkDescriptorPoolSize sampler_pool_size = {};
-    sampler_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    sampler_pool_size.descriptorCount = state->swapchain_image_count;
+    for every(index, state->swapchain_image_count) {
+        {
+            VkDescriptorSet descriptor_set = state->global_descriptor_sets[index];
 
-    VkDescriptorPoolSize light_pool_size = {};
-    light_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    light_pool_size.descriptorCount = state->swapchain_image_count;
+            VkDescriptorBufferInfo uniform_buffer_info = {};
+            uniform_buffer_info.buffer = state->camera_uniforms[index].buffer;
+            uniform_buffer_info.offset = 0;
+            uniform_buffer_info.range = sizeof(UniformBufferObject);
 
-    VkDescriptorPoolSize pool_sizes[descriptor_count] = {ubo_pool_size, sampler_pool_size, light_pool_size};
+            VkDescriptorImageInfo image_info = {};
+            image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            image_info.imageView = state->level_texture.view;
+            image_info.sampler = state->generic_sampler;
 
-    VkDescriptorPoolCreateInfo pool_create_info = {};
-    pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_create_info.poolSizeCount = descriptor_count;
-    pool_create_info.pPoolSizes = pool_sizes;
-    pool_create_info.maxSets = state->swapchain_image_count;
+            VkDescriptorBufferInfo lights_buffer_info = {};
+            lights_buffer_info.buffer = state->light_buffer.buffer;
+            lights_buffer_info.offset = 0;
+            lights_buffer_info.range = state->light_data_size;
 
-    if(vkCreateDescriptorPool(state->device, &pool_create_info, 0, &state->global_descriptor_pool) != VK_SUCCESS) {
-        panic("Failed to create uniform descriptor pool!");
-    }
-}
+            VkWriteDescriptorSet descriptor_writes[descriptor_count] = {
+                {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = descriptor_set,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .pBufferInfo = &uniform_buffer_info,
+                    .pImageInfo = 0,
+                    .pTexelBufferView = 0,
+                },
+                {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = descriptor_set,
+                    .dstBinding = 1,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .pBufferInfo = 0,
+                    .pImageInfo = &image_info,
+                    .pTexelBufferView = 0,
+                },
+                {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = descriptor_set,
+                    .dstBinding = 2,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1,
+                    .pBufferInfo = &lights_buffer_info,
+                    .pImageInfo = 0,
+                    .pTexelBufferView = 0,
+                }
+            };
 
-void create_descriptor_sets(GameState* state) {
-    VkDescriptorSetLayout* layouts = sbmalloc(&state->level_buffer, state->swapchain_image_count * sizeof(VkDescriptorSetLayout));
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) { layouts[index] = state->global_descriptor_set_layout; }
-
-    VkDescriptorSetAllocateInfo allocate_info = {};
-    allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocate_info.descriptorPool = state->global_descriptor_pool;
-    allocate_info.descriptorSetCount = state->swapchain_image_count;
-    allocate_info.pSetLayouts = layouts;
-
-    state->global_descriptor_sets = sbmalloc(&state->level_buffer, state->swapchain_image_count * sizeof(VkDescriptorSet));
-    if (vkAllocateDescriptorSets(state->device, &allocate_info, state->global_descriptor_sets) != VK_SUCCESS) {
-        panic("Failed to allocate uniform descriptor sets!");
-    }
-
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) {
-        VkDescriptorSet descriptor_set = state->global_descriptor_sets[index];
-
-        VkDescriptorBufferInfo uniform_buffer_info = {};
-        uniform_buffer_info.buffer = state->camera_uniforms[index].buffer;
-        uniform_buffer_info.offset = 0;
-        uniform_buffer_info.range = sizeof(UniformBufferObject);
-
-        VkDescriptorImageInfo image_info = {};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = state->level_texture.view;
-        image_info.sampler = state->generic_sampler;
-
-        VkDescriptorBufferInfo lights_buffer_info = {};
-        lights_buffer_info.buffer = state->light_buffer.buffer;
-        lights_buffer_info.offset = 0;
-        lights_buffer_info.range = state->light_data_size;
-
-        VkWriteDescriptorSet descriptor_writes[descriptor_count] = {
-            {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount = 1,
-                .pBufferInfo = &uniform_buffer_info,
-                .pImageInfo = 0,
-                .pTexelBufferView = 0,
-            },
-            {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 1,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1,
-                .pBufferInfo = 0,
-                .pImageInfo = &image_info,
-                .pTexelBufferView = 0,
-            },
-            {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 2,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                .descriptorCount = 1,
-                .pBufferInfo = &lights_buffer_info,
-                .pImageInfo = 0,
-                .pTexelBufferView = 0,
-            }
-        };
-
-        vkUpdateDescriptorSets(state->device, descriptor_count, descriptor_writes, 0, 0);
+            vkUpdateDescriptorSets(state->device, descriptor_count, descriptor_writes, 0, 0);
+        }
     }
 }
 
