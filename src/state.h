@@ -15,13 +15,6 @@ typedef struct Vertex {
     vec2 uv;
 } Vertex;
 
-typedef struct DataVertex {
-    vec3 position;
-    vec3 normal;
-    vec3 texture_uvi;
-    vec3 lightmap_uvi;
-} DataVertex;
-
 typedef struct Light {
     vec4 position_falloff;
     vec4 color_alpha;
