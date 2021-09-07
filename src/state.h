@@ -331,11 +331,9 @@ typedef struct GameState {
     EnemyList rats; // delay 1.0, range 2.0
     EnemyList knights; // delay 2.0, range larger
 
-    b32 sounds_loaded;
     EnemySoundBuffers medium_sounds;
     EnemySoundBuffers rat_sounds;
     EnemySoundBuffers knight_sounds;
-
 
     f32 mouse_sensitivity;
     vec2 mouse_pos;
