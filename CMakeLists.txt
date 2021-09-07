@@ -4,7 +4,7 @@ project(level_compactor CXX)
 
 # three_hits
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS_DEBUG "-g -Wall -DNDEBUG -static -static-libgcc")
+set(CMAKE_C_FLAGS_DEBUG "-g -Wall -DNDEBUG -static")
 set(CMAKE_C_FLAGS_RELEASE "-Ofast -mfpmath=sse -static") #TODO(sean): put the dlls in the folder
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
