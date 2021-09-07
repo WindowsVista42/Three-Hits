@@ -91,18 +91,36 @@ global VkVertexInputAttributeDescription enemy_vertex_attribute_descriptions[ent
     },
 };
 
-#define crosshair_vertex_binding_description_count 1
-global VkVertexInputBindingDescription crosshair_vertex_binding_descriptions[entity_vertex_binding_description_count] = {
+#define hud_vertex_binding_description_count 3
+global VkVertexInputBindingDescription hud_vertex_binding_descriptions[entity_vertex_binding_description_count] = {
     {   .binding = 0,
+        .stride = sizeof(vec2),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    },
+    {   .binding = 1,
+        .stride = sizeof(vec2),
+        .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
+    },
+    {   .binding = 2,
         .stride = sizeof(vec4),
         .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE,
     },
 };
 
-#define crosshair_vertex_attribute_description_count 1
-global VkVertexInputAttributeDescription crosshair_vertex_attribute_descriptions[entity_vertex_attribute_description_count] = {
+#define hud_vertex_attribute_description_count 3
+global VkVertexInputAttributeDescription hud_vertex_attribute_descriptions[entity_vertex_attribute_description_count] = {
     {   .binding = 0,
         .location = 0,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = 0,
+    },
+    {   .binding = 1,
+        .location = 1,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = 0,
+    },
+    {   .binding = 2,
+        .location = 2,
         .format = VK_FORMAT_R32G32B32A32_SFLOAT,
         .offset = 0,
     },
