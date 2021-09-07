@@ -729,8 +729,8 @@ void load_level(GameState* state) {
     }
     free_loader(state, loader);
 
-    create_descriptor_pool(state);
-    create_descriptor_sets(state);
+    create_all_descriptor_pools(state);
+    create_all_descriptor_sets(state);
 
     create_command_buffers(state);
 
