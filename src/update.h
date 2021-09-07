@@ -309,7 +309,7 @@ void update_bind_states(GameState* state) {
 void cleanup_swapchain_artifacts(GameState* state) {
     destroy_texture(state->device, state->depth_texture);
 
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) {
+    for every(index, state->swapchain_image_count) {
         vkDestroyBuffer(state->device, state->camera_uniforms[index].buffer, 0);
         vkFreeMemory(state->device, state->camera_uniforms[index].memory, 0);
         vkDestroyFramebuffer(state->device, state->swapchain_framebuffers[index], 0);
@@ -323,7 +323,7 @@ void cleanup_swapchain_artifacts(GameState* state) {
     destroy_pipeline(state->device, state->entity_pipeline);
     destroy_pipeline(state->device, state->crosshair_pipeline);
 
-    for(usize index = 0; index < state->swapchain_image_count; index += 1) {
+    for every(index, state->swapchain_image_count) {
         vkDestroyImageView(state->device, state->swapchain_image_views[index], 0);
     }
 
