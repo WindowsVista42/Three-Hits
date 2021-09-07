@@ -546,6 +546,24 @@ void create_level_buffers(GameState* state, LoaderState* loader) {
     );
 }
 
+void create_all_descriptor_pools(GameState* state) {
+    {
+        VkDescriptorPoolSize pool_sizes[] = {
+            {   .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount = state->swapchain_image_count,
+            },
+            {   .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = state->swapchain_image_count,
+            },
+            {   .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .descriptorCount = state->swapchain_image_count,
+            },
+        };
+
+        create_descriptor_pool(state->device, state->swapchain_image_count, 3, pool_sizes, &state->global_descriptor_pool);
+    }
+}
+
 void create_entity_render_data(
     VkDevice device,
     VkPhysicalDevice physical_device,
