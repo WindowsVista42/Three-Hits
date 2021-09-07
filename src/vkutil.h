@@ -905,6 +905,107 @@ void create_model(
     );
 }
 
+void create_descriptor_pool(
+    VkDevice device,
+    u32 set_count,
+    u32 pool_count,
+    VkDescriptorPoolSize* pool_sizes,
+    VkDescriptorPool* pool
+) {
+    VkDescriptorPoolCreateInfo pool_create_info = {};
+    pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_create_info.poolSizeCount = pool_count;
+    pool_create_info.pPoolSizes = pool_sizes;
+    pool_create_info.maxSets = set_count;
+
+    if (vkCreateDescriptorPool(device, &pool_create_info, 0, pool) != VK_SUCCESS) {
+        panic("Failed to create uniform descriptor pool!");
+    }
+}
+
+void create_buffer_array(
+    StagedBuffer* staged_buffer,
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkDeviceSize size,
+    VkBufferUsageFlags flags,
+    VkMemoryPropertyFlags properties,
+    u32 count,
+    Buffer** buffers
+) {
+    *buffers = sbmalloc(staged_buffer, count * sizeof(Buffer));
+    for every(index, count) {
+        create_buffer_2(
+            device,
+            physical_device,
+            size,
+            flags,
+            properties,
+            &(*buffers)[index]
+        );
+    }
+}
+
+void create_descriptor_sets(
+    StagedBuffer* staged_buffer,
+    VkDevice device,
+    VkDescriptorPool pool,
+    u32 count,
+    const VkDescriptorSetLayout* layout,
+    VkDescriptorSet** sets
+) {
+    VkDescriptorSetLayout* layouts = sbmalloc(staged_buffer, count * sizeof(VkDescriptorSetLayout));
+    for every(index, count) { layouts[index] = *layout; }
+
+    VkDescriptorSetAllocateInfo allocate_info = {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocate_info.descriptorPool = pool;
+    allocate_info.descriptorSetCount = count;
+    allocate_info.pSetLayouts = layouts;
+
+    *sets = sbmalloc(staged_buffer, count * sizeof(VkDescriptorSet));
+    if (vkAllocateDescriptorSets(device, &allocate_info, *sets) != VK_SUCCESS) {
+        panic("Failed to allocate uniform descriptor sets!");
+    }
+}
+
+//TODO(sean): finish this
+void update_descriptor_sets() {}
+
+//TODO(sean): finish this
+void create_uniform(
+    StagedBuffer* staged_buffer,
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    u32 image_count,
+    u32 buffer_size,
+    u32 binding_count,
+    VkDescriptorSetLayoutBinding* layout_bindings,
+    u32 set_count,
+    u32 pool_count,
+    VkDescriptorPoolSize* pool_sizes,
+    Uniform* uniform
+) {
+    create_buffer_array(
+        staged_buffer,
+        device,
+        physical_device,
+        buffer_size,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        image_count,
+        &uniform->buffers
+    );
+
+    create_descriptor_pool(
+        device,
+        set_count,
+        pool_count,
+        pool_sizes,
+        &uniform->pool
+    );
+}
+
 void destroy_pipeline(VkDevice device, Pipeline pipeline) {
     vkDestroyPipeline(device, pipeline.pipeline, 0);
     vkDestroyPipelineLayout(device, pipeline.layout, 0);
