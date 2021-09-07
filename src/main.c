@@ -46,16 +46,16 @@ int main() {
 
     create_shader_modules(state);
 
+    init_command_pool(state);
+
     create_uniform_buffers(state);
     create_descriptor_set_layout(state);
+    create_hud_data(state);
 
     create_level_graphics_pipeline(state);
     create_entity_graphics_pipeline(state);
-    create_crosshair_graphics_pipeline(state);
+    create_hud_graphics_pipeline(state);
 
-    init_command_pool(state);
-
-    create_crosshair_buffers(state);
     create_depth_image(state);
     create_swapchain_framebuffers(state);
     create_generic_sampler(state);
@@ -73,6 +73,7 @@ int main() {
 
     reset_player(state);
     glfwSetTime(0.0);
+    alListenerf(AL_GAIN, 1.0f);
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
         glfwPollEvents();
