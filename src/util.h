@@ -35,6 +35,7 @@ typedef struct DebugCallbackData {} DebugCallbackData;
 
 #define range(name, first, count, increment) (usize name = first; (name) < ((first) + (count)); (name) += (increment))
 #define every(name, count) (usize name = 0; (name) < (count); (name) += 1)
+#define here printf("Here\n");
 
 typedef struct StagedBuffer {
     void* pointer;
