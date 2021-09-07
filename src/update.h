@@ -315,13 +315,14 @@ void cleanup_swapchain_artifacts(GameState* state) {
         vkDestroyFramebuffer(state->device, state->swapchain_framebuffers[index], 0);
     }
 
+    //TODO(sean): move this to free descriptor sets
     vkDestroyDescriptorPool(state->device, state->global_descriptor_pool, 0);
 
-    vkFreeCommandBuffers(state->device, state->command_pool, (u32)state->swapchain_image_count, state->command_buffers);
+    vkFreeCommandBuffers(state->device, state->command_pool, state->swapchain_image_count, state->command_buffers);
 
     destroy_pipeline(state->device, state->level_pipeline);
     destroy_pipeline(state->device, state->entity_pipeline);
-    destroy_pipeline(state->device, state->crosshair_pipeline);
+    destroy_pipeline(state->device, state->hud_pipeline);
 
     for every(index, state->swapchain_image_count) {
         vkDestroyImageView(state->device, state->swapchain_image_views[index], 0);
@@ -342,12 +343,12 @@ void update_swapchain(GameState* state) {
     create_shader_modules(state);
     create_level_graphics_pipeline(state);
     create_entity_graphics_pipeline(state);
-    create_crosshair_graphics_pipeline(state);
+    create_hud_graphics_pipeline(state);
     create_depth_image(state);
     create_swapchain_framebuffers(state);
     create_uniform_buffers(state);
-    create_descriptor_pool(state);
-    create_descriptor_sets(state);
+    create_all_descriptor_pools(state);
+    create_all_descriptor_sets(state);
     create_command_buffers(state);
 }
 
