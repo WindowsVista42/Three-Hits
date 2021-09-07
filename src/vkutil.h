@@ -55,6 +55,13 @@ typedef struct PipelineOptions {
     VkPushConstantRange* push_constant_ranges;
 } PipelineOptions;
 
+typedef struct Uniform {
+    VkDescriptorPool pool;
+    VkDescriptorSetLayout layout;
+    VkDescriptorSet* sets;
+    Buffer* buffers;
+} Uniform;
+
 global VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type,
