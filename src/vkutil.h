@@ -219,6 +219,39 @@ void create_buffer(
     vkBindBufferMemory(device, *buffer, *buffer_memory, 0);
 }
 
+void create_buffer_2(
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    Buffer* buffer
+) {
+    VkBufferCreateInfo buffer_create_info = {};
+    buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_create_info.size = size;
+    buffer_create_info.usage = usage;
+    buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if(vkCreateBuffer(device, &buffer_create_info, 0, &buffer->buffer) != VK_SUCCESS) {
+        panic("Failed to create vertex buffer!");
+    }
+
+    VkMemoryRequirements memory_requirements;
+    vkGetBufferMemoryRequirements(device, buffer->buffer, &memory_requirements);
+
+    VkMemoryAllocateInfo allocate_info = {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocate_info.allocationSize = memory_requirements.size;
+    allocate_info.memoryTypeIndex = find_memory_type(physical_device, memory_requirements.memoryTypeBits, properties);
+
+    if(vkAllocateMemory(device, &allocate_info, 0, &buffer->memory) != VK_SUCCESS) {
+        panic("Failed to allocate vertex buffer!");
+    }
+
+    vkBindBufferMemory(device, buffer->buffer, buffer->memory, 0);
+}
+
 void transition_image_layout(
     VkDevice device,
     VkQueue queue,
