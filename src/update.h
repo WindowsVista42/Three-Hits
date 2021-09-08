@@ -562,11 +562,13 @@ void update(GameState* state) {
         f32 best_enemy_distance = 4096.0;
         static f32 shoot_timer = 0.0f;
         static f32 reload_timer = 0.0f;
+        static b32 reloading = false;
 
         if(reload_timer < 0.0f && state->reload_key.pressed) {
             play_reload_sound = true;
             reload_timer = state->pistol_reload_speed;
-            state->loaded_pistol_ammo_count = state->pistol_magazine_size;
+            reloading = true;
+            //state->loaded_pistol_ammo_count = state->pistol_magazine_size;
         }
 
         if(state->shoot_button.held) {
@@ -578,7 +580,7 @@ void update(GameState* state) {
                 if(state->loaded_pistol_ammo_count == 0) {
                     play_reload_sound = true;
                     reload_timer = state->pistol_reload_speed;
-                    state->loaded_pistol_ammo_count = state->pistol_magazine_size;
+                    reloading = true;
                 }
 
                 medium_hit_index = player_ray_intersects_enemy(&state->mediums, player_eye, E, wall_distance);
@@ -588,7 +590,13 @@ void update(GameState* state) {
         }
         if(reload_timer > 0.0f) { state->crosshair.colors[0] = vec4_new(0.0, 0.0, 1.0, 0.5); }
         else if(shoot_timer > 0.05f) { state->crosshair.colors[0] = vec4_new(1.0, 0.0, 0.0, 0.5); }
-        else { state->crosshair.colors[0] = vec4_new(1.0, 1.0, 1.0, 0.5); }
+        else {
+            if(reloading) {
+                reloading = false;
+                state->loaded_pistol_ammo_count = state->pistol_magazine_size;
+            }
+            state->crosshair.colors[0] = vec4_new(1.0, 1.0, 1.0, 0.5);
+        }
 
         write_buffer(state->device, state->crosshair.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->crosshair.data);
         write_buffer_copy_buffer(
@@ -616,18 +624,25 @@ void update(GameState* state) {
     }
 
     {
-        static Bind toggle = {GLFW_KEY_V};
-        update_key_bind_state(state->window, &toggle);
-        if(toggle.pressed) {
-            if(state->healthbar.data.count <= state->healthbar.count && state->healthbar.data.count != 0) {
-                state->healthbar.data.count -= 1;
-            } else {
-                state->healthbar.data.count = state->healthbar.count;
-            }
-        }
-        state->healthbar.data.count = (u32)state->player_health;
+    //    static Bind toggle = {GLFW_KEY_V};
+    //    update_key_bind_state(state->window, &toggle);
+    //    if(toggle.pressed) {
+    //        if(state->healthbar.data.count <= state->healthbar.count && state->healthbar.data.count != 0) {
+    //            state->healthbar.data.count -= 1;
+    //        } else {
+    //            state->healthbar.data.count = state->healthbar.count;
+    //        }
 
+    //        for every(index, state->swapchain_image_count) {
+    //            write_buffer(state->device, state->healthbar.uniforms[index].memory, 0, sizeof(HudLocalData), 0, &state->healthbar.data);
+    //        }
+    //    }
+
+        state->healthbar.data.count = (u32)state->player_health;
         write_buffer(state->device, state->healthbar.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->healthbar.data);
+
+        state->ammobar.data.count = (u32)state->loaded_pistol_ammo_count;
+        write_buffer(state->device, state->ammobar.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->ammobar.data);
     }
 
     b32 space_pressed = false;
