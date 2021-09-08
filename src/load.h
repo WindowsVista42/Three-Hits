@@ -435,20 +435,25 @@ void create_command_buffers(GameState* state) {
                 render_entity_list(command_buffer, &render_entity_list_info, &state->keycards);
             }
 
-            vkCmdBeginRenderPass(command_buffer, &crosshair_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
-                VkBuffer vertex_buffers[] = {state->crosshair.vertices.buffer, state->crosshair.offsets_buffer.buffer, state->crosshair.colors_buffer.buffer};
-                VkDeviceSize offsets[] = {0, 0, 0};
-                f32 aspect = (f32)state->swapchain_extent.width / (f32)state->swapchain_extent.height;
-                vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->hud_pipeline.pipeline);
-                {
-                    vkCmdBindVertexBuffers(command_buffer, 0, 3, vertex_buffers, offsets);
-                    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->hud_pipeline.layout, 0, 1, &state->crosshair.sets[index], 0, 0);
-                    vkCmdPushConstants(command_buffer, state->hud_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(f32), &aspect);
-                }
-                vkCmdDraw(command_buffer, 3, 1, 0, 0);
+                render_pass_begin_info.renderPass = state->hud_pipeline.pass;
+
+                RenderHudElementInfo render_hud_element_info = {};
+                render_hud_element_info.begin_info = &render_pass_begin_info;
+                render_hud_element_info.pipeline = state->hud_pipeline;
+                render_hud_element_info.aspect = (f32) state->swapchain_extent.width / (f32) state->swapchain_extent.height;
+                render_hud_element_info.index = index;
+
+                render_hud_element(command_buffer, &render_hud_element_info, &state->crosshair);
+                render_hud_element(command_buffer, &render_hud_element_info, &state->healthbar);
             }
-            vkCmdEndRenderPass(command_buffer);
+
+            {
+                render_pass_begin_info.renderPass = state->transition_pipeline.pass;
+
+                vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+                vkCmdEndRenderPass(command_buffer);
+            }
         }
 
         if(vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
