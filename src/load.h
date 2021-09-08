@@ -313,30 +313,29 @@ void load_level_model(GameState* state, LoaderState* loader) {
 }
 
 typedef struct RenderEntityListInfo {
-    VkCommandBuffer command_buffer;
     VkRenderPassBeginInfo* begin_info;
-    VkSubpassContents subpass_contents;
     Pipeline pipeline;
     VkDescriptorSet* descriptor_set;
-} RenderEntityListInfo ;
+} RenderEntityListInfo;
 
 void render_entity_list(
+    VkCommandBuffer command_buffer,
     RenderEntityListInfo* info,
     EntityList* entities
 ) {
-    vkCmdBeginRenderPass(info->command_buffer, info->begin_info, info->subpass_contents);
+    vkCmdBeginRenderPass(command_buffer, info->begin_info, VK_SUBPASS_CONTENTS_INLINE);
     {
-        vkCmdBindPipeline(info->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.pipeline);
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.pipeline);
         {
             VkBuffer vertex_buffers[] = {entities->model.vertices.buffer, entities->position_rotation_buffer.buffer, entities->color_buffer.buffer};
             VkDeviceSize offsets[] = {0, 0, 0};
-            vkCmdBindVertexBuffers(info->command_buffer, 0, 3, vertex_buffers, offsets);
-            vkCmdBindIndexBuffer(info->command_buffer, entities->model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(info->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.layout, 0, 1, info->descriptor_set, 0, 0);
+            vkCmdBindVertexBuffers(command_buffer, 0, 3, vertex_buffers, offsets);
+            vkCmdBindIndexBuffer(command_buffer, entities->model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.layout, 0, 1, info->descriptor_set, 0, 0);
         }
-        vkCmdDrawIndexed(info->command_buffer, entities->model.index_count, entities->capacity, 0, 0, 0);
+        vkCmdDrawIndexed(command_buffer, entities->model.index_count, entities->capacity, 0, 0, 0);
     }
-    vkCmdEndRenderPass(info->command_buffer);
+    vkCmdEndRenderPass(command_buffer);
 }
 
 
