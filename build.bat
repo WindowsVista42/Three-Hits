@@ -6,3 +6,6 @@ C:/VulkanSDK/1.2.182.0/Bin/glslc.exe src/entity.frag -o data/shaders/entity.frag
 
 C:/VulkanSDK/1.2.182.0/Bin/glslc.exe src/hudelement.vert -o data/shaders/hudelement.vert.spv
 C:/VulkanSDK/1.2.182.0/Bin/glslc.exe src/hudelement.frag -o data/shaders/hudelement.frag.spv
+
+C:/VulkanSDK/1.2.182.0/Bin/glslc.exe src/transition.vert -o data/shaders/transition.vert.spv
+C:/VulkanSDK/1.2.182.0/Bin/glslc.exe src/transition.frag -o data/shaders/transition.frag.spv
