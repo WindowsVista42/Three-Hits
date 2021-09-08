@@ -52,9 +52,7 @@ int main() {
     create_descriptor_set_layout(state);
     create_hud_data(state);
 
-    create_level_graphics_pipeline(state);
-    create_entity_graphics_pipeline(state);
-    create_hud_graphics_pipeline(state);
+    create_all_graphics_pipelines(state);
 
     create_depth_image(state);
     create_swapchain_framebuffers(state);
