@@ -19,7 +19,7 @@ void main() {
 
     vec2 vertex_position = in_vertex;
     vertex_position.y *= aspect;
-    // flip triangle so the backface is culled and its not rendered
+    // flip the triangle so its backface culled
     if(gl_InstanceIndex >= count) {
         vertex_position.y *= -1.0;
     }
