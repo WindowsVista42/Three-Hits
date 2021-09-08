@@ -291,6 +291,9 @@ typedef struct GameState {
     Texture depth_texture;
     u32 current_image;
 
+    Modules transition_modules;
+    Pipeline transition_pipeline;
+
     Modules level_modules;
     Pipeline level_pipeline;
 
