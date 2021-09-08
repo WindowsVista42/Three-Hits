@@ -161,8 +161,8 @@ const f32 crosshair_scale = 0.33333333;
 
 #define crosshair_vertex_count 3
 global vec2 crosshair_vertices[crosshair_vertex_count] = {
-    {{ 0.0            , -0.5 * 1.732051 * crosshair_width * crosshair_scale}},
     {{ crosshair_width * crosshair_scale,  0.5 * 1.732051 * crosshair_width * crosshair_scale}},
+    {{ 0.0            , -0.5 * 1.732051 * crosshair_width * crosshair_scale}},
     {{-crosshair_width * crosshair_scale,  0.5 * 1.732051 * crosshair_width * crosshair_scale}},
 };
 
