@@ -512,120 +512,159 @@ void create_shader_modules(GameState* state) {
 }
 
 
-void create_level_graphics_pipeline(GameState* state) {
-    PipelineOptions pipeline_options;
-    pipeline_options.cull_mode = VK_CULL_MODE_BACK_BIT;
-    pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+void create_all_graphics_pipelines(GameState* state) {
+    {
+        PipelineOptions pipeline_options;
+        pipeline_options.cull_mode = VK_CULL_MODE_BACK_BIT;
+        pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-    pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    pipeline_options.push_constant_range_count = 0;
-    pipeline_options.push_constant_ranges = 0;
+        pipeline_options.push_constant_range_count = 0;
+        pipeline_options.push_constant_ranges = 0;
 
-    create_graphics_pipeline(
-        state->device,
-        state->level_modules.vertex,
-        state->level_modules.fragment,
-        level_vertex_attribute_description_count,
-        vertex_attribute_descriptions,
-        level_vertex_input_binding_description_count,
-        vertex_binding_descriptions,
-        state->swapchain_extent.width,
-        state->swapchain_extent.height,
-        1,
-        &state->global_descriptor_set_layout,
-        &pipeline_options,
-        &state->level_pipeline,
-        state->swapchain_format,
-        state->depth_image_format
-    );
-}
+        create_graphics_pipeline(
+            state->device,
+            state->level_modules.vertex,
+            state->level_modules.fragment,
+            level_vertex_attribute_description_count,
+            vertex_attribute_descriptions,
+            level_vertex_input_binding_description_count,
+            vertex_binding_descriptions,
+            state->swapchain_extent.width,
+            state->swapchain_extent.height,
+            1,
+            &state->global_descriptor_set_layout,
+            &pipeline_options,
+            &state->level_pipeline,
+            state->swapchain_format,
+            state->depth_image_format
+        );
+    }
 
-void create_entity_graphics_pipeline(GameState* state) {
-    PipelineOptions pipeline_options;
-    pipeline_options.cull_mode = VK_CULL_MODE_BACK_BIT;
-    pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    {
+        PipelineOptions pipeline_options;
+        pipeline_options.cull_mode = VK_CULL_MODE_BACK_BIT;
+        pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-    pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
-    pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
-    pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    pipeline_options.push_constant_range_count = 0;
-    pipeline_options.push_constant_ranges = 0;
+        pipeline_options.push_constant_range_count = 0;
+        pipeline_options.push_constant_ranges = 0;
 
-    create_graphics_pipeline(
-        state->device,
-        state->entity_modules.vertex,
-        state->entity_modules.fragment,
-        entity_vertex_attribute_description_count,
-        enemy_vertex_attribute_descriptions,
-        entity_vertex_binding_description_count,
-        enemy_vertex_binding_descriptions,
-        state->swapchain_extent.width,
-        state->swapchain_extent.height,
-        1,
-        &state->global_descriptor_set_layout,
-        &pipeline_options,
-        &state->entity_pipeline,
-        state->swapchain_format,
-        state->depth_image_format
-    );
-}
+        create_graphics_pipeline(
+            state->device,
+            state->entity_modules.vertex,
+            state->entity_modules.fragment,
+            entity_vertex_attribute_description_count,
+            enemy_vertex_attribute_descriptions,
+            entity_vertex_binding_description_count,
+            enemy_vertex_binding_descriptions,
+            state->swapchain_extent.width,
+            state->swapchain_extent.height,
+            1,
+            &state->global_descriptor_set_layout,
+            &pipeline_options,
+            &state->entity_pipeline,
+            state->swapchain_format,
+            state->depth_image_format
+        );
+    }
 
-void create_hud_graphics_pipeline(GameState* state) {
-    PipelineOptions pipeline_options;
-    pipeline_options.cull_mode = VK_CULL_MODE_NONE;
-    pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    {
+        PipelineOptions pipeline_options;
+        pipeline_options.cull_mode = VK_CULL_MODE_BACK_BIT;
+        pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-    pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
-    pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-    pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkPushConstantRange push_constant_range = {};
-    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    push_constant_range.size = sizeof(f32);
-    push_constant_range.offset = 0;
+        VkPushConstantRange push_constant_range = {};
+        push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        push_constant_range.size = sizeof(f32);
+        push_constant_range.offset = 0;
 
-    pipeline_options.push_constant_range_count = 1;
-    pipeline_options.push_constant_ranges = &push_constant_range;
+        pipeline_options.push_constant_range_count = 1;
+        pipeline_options.push_constant_ranges = &push_constant_range;
 
-    create_graphics_pipeline(
-        state->device,
-        state->hud_modules.vertex,
-        state->hud_modules.fragment,
-        hud_vertex_attribute_description_count,
-        hud_vertex_attribute_descriptions,
-        hud_vertex_binding_description_count,
-        hud_vertex_binding_descriptions,
-        state->swapchain_extent.width,
-        state->swapchain_extent.height,
-        1,
-        &state->hud_descriptor_set_layout,
-        &pipeline_options,
-        &state->hud_pipeline,
-        state->swapchain_format,
-        state->depth_image_format
-    );
+        create_graphics_pipeline(
+            state->device,
+            state->hud_modules.vertex,
+            state->hud_modules.fragment,
+            hud_vertex_attribute_description_count,
+            hud_vertex_attribute_descriptions,
+            hud_vertex_binding_description_count,
+            hud_vertex_binding_descriptions,
+            state->swapchain_extent.width,
+            state->swapchain_extent.height,
+            1,
+            &state->hud_descriptor_set_layout,
+            &pipeline_options,
+            &state->hud_pipeline,
+            state->swapchain_format,
+            state->depth_image_format
+        );
+    }
+
+    {
+        PipelineOptions pipeline_options;
+        pipeline_options.cull_mode = VK_CULL_MODE_FRONT_AND_BACK;
+        pipeline_options.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+        pipeline_options.color_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pipeline_options.color_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+        pipeline_options.color_initial_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pipeline_options.color_final_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        pipeline_options.depth_load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pipeline_options.depth_store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pipeline_options.depth_initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pipeline_options.depth_final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        pipeline_options.push_constant_range_count = 0;
+        pipeline_options.push_constant_ranges = 0;
+
+        create_graphics_pipeline(
+            state->device,
+            state->transition_modules.vertex,
+            state->transition_modules.fragment,
+            0,
+            0,
+            0,
+            0,
+            state->swapchain_extent.width,
+            state->swapchain_extent.height,
+            0,
+            0,
+            &pipeline_options,
+            &state->transition_pipeline,
+            state->swapchain_format,
+            state->depth_image_format
+        );
+    }
 }
 
 void create_swapchain_framebuffers(GameState* state) {
