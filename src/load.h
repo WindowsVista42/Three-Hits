@@ -395,18 +395,18 @@ void create_command_buffers(GameState* state) {
                 {.depthStencil = {1.0f, 0}},
             };
 
-            VkRenderPassBeginInfo level_render_pass_begin_info = {};
-            level_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            level_render_pass_begin_info.renderPass = state->level_pipeline.pass;
-            level_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
-            level_render_pass_begin_info.renderArea.offset.x = 0;
-            level_render_pass_begin_info.renderArea.offset.y = 0;
-            level_render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
-            level_render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
-            level_render_pass_begin_info.clearValueCount = 2;
-            level_render_pass_begin_info.pClearValues = clear_values;
+            VkRenderPassBeginInfo render_pass_begin_info = {};
+            render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            render_pass_begin_info.renderPass = state->level_pipeline.pass;
+            render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
+            render_pass_begin_info.renderArea.offset.x = 0;
+            render_pass_begin_info.renderArea.offset.y = 0;
+            render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
+            render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
+            render_pass_begin_info.clearValueCount = 2;
+            render_pass_begin_info.pClearValues = clear_values;
 
-            vkCmdBeginRenderPass(command_buffer, &level_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
                 vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state->level_pipeline.pipeline);
                 {
@@ -420,40 +420,20 @@ void create_command_buffers(GameState* state) {
             }
             vkCmdEndRenderPass(command_buffer);
 
-            VkRenderPassBeginInfo entity_render_pass_begin_info = {};
-            entity_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            entity_render_pass_begin_info.renderPass = state->entity_pipeline.pass;
-            entity_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
-            entity_render_pass_begin_info.renderArea.offset.x = 0;
-            entity_render_pass_begin_info.renderArea.offset.y = 0;
-            entity_render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
-            entity_render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
-            entity_render_pass_begin_info.clearValueCount = 2;
-            entity_render_pass_begin_info.pClearValues = clear_values;
+            {
+                render_pass_begin_info.renderPass = state->entity_pipeline.pass;
 
-            RenderEntityListInfo render_entity_list_info = {};
-            render_entity_list_info.command_buffer = command_buffer;
-            render_entity_list_info.begin_info = &entity_render_pass_begin_info;
-            render_entity_list_info.subpass_contents = VK_SUBPASS_CONTENTS_INLINE;
-            render_entity_list_info.pipeline = state->entity_pipeline;
-            render_entity_list_info.descriptor_set = &state->global_descriptor_sets[index];
+                RenderEntityListInfo render_entity_list_info = {};
+                render_entity_list_info.begin_info = &render_pass_begin_info;
+                render_entity_list_info.pipeline = state->entity_pipeline;
+                render_entity_list_info.descriptor_set = &state->global_descriptor_sets[index];
 
-            render_entity_list(&render_entity_list_info, &state->doors);
-            render_entity_list(&render_entity_list_info, &state->mediums.entities);
-            render_entity_list(&render_entity_list_info, &state->rats.entities);
-            render_entity_list(&render_entity_list_info, &state->knights.entities);
-            render_entity_list(&render_entity_list_info, &state->keycards);
-
-            VkRenderPassBeginInfo crosshair_render_pass_begin_info = {};
-            crosshair_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            crosshair_render_pass_begin_info.renderPass = state->hud_pipeline.pass;
-            crosshair_render_pass_begin_info.framebuffer = state->swapchain_framebuffers[index];
-            crosshair_render_pass_begin_info.renderArea.offset.x = 0;
-            crosshair_render_pass_begin_info.renderArea.offset.y = 0;
-            crosshair_render_pass_begin_info.renderArea.extent.width = state->swapchain_extent.width;
-            crosshair_render_pass_begin_info.renderArea.extent.height = state->swapchain_extent.height;
-            crosshair_render_pass_begin_info.clearValueCount = 2;
-            crosshair_render_pass_begin_info.pClearValues = clear_values;
+                render_entity_list(command_buffer, &render_entity_list_info, &state->doors);
+                render_entity_list(command_buffer, &render_entity_list_info, &state->mediums.entities);
+                render_entity_list(command_buffer, &render_entity_list_info, &state->rats.entities);
+                render_entity_list(command_buffer, &render_entity_list_info, &state->knights.entities);
+                render_entity_list(command_buffer, &render_entity_list_info, &state->keycards);
+            }
 
             vkCmdBeginRenderPass(command_buffer, &crosshair_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
             {
