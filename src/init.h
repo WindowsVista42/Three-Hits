@@ -772,6 +772,127 @@ void create_uniform_buffers(GameState* state) {
     );
 }
 
+void create_hud_element(
+    StagedBuffer* staged_buffer,
+    VkDevice device,
+    VkPhysicalDevice physical_device,
+    VkQueue queue,
+    VkCommandPool command_pool,
+    u32 image_count,
+    u32 data_count,
+    vec2* offsets,
+    vec4* colors,
+    u32 vertex_count,
+    vec2* vertices,
+    VkDescriptorSetLayout* hud_descriptor_set_layout,
+    HudElement* hud_element
+) {
+    hud_element->data.count = data_count;
+    hud_element->count = data_count;
+
+    hud_element->offsets = sbmalloc(staged_buffer, hud_element->count* sizeof(vec2));
+    hud_element->colors = sbmalloc(staged_buffer, hud_element->count * sizeof(vec4));
+
+    memcpy(hud_element->offsets, offsets, hud_element->count * sizeof(vec2));
+    memcpy(hud_element->colors, colors, hud_element->count * sizeof(vec4));
+
+    {
+        VkDescriptorPoolSize pool_sizes[] = {
+            {   .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount = image_count,
+            },
+        };
+
+        create_descriptor_pool(device, image_count, 1, pool_sizes, &hud_element->pool);
+    }
+
+    create_buffer_array(
+        staged_buffer,
+        device,
+        physical_device,
+        sizeof(HudLocalData),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        image_count,
+        &hud_element->uniforms
+    );
+
+    for every(index, image_count) {
+        write_buffer(device, hud_element->uniforms[index].memory, 0, sizeof(HudLocalData), 0, &hud_element->data);
+    }
+
+    create_descriptor_sets(
+        staged_buffer,
+        device,
+        hud_element->pool,
+        image_count,
+        hud_descriptor_set_layout,
+        &hud_element->sets
+    );
+
+    for every(index, image_count) {
+        {
+            VkDescriptorSet descriptor_set = hud_element->sets[index];
+
+            VkDescriptorBufferInfo count_buffer_info = {};
+            count_buffer_info.buffer = hud_element->uniforms[index].buffer;
+            count_buffer_info.offset = 0;
+            count_buffer_info.range = sizeof(HudLocalData);
+
+            VkWriteDescriptorSet descriptor_writes[] = {
+                {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = descriptor_set,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .pBufferInfo = &count_buffer_info,
+                    .pImageInfo = 0,
+                    .pTexelBufferView = 0,
+                },
+            };
+
+            vkUpdateDescriptorSets(device, 1, descriptor_writes, 0, 0);
+        }
+
+    }
+
+    create_device_local_buffer_2(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        vertex_count * sizeof(vec2),
+        vertices,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &hud_element->vertices
+    );
+
+    create_device_local_and_staging_buffer(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        hud_element->count * sizeof(vec2),
+        hud_element->offsets,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &hud_element->offsets_buffer,
+        &hud_element->offsets_staging_buffer
+    );
+
+    create_device_local_and_staging_buffer(
+        device,
+        physical_device,
+        queue,
+        command_pool,
+        hud_element->count * sizeof(vec4),
+        hud_element->colors,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        &hud_element->colors_buffer,
+        &hud_element->colors_staging_buffer
+    );
+}
+
 void create_hud_data(GameState* state) {
     state->crosshair.offsets = sbmalloc(&state->semaphore_buffer, sizeof(vec2));
     state->crosshair.colors = sbmalloc(&state->semaphore_buffer, sizeof(vec4));
