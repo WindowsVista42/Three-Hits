@@ -625,6 +625,8 @@ void update(GameState* state) {
                 state->healthbar.data.count = state->healthbar.count;
             }
         }
+        state->healthbar.data.count = (u32)state->player_health;
+
         write_buffer(state->device, state->healthbar.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->healthbar.data);
     }
 
