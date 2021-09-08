@@ -1,7 +1,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <algorithm>
-#include "vmmath.h"
+#include "util.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
