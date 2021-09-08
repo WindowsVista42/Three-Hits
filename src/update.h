@@ -323,6 +323,7 @@ void cleanup_swapchain_artifacts(GameState* state) {
     destroy_pipeline(state->device, state->level_pipeline);
     destroy_pipeline(state->device, state->entity_pipeline);
     destroy_pipeline(state->device, state->hud_pipeline);
+    destroy_pipeline(state->device, state->transition_pipeline);
 
     for every(index, state->swapchain_image_count) {
         vkDestroyImageView(state->device, state->swapchain_image_views[index], 0);
@@ -341,9 +342,7 @@ void update_swapchain(GameState* state) {
     pre_init_swapchain(state);
     init_swapchain(state);
     create_shader_modules(state);
-    create_level_graphics_pipeline(state);
-    create_entity_graphics_pipeline(state);
-    create_hud_graphics_pipeline(state);
+    create_all_graphics_pipelines(state);
     create_depth_image(state);
     create_swapchain_framebuffers(state);
     create_uniform_buffers(state);
