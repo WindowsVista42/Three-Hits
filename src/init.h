@@ -458,16 +458,27 @@ void init_swapchain(GameState* state) {
 }
 
 void create_shader_modules(GameState* state) {
-    usize file_count = 6;
+    usize file_count = 8;
     FILE** files = sbmalloc(&state->scratch, file_count * sizeof(FILE*));
+
     char* file_names[] = {
         "../data/shaders/level.vert.spv",
         "../data/shaders/level.frag.spv",
         "../data/shaders/entity.vert.spv",
         "../data/shaders/entity.frag.spv",
         "../data/shaders/hudelement.vert.spv",
-        "../data/shaders/hudelement.frag.spv"
+        "../data/shaders/hudelement.frag.spv",
+        "../data/shaders/transition.vert.spv",
+        "../data/shaders/transition.frag.spv"
     };
+
+    Modules* modules[] = {
+        &state->level_modules,
+        &state->entity_modules,
+        &state->hud_modules,
+        &state->transition_modules
+    };
+
     char** buffers = sbmalloc(&state->scratch, file_count * sizeof(char*));
     usize* buffer_sizes = sbmalloc(&state->scratch, file_count * sizeof(usize));
 
@@ -492,14 +503,10 @@ void create_shader_modules(GameState* state) {
         assert(fclose(files[index]) == 0);
     }
 
-    create_shader_module(state->device, buffers[0], buffer_sizes[0], &state->level_modules.vertex);
-    create_shader_module(state->device, buffers[1], buffer_sizes[1], &state->level_modules.fragment);
-
-    create_shader_module(state->device, buffers[2], buffer_sizes[2], &state->entity_modules.vertex);
-    create_shader_module(state->device, buffers[3], buffer_sizes[3], &state->entity_modules.fragment);
-
-    create_shader_module(state->device, buffers[4], buffer_sizes[4], &state->hud_modules.vertex);
-    create_shader_module(state->device, buffers[5], buffer_sizes[5], &state->hud_modules.fragment);
+    for range(index, 0, file_count, 2) {
+        create_shader_module(state->device, buffers[index + 0], buffer_sizes[index + 0], &(modules[index/2])->vertex);
+        create_shader_module(state->device, buffers[index + 1], buffer_sizes[index + 1], &(modules[index/2])->fragment);
+    }
 
     sbclear(&state->scratch);
 }
