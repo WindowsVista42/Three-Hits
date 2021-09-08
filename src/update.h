@@ -590,7 +590,7 @@ void update(GameState* state) {
         else if(shoot_timer > 0.05f) { state->crosshair.colors[0] = vec4_new(1.0, 0.0, 0.0, 0.5); }
         else { state->crosshair.colors[0] = vec4_new(1.0, 1.0, 1.0, 0.5); }
 
-        write_buffer(state->device, state->crosshair.uniforms[current_image].memory, 0, sizeof(u32), 0, &state->crosshair.data);
+        write_buffer(state->device, state->crosshair.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->crosshair.data);
         write_buffer_copy_buffer(
             state->device,
             state->queue,
@@ -613,6 +613,19 @@ void update(GameState* state) {
         process_enemy_hit(&state->mediums, &state->medium_sounds, medium_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
         process_enemy_hit(&state->rats, &state->rat_sounds, rat_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
         process_enemy_hit(&state->knights, &state->knight_sounds, knight_hit_index, death_flash_color, default_color, damage_flash_color, state->delta_time);
+    }
+
+    {
+        static Bind toggle = {GLFW_KEY_V};
+        update_key_bind_state(state->window, &toggle);
+        if(toggle.pressed) {
+            if(state->healthbar.data.count <= state->healthbar.count && state->healthbar.data.count != 0) {
+                state->healthbar.data.count -= 1;
+            } else {
+                state->healthbar.data.count = state->healthbar.count;
+            }
+        }
+        write_buffer(state->device, state->healthbar.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->healthbar.data);
     }
 
     b32 space_pressed = false;
