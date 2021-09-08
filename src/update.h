@@ -1008,8 +1008,8 @@ void update(GameState* state) {
             static Bind print_lights = {GLFW_KEY_COMMA};
             update_key_bind_state(state->window, &print_lights);
             if(print_lights.pressed) {
-                for range(i, 0, 6, 1) {
-                    printf("Light %llu:\n", i);
+                for every(i, state->ulight_count) {
+                    printf("Light %llu:\n", i + 1);
                     vec4_print(state->lights[i].position_falloff);
                     vec4_print(state->lights[i].color_alpha);
                     printf("\n");
