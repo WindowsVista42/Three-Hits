@@ -894,13 +894,6 @@ void create_hud_element(
 }
 
 void create_hud_data(GameState* state) {
-    state->crosshair.offsets = sbmalloc(&state->semaphore_buffer, sizeof(vec2));
-    state->crosshair.colors = sbmalloc(&state->semaphore_buffer, sizeof(vec4));
-
-    state->crosshair.offsets[0] = vec2_new(0.0, 0.0);
-    state->crosshair.colors[0] = vec4_new(1.0, 1.0, 1.0, 1.0);
-    state->crosshair.data.count = 1;
-
     {
         VkDescriptorSetLayoutBinding bindings[] = {
             {   .binding = 0,
@@ -922,96 +915,56 @@ void create_hud_data(GameState* state) {
     }
 
     {
-        VkDescriptorPoolSize pool_sizes[] = {
-            {   .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount = state->swapchain_image_count,
-            },
+        u32 count = 1;
+        vec2 offsets[] = {{0.0, 0.0}};
+        vec4 colors[] = {{1.0, 1.0, 1.0, 1.0}};
+
+        create_hud_element(
+            &state->semaphore_buffer,
+            state->device,
+            state->physical_device,
+            state->queue,
+            state->command_pool,
+            state->swapchain_image_count,
+            count,
+            offsets,
+            colors,
+            crosshair_vertex_count,
+            crosshair_vertices,
+            &state->hud_descriptor_set_layout,
+            &state->crosshair
+        );
+    }
+
+    {
+        u32 count = 3;
+        vec2 offsets[] = {
+            { 0.1, 0.5},
+            { 0.0, 0.5},
+            {-0.1, 0.5},
+        };
+        vec4 colors[] = {
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 1.0, 0.0, 1.0},
+            {1.0, 0.0, 0.0, 1.0},
         };
 
-        create_descriptor_pool(state->device, state->swapchain_image_count, 1, pool_sizes, &state->crosshair.pool);
+        create_hud_element(
+            &state->semaphore_buffer,
+            state->device,
+            state->physical_device,
+            state->queue,
+            state->command_pool,
+            state->swapchain_image_count,
+            count,
+            offsets,
+            colors,
+            crosshair_vertex_count,
+            crosshair_vertices,
+            &state->hud_descriptor_set_layout,
+            &state->healthbar
+        );
     }
-
-    create_buffer_array(
-        &state->semaphore_buffer,
-        state->device,
-        state->physical_device,
-        sizeof(u32),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        state->swapchain_image_count,
-        &state->crosshair.uniforms
-    );
-
-    create_descriptor_sets(
-        &state->semaphore_buffer,
-        state->device,
-        state->crosshair.pool,
-        state->swapchain_image_count,
-        &state->hud_descriptor_set_layout,
-        &state->crosshair.sets
-    );
-
-    for every(index, state->swapchain_image_count) {
-        {
-            VkDescriptorSet descriptor_set = state->crosshair.sets[index];
-
-            VkDescriptorBufferInfo count_buffer_info = {};
-            count_buffer_info.buffer = state->crosshair.uniforms[index].buffer;
-            count_buffer_info.offset = 0;
-            count_buffer_info.range = sizeof(u32);
-
-            VkWriteDescriptorSet descriptor_writes[] = {
-                {   .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = descriptor_set,
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    .pBufferInfo = &count_buffer_info,
-                    .pImageInfo = 0,
-                    .pTexelBufferView = 0,
-                },
-            };
-
-            vkUpdateDescriptorSets(state->device, 1, descriptor_writes, 0, 0);
-        }
-    }
-
-
-    create_device_local_buffer_2(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        crosshair_vertex_count * sizeof(vec2),
-        crosshair_vertices,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->crosshair.vertices
-    );
-
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec2),
-        state->crosshair.offsets,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->crosshair.offsets_buffer,
-        &state->crosshair.offsets_staging_buffer
-    );
-
-    create_device_local_and_staging_buffer(
-        state->device,
-        state->physical_device,
-        state->queue,
-        state->command_pool,
-        sizeof(vec4),
-        state->crosshair.colors,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        &state->crosshair.colors_buffer,
-        &state->crosshair.colors_staging_buffer
-    );
 }
 
 void init_staged_buffers(GameState* state) {
