@@ -69,9 +69,9 @@ int main() {
     // level1
     // level2
 
+    static b32 sound_temporarily_muted = true;
     reset_player(state);
     glfwSetTime(0.0);
-    alListenerf(AL_GAIN, 1.0f);
     while(!glfwWindowShouldClose(state->window)) {
         update_time(state);
         glfwPollEvents();
@@ -101,8 +101,15 @@ int main() {
         }
 
         if(state->load_next_level == true) {
+            sound_temporarily_muted = true;
+            alListenerf(AL_GAIN, 0.0f);
             unload_level(state);
             load_level(state);
+        }
+
+        if(sound_temporarily_muted) {
+            alListenerf(AL_GAIN, 1.0f);
+            sound_temporarily_muted = false;
         }
     }
 
