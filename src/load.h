@@ -339,6 +339,34 @@ void render_entity_list(
     vkCmdEndRenderPass(info->command_buffer);
 }
 
+
+typedef struct RenderHudElementInfo {
+    VkRenderPassBeginInfo* begin_info;
+    Pipeline pipeline;
+    f32 aspect;
+    u32 index;
+} RenderHudElementInfo;
+
+void render_hud_element(
+    VkCommandBuffer command_buffer,
+    RenderHudElementInfo* info,
+    HudElement* hud_element
+) {
+    vkCmdBeginRenderPass(command_buffer, info->begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    {
+        VkBuffer vertex_buffers[] = {hud_element->vertices.buffer, hud_element->offsets_buffer.buffer, hud_element->colors_buffer.buffer};
+        VkDeviceSize offsets[] = {0, 0, 0};
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.pipeline);
+        {
+            vkCmdBindVertexBuffers(command_buffer, 0, 3, vertex_buffers, offsets);
+            vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.layout, 0, 1, &hud_element->sets[info->index], 0, 0);
+            vkCmdPushConstants(command_buffer, info->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(f32), &info->aspect);
+        }
+        vkCmdDraw(command_buffer, 3, hud_element->count, 0, 0);
+    }
+    vkCmdEndRenderPass(command_buffer);
+}
+
 void create_command_buffers(GameState* state) {
     state->command_buffers = sbmalloc(&state->level_buffer, state->swapchain_image_count * sizeof(VkCommandBuffer));
 
