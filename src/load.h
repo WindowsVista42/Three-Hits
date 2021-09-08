@@ -446,6 +446,7 @@ void create_command_buffers(GameState* state) {
 
                 render_hud_element(command_buffer, &render_hud_element_info, &state->crosshair);
                 render_hud_element(command_buffer, &render_hud_element_info, &state->healthbar);
+                render_hud_element(command_buffer, &render_hud_element_info, &state->ammobar);
             }
 
             {

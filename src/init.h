@@ -944,8 +944,8 @@ void create_hud_data(GameState* state) {
             {-0.1, 0.5},
         };
         vec4 colors[] = {
-            {0.0, 0.0, 1.0, 1.0},
-            {0.0, 1.0, 0.0, 1.0},
+            {1.0, 0.0, 0.0, 1.0},
+            {1.0, 0.0, 0.0, 1.0},
             {1.0, 0.0, 0.0, 1.0},
         };
 
@@ -965,12 +965,62 @@ void create_hud_data(GameState* state) {
             &state->healthbar
         );
     }
+
+    {
+        u32 count = 12;
+        vec2 offsets[] = {
+            {0.56667, 0.5},
+            {0.63333, 0.5},
+            {0.70000, 0.5},
+            {0.76667, 0.5},
+            {0.83333, 0.5},
+            {0.90000, 0.5},
+
+            {0.56667, 0.6},
+            {0.63333, 0.6},
+            {0.70000, 0.6},
+            {0.76667, 0.6},
+            {0.83333, 0.6},
+            {0.90000, 0.6},
+        };
+        vec4 colors[] = {
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0},
+        };
+
+        create_hud_element(
+            &state->semaphore_buffer,
+            state->device,
+            state->physical_device,
+            state->queue,
+            state->command_pool,
+            state->swapchain_image_count,
+            count,
+            offsets,
+            colors,
+            crosshair_vertex_count,
+            crosshair_vertices,
+            &state->hud_descriptor_set_layout,
+            &state->ammobar
+        );
+    }
 }
 
 void init_staged_buffers(GameState* state) {
     sbinit(&state->scratch, 2 * 1024 * 1024); // 2M
     sbinit(&state->swapchain_buffer, 4 * 1024); // 4K
-    sbinit(&state->semaphore_buffer, 4 * 1024); // 4K
+    sbinit(&state->semaphore_buffer, 16 * 1024); // 4K
 
     sbinit(&state->level_buffer, 4 * 1024 * 1024); // 4M
     sbinit(&state->level_scratch_buffer, 512 * 1024); // 512K
