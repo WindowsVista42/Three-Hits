@@ -416,17 +416,27 @@ void create_device_local_buffer(
 ) {
     VkBuffer staging_buffer;
     VkDeviceMemory staging_memory;
-    create_buffer(device, physical_device, size,
-                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                  &staging_buffer, &staging_memory);
+    create_buffer(
+        device,
+        physical_device,
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &staging_buffer,
+        &staging_memory
+    );
 
     write_buffer(device, staging_memory, 0, size, 0, data);
 
-    create_buffer(device, physical_device, size,
-                  usage,
-                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                  local_buffer, local_memory);
+    create_buffer(
+        device,
+        physical_device,
+        size,
+        usage,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        local_buffer,
+        local_memory
+    );
 
     copy_buffer_to_buffer(device, queue, command_pool, staging_buffer, *local_buffer, size);
 
@@ -446,10 +456,15 @@ void create_device_local_buffer_2(
 ) {
     VkBuffer staging_buffer;
     VkDeviceMemory staging_memory;
-    create_buffer(device, physical_device, size,
-                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                  &staging_buffer, &staging_memory);
+    create_buffer(
+        device,
+        physical_device,
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &staging_buffer,
+        &staging_memory
+    );
 
     write_buffer(device, staging_memory, 0, size, 0, data);
 
