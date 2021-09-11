@@ -405,6 +405,7 @@ typedef struct GameState {
     HudElement crosshair;
     HudElement healthbar;
     HudElement ammobar;
+    HudElement hit_effect;
 
     // audio
     AlDevice* al_device;
