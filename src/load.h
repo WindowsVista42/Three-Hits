@@ -441,12 +441,15 @@ void create_command_buffers(GameState* state) {
                 RenderHudElementInfo render_hud_element_info = {};
                 render_hud_element_info.begin_info = &render_pass_begin_info;
                 render_hud_element_info.pipeline = state->hud_pipeline;
-                render_hud_element_info.aspect = (f32) state->swapchain_extent.width / (f32) state->swapchain_extent.height;
                 render_hud_element_info.index = index;
 
+                render_hud_element_info.aspect = (f32) state->swapchain_extent.width / (f32) state->swapchain_extent.height;
                 render_hud_element(command_buffer, &render_hud_element_info, &state->crosshair);
                 render_hud_element(command_buffer, &render_hud_element_info, &state->healthbar);
                 render_hud_element(command_buffer, &render_hud_element_info, &state->ammobar);
+
+                render_hud_element_info.aspect = 1.0;
+                render_hud_element(command_buffer, &render_hud_element_info, &state->hit_effect);
             }
 
             {
