@@ -166,6 +166,12 @@ global vec2 crosshair_vertices[crosshair_vertex_count] = {
     {{-crosshair_width * crosshair_scale,  0.5 * 1.732051 * crosshair_width * crosshair_scale}},
 };
 
+#define fullscreen_quad_vertex_count 6
+global vec2 fullscreen_quad_vertices[fullscreen_quad_vertex_count] = {
+    {{-1.0, -1.0}}, {{-1.0, 1.0}}, {{1.0, -1.0}},
+    {{-1.0, 1.0}}, {{ 1.0,  1.0}},{{1.0, -1.0}},
+};
+
 typedef struct UniformBufferObject {
     mat4 view_projection;
 } UniformBufferObject;
