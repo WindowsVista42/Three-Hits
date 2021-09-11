@@ -1,8 +1,8 @@
 - UI
     - Hit Reaction
-    - HUD
-        - Health Status (player arm?)
-        - Ammo Status (player gun?)
+        - flashes red when player is hit
+
+    -- OPTIONAL --
     - Main Menu
         - Play
         - Quit
