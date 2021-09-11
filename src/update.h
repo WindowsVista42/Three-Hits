@@ -1071,9 +1071,7 @@ void update_and_render(GameState* state) {
         panic("Failed to acquire next swapchain image!");
     }
 
-    {
-        update(state);
-    }
+    update(state);
 
     if(state->image_in_flight_fences[state->current_frame_index] != 0) {
         vkWaitForFences(state->device, 1, &state->image_in_flight_fences[state->current_frame_index], VK_TRUE, UINT64_MAX);
