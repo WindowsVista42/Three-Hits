@@ -789,6 +789,7 @@ void create_hud_element(
 ) {
     hud_element->data.count = data_count;
     hud_element->count = data_count;
+    hud_element->vertex_count = vertex_count;
 
     hud_element->offsets = sbmalloc(staged_buffer, hud_element->count* sizeof(vec2));
     hud_element->colors = sbmalloc(staged_buffer, hud_element->count * sizeof(vec4));
