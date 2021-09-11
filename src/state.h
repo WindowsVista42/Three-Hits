@@ -249,6 +249,7 @@ typedef struct HudLocalData {
 typedef struct HudElement {
     u32 count;
 
+    u32 vertex_count;
     Buffer vertices;
 
     vec2* offsets;
