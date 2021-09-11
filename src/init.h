@@ -1016,6 +1016,28 @@ void create_hud_data(GameState* state) {
             &state->ammobar
         );
     }
+
+    {
+        u32 count = 1;
+        vec2 offsets[] = {{0.0, 0.0}};
+        vec4 colors[] = {{1.0, 0.0, 0.0, 0.2}};
+
+        create_hud_element(
+            &state->semaphore_buffer,
+            state->device,
+            state->physical_device,
+            state->queue,
+            state->command_pool,
+            state->swapchain_image_count,
+            count,
+            offsets,
+            colors,
+            fullscreen_quad_vertex_count,
+            fullscreen_quad_vertices,
+            &state->hud_descriptor_set_layout,
+            &state->hit_effect
+        );
+    }
 }
 
 void init_staged_buffers(GameState* state) {
