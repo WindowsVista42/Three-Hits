@@ -361,7 +361,7 @@ void render_hud_element(
             vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline.layout, 0, 1, &hud_element->sets[info->index], 0, 0);
             vkCmdPushConstants(command_buffer, info->pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(f32), &info->aspect);
         }
-        vkCmdDraw(command_buffer, 3, hud_element->count, 0, 0);
+        vkCmdDraw(command_buffer, hud_element->vertex_count, hud_element->count, 0, 0);
     }
     vkCmdEndRenderPass(command_buffer);
 }
