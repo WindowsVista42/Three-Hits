@@ -48,8 +48,10 @@ typedef EFXEAXREVERBPROPERTIES ReverbProperties;
 typedef ALCcontext AlContext;
 typedef ALCdevice AlDevice;
 
+//TODO(sean): if all audio devices are disabled this will never succeed
 void load_al_procedures() {
-#define LOAD_PROC(T, x)  ((x) = (T)alGetProcAddress(#x))
+    #define LOAD_PROC(T, x)  ((x) = (T)alGetProcAddress(#x)); if((x) == 0) { panic("Failed to load Open AL"); } 0
+
     LOAD_PROC(LPALGENEFFECTS, alGenEffects);
     LOAD_PROC(LPALDELETEEFFECTS, alDeleteEffects);
     LOAD_PROC(LPALISEFFECT, alIsEffect);
@@ -73,7 +75,6 @@ void load_al_procedures() {
     LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTIV, alGetAuxiliaryEffectSlotiv);
     LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTF, alGetAuxiliaryEffectSlotf);
     LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTFV, alGetAuxiliaryEffectSlotfv);
-#undef LOAD_PROC
 }
 
 typedef struct RawSound {
