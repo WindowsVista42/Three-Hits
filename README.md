@@ -10,4 +10,4 @@ To compile shaders, go into build.bat and change the path to be the path where y
 
 ## Notes before archiving
 I was using CLion to compile this so building it from source is a bit wonky.  
-Gameplay video:  
+https://www.youtube.com/watch?v=NYOwEE-YzeA
