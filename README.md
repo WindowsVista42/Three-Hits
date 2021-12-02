@@ -7,3 +7,6 @@
 - anything in lib/
 
 To compile shaders, go into build.bat and change the path to be the path where you downloaded your vulkan sdk to
+
+I was using CLion to compile this so building it from source is a bit wonky.
+Gameplay video: 
