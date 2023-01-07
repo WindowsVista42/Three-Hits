@@ -1,13 +1,24 @@
 # Three Hits
-## Dependencies that I can think of
-- vulkan sdk (kinda, only really needed so you can compile shaders and get validation layers)
-- glfw (Add it to lib/)
-- cmake (a recent version)
-- A C compiler (gcc or clang)
-- anything in lib/
+A game I made in 2021 in roughly 2 to 3 months over the summer.
 
-To compile shaders, go into build.bat and change the path to be the path where you downloaded your vulkan sdk to  
+The premise is that you can only survive three hits hence... 'Three Hits'
 
-## Notes before archiving
-I was using CLion to compile this so building it from source is a bit wonky.  
-https://www.youtube.com/watch?v=NYOwEE-YzeA
+The main game can be found in [src/](src/) and was built with C, and the level compactor can be found in [level_compactor/](level_compactor/) and was built with C++.
+
+## Project Overview
+**Custom Things Made:**
+- Vulkan Forward Renderer
+- 3D Physics
+- Math Library
+- Level File Format and Converter
+
+**Libraries Used:**
+- GLFW
+- Vulkan
+- OpenAL-soft
+- tinyobjloader
+- glm (for level_compactor)
+- stb_image
+
+## Gameplay Video
+Youtube Link: https://youtu.be/NYOwEE-YzeA  
