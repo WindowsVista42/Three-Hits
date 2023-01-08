@@ -6,13 +6,13 @@ The premise is that you can only survive three hits hence... 'Three Hits'
 The main game can be found in [src/](src/) and was built with C, and the level compactor can be found in [level_compactor/](level_compactor/) and was built with C++.
 
 ## Project Overview
-**Custom Things Made:**
-- Vulkan Forward Renderer
-- 3D Physics
-- Math Library
-- Level File Format and Converter
+**Custom things made:**
+- Forward renderer using Vulkan
+- 3D physics
+- Custom math library
+- Level file format and converter
 
-**Libraries Used:**
+**Libraries used:**
 - GLFW
 - Vulkan
 - OpenAL-soft
