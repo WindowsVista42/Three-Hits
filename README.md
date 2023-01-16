@@ -5,6 +5,8 @@ The premise is that you can only survive three hits hence... 'Three Hits'
 
 The main game can be found in [src/](src/) and was built with C, and the level compactor can be found in [level_compactor/](level_compactor/) and was built with C++.
 
+A build of the game can be found in [final/](final/). If the game initially doesn't run, try running the oalinst.exe file in the bin folder.
+
 ## Project Overview
 **Custom things made:**
 - Forward renderer using Vulkan
