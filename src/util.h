@@ -37,6 +37,15 @@ typedef struct DebugCallbackData {} DebugCallbackData;
 #define every(name, count) (usize name = 0; (name) < (count); (name) += 1)
 #define here printf("Here\n");
 
+#define panic(message) \
+    fprintf(stderr, "Thread panicked at message: \"%s\"\n", message); \
+    exit(1);
+
+#define panic_if_zero(value, message) \
+    if ((value) == 0) { \
+        panic(message); \
+    }
+
 typedef struct StagedBuffer {
     void* pointer;
     usize capacity;
@@ -47,7 +56,7 @@ global inline void* sbmalloc(StagedBuffer* heap, usize required_size) {
     usize would_be_offset = heap->length + required_size;
 
     if (would_be_offset > heap->capacity) {
-        return 0;
+        panic("Staged Buffer malloc would overflow!\n");
     } else {
         void* pointer = (void*)(heap->pointer + heap->length);
         heap->length += required_size;
@@ -57,6 +66,10 @@ global inline void* sbmalloc(StagedBuffer* heap, usize required_size) {
 
 global inline void sbclear(StagedBuffer* heap) {
     heap->length = 0;
+}
+
+global inline void sbreset(StagedBuffer* heap, usize requested_reset) {
+    heap->length = requested_reset;
 }
 
 global inline void sbfree(StagedBuffer* heap) {
@@ -69,7 +82,7 @@ global inline void* sbcalloc(StagedBuffer* heap, u8 clear_value, usize required_
     usize would_be_offset = heap->length + required_size;
 
     if (would_be_offset > heap->capacity) {
-        return 0;
+        panic("Staged Buffer calloc would overflow!\n");
     } else {
         // set required_size bytes to 0 at position pointer + length
         void* pointer = heap->pointer + heap->length;
@@ -85,16 +98,6 @@ global inline void sbinit(StagedBuffer* heap, usize allocation_size) {
     heap->capacity = allocation_size;
     heap->pointer = malloc(allocation_size);
 }
-
-#define panic(message) \
-    fprintf(stderr, "Thread panicked at message: \"%s\"\n", message); \
-    exit(1);
-
-
-#define panic_if_zero(value, message) \
-    if ((value) == 0) { \
-        panic(message); \
-    }
 
 #define UNTITLED_FPS_UTILS_H
 #endif //UNTITLED_FPS_UTILS_H

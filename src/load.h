@@ -90,7 +90,29 @@ void load_level_sound_sources(GameState* state, LoaderState* loader) {
 }
 
 void load_level_texture(GameState* state, LoaderState* loader) {
-    char *texture_path = "../data/textures/doors0.png";
+    char *texture_path;
+    if(state->level_index == 0) {
+        texture_path = "../data/textures/doors0.png";
+    }
+    else if(state->level_index == 1) {
+        texture_path = "../data/textures/doors1.png";
+    }
+    else if(state->level_index == 2) {
+        texture_path = "../data/textures/doors2.png";
+    }
+    else if(state->level_index == 3) {
+        texture_path = "../data/textures/doors3.png";
+    }
+    else if(state->level_index == 4) {
+        texture_path = "../data/textures/doors4.png";
+    }
+    else if(state->level_index == 5) {
+        texture_path = "../data/textures/doors5.png";
+    }
+    else {
+        exit(0);
+    }
+
     loader->texture_path = sbmalloc(&loader->scratch, strlen(texture_path) * sizeof(char));
     strcpy(loader->texture_path, texture_path);
 
@@ -166,9 +188,26 @@ void load_enemy_list(StagedBuffer* scratch_buffer, EnemyList* enemies, FILE* fp)
 
 //TODO(sean): figure out a way to compress this
 void load_level_model(GameState* state, LoaderState* loader) {
-    loader->level_path = "../data/levels/doors1.level";
-    if(state->level_index > 0) {
+    if(state->level_index == 0) {
+        loader->level_path = "../data/levels/doors0.level";
+    }
+    else if(state->level_index == 1) {
         loader->level_path = "../data/levels/doors1.level";
+    }
+    else if(state->level_index == 2) {
+        loader->level_path = "../data/levels/doors2.level";
+    }
+    else if(state->level_index == 3) {
+        loader->level_path = "../data/levels/doors3.level";
+    }
+    else if(state->level_index == 4) {
+        loader->level_path = "../data/levels/doors4.level";
+    }
+    else if(state->level_index == 5) {
+        loader->level_path = "../data/levels/doors5.level";
+    }
+    else {
+        exit(0);
     }
 
     {
@@ -768,7 +807,6 @@ void free_enemy_sound_sources(EnemyList* enemies) {
 
 void unload_level(GameState* state) {
     state->load_next_level = false;
-    state->level_index += 1;
 
     vkDeviceWaitIdle(state->device);
 

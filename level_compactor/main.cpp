@@ -452,10 +452,14 @@ int main() {
                 fwrite(&model_vertices[index].uv.y, sizeof(f32), 1, fp);
             }
 
+            printf("model_vertex_count: %d\n", model_vertex_count);
+
             fwrite(&model_index_count, sizeof(u32), 1, fp);
             for (usize index = 0; index < model_index_count; index += 1) {
                 fwrite(&model_indices[index], sizeof(u32), 1, fp);
             }
+
+            printf("model_index_count: %d\n", model_index_count);
 
             // door model
             fwrite(&door_vertex_count, sizeof(u32), 1, fp);
@@ -472,10 +476,14 @@ int main() {
                 fwrite(&door_vertices[index].uv.y, sizeof(f32), 1, fp);
             }
 
+            printf("door_vertex_count: %d\n", door_vertex_count);
+
             fwrite(&door_index_count, sizeof(u32), 1, fp);
             for (usize index = 0; index < door_index_count; index += 1) {
                 fwrite(&door_indices[index], sizeof(u32), 1, fp);
             }
+
+            printf("door_index_count: %d\n", door_index_count);
 
             // physmesh
             fwrite(&physmesh_vertex_count, sizeof(u32), 1, fp);
@@ -484,6 +492,8 @@ int main() {
                 fwrite(&physmesh_vertices[index].y, sizeof(f32), 1, fp);
                 fwrite(&physmesh_vertices[index].z, sizeof(f32), 1, fp);
             }
+
+            printf("physmesh_vertex_count: %d\n", physmesh_vertex_count);
 
             // door prs
             fwrite(&door_count, sizeof(u32), 1, fp);

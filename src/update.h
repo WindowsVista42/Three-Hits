@@ -87,10 +87,12 @@ void update_enemy_physics(
     vec3 player_position,
     f32 player_radius,
     u32 physmesh_vertex_count,
-    vec3* physmesh_vertices,
-    i32* player_health,
+    vec3* restrict physmesh_vertices,
+    i32* restrict player_health,
     f32 sliding_threshold,
-    f32 delta_time_unadj
+    f32 delta_time_unadj,
+    f32* restrict player_hit_timer,
+    f32 player_hit_timer_length
 ) {
     f32 delta_time = delta_time_unadj / 4.0;
     // enemy physics
@@ -150,7 +152,7 @@ void update_enemy_physics(
             }
 
             ALenum source_state;
-            // player shot logic
+            // hitting player
             b32 sees_player = false;
             if(found_wall == false && dtp < enemies->shoot_range * enemies->shoot_range) { // can see the player
                 sees_player = true;
@@ -185,6 +187,7 @@ void update_enemy_physics(
                     alSourcePlay(enemies->gun_sound_sources[index]);
                     alSourceStop(enemies->windup_sound_sources[index]);
                     *player_health -= 1;
+                    *player_hit_timer = player_hit_timer_length;
                 }
             } else { // can not see the player
                 alGetSourcei(enemies->windup_sound_sources[index], AL_SOURCE_STATE, &source_state);
@@ -690,6 +693,9 @@ void update(GameState* state) {
     }
 
     {
+        static f32 player_hit_timer = 0.0;
+        const f32 player_hit_timer_length = 0.25;
+
         update_enemy_physics(
             &state->level_scratch_buffer,
             &state->mediums,
@@ -700,7 +706,9 @@ void update(GameState* state) {
             state->physmesh_vertices,
             &state->player_health,
             state->sliding_threshold,
-            state->delta_time
+            state->delta_time,
+            &player_hit_timer,
+            player_hit_timer_length
         );
         sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->mediums.entities);
 
@@ -714,7 +722,9 @@ void update(GameState* state) {
             state->physmesh_vertices,
             &state->player_health,
             state->sliding_threshold,
-            state->delta_time
+            state->delta_time,
+            &player_hit_timer,
+            player_hit_timer_length
         );
         sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->rats.entities);
 
@@ -728,14 +738,40 @@ void update(GameState* state) {
             state->physmesh_vertices,
             &state->player_health,
             state->sliding_threshold,
-            state->delta_time
+            state->delta_time,
+            &player_hit_timer,
+            player_hit_timer_length
         );
         sync_entity_position_rotations(state->device, state->queue, state->command_pool, state->player_position, &state->knights.entities);
-    }
 
-    if(state->player_health <= 0) {
-        state->load_next_level = true;
-        return;
+        const f32 hit_intensity = 0.5;
+
+        player_hit_timer -= state->delta_time;
+        if (player_hit_timer < 0.0) { player_hit_timer = 0.0; };
+        if (player_hit_timer > 0.0) {
+            state->hit_effect.data.count = 1;
+            state->hit_effect.colors[0] = vec4_new(1.0, 0.0, 0.0, hit_intensity * (player_hit_timer / player_hit_timer_length));
+        } else {
+            state->hit_effect.data.count = 0;
+        }
+
+        if (state->player_health <= 0) {
+            state->load_next_level = true;
+            return;
+        }
+
+        write_buffer(state->device, state->hit_effect.uniforms[current_image].memory, 0, sizeof(HudLocalData), 0, &state->hit_effect.data);
+        write_buffer_copy_buffer(
+            state->device,
+            state->queue,
+            state->command_pool,
+            state->hit_effect.colors_staging_buffer,
+            state->hit_effect.colors_buffer,
+            state->hit_effect.colors,
+            0,
+            sizeof(vec4),
+            0
+        );
     }
 
     // Player physics
@@ -892,6 +928,7 @@ void update(GameState* state) {
         if(vec3_distsq_vec3(state->player_position, *(vec3*)&state->end_zone) < state->end_zone.w) {
             if(state->activate_key.pressed) {
                 state->load_next_level = true;
+                state->level_index += 1;
             }
         }
     }

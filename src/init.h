@@ -1020,7 +1020,7 @@ void create_hud_data(GameState* state) {
     {
         u32 count = 1;
         vec2 offsets[] = {{0.0, 0.0}};
-        vec4 colors[] = {{1.0, 0.0, 0.0, 0.2}};
+        vec4 colors[] = {{1.0, 0.0, 0.0, 0.4}};
 
         create_hud_element(
             &state->semaphore_buffer,
